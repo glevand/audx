@@ -159,6 +159,7 @@ Usage: m4a-converter.sh [flags] top-dir
 Option flags:
   -b --bitrate     - Encoding bitrate. Default: '328k'.
   -o --output-dir  - Output directory. Default: ''.
+  -c --clobber     - Overwrite existing files. Default: ''.
   -h --help        - Show this help and exit.
   -v --verbose     - Verbose execution.
   -g --debug       - Extra verbose execution.

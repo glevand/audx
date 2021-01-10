@@ -9,15 +9,16 @@ usage() {
 	echo "Option flags:" >&2
 	echo "  -b --bitrate     - Encoding bitrate. Default: '${bitrate}'." >&2
 	echo "  -o --output-dir  - Output directory. Default: '${output_dir}'." >&2
+	echo "  -c --clobber     - Overwrite existing files. Default: '${clobber}'." >&2
 	echo "  -h --help        - Show this help and exit." >&2
-	echo "  -v --verbose     - Verbose execution." >&2
-	echo "  -g --debug       - Extra verbose execution." >&2
+	echo "  -v --verbose     - Verbose execution. Default: '${verbose}'." >&2
+	echo "  -g --debug       - Extra verbose execution. Default: '${debug}'." >&2
 	eval "${old_xtrace}"
 }
 
 process_opts() {
-	local short_opts="b:o:dhvg"
-	local long_opts="bitrate:,output-dir:,dry-run,help,verbose,debug"
+	local short_opts="b:o:chvg"
+	local long_opts="bitrate:,output-dir:,clobber,help,verbose,debug"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -34,6 +35,10 @@ process_opts() {
 		-o | --output-dir)
 			output_dir="${2}"
 			shift 2
+			;;
+		-c | --clobber)
+			clobber=1
+			shift
 			;;
 		-h | --help)
 			usage=1
@@ -75,6 +80,7 @@ setup_p_script() {
 	local id=${1}
 	local in_file=${2}
 	local p_script=${3}
+	local -n _setup_p_script__out_count="${4}"
 
 	declare -A triple
 	path_to_artist_album_title "${in_file}" triple
@@ -86,10 +92,19 @@ setup_p_script() {
 	local out_file
 	out_file="${output_dir}/${triple[artist]}/${triple[album]}/${triple[title]%.flac}.m4a"
 
-	if [[ ${verbose} ]]; then
-		echo "${id}: Setup '${in_file}'" >&2
-		# echo "${id}: Setup '${in_file}' @ '${p_script}'" >&2
+	if [[ ! ${clobber} && -e "${out_file}" ]]; then
+		if [[ ${verbose} ]]; then
+			echo "${id}: File exists '${out_file}'" >&2
+		fi
+		return
 	fi
+
+	if [[ ${verbose} ]]; then
+		echo "${id}: Setup '${out_file}'" >&2
+		#echo "${id}: Setup '${out_file}' @ '${p_script}'" >&2
+	fi
+
+	_setup_p_script__out_count=$(( _setup_p_script__out_count + 1 ))
 
 	declare -A tags
 	flac_fill_tag_set "${in_file}" tags
@@ -117,7 +132,7 @@ bitrate='${bitrate}'
 EOF
 
 	cat << 'EOF' >> "${p_script}"
-echo "${id}: Processing '${in_file}'" >&2
+echo "${id}: Creating '${out_file}'" >&2
 
 mkdir -p "${out_file%/*}"
 
@@ -183,9 +198,10 @@ check_program "sox" "${sox}"
 
 readarray file_array < <(find "${top_dir}" -type f -name '*.flac' | sort)
 
-file_count="${#file_array[@]}"
+in_count="${#file_array[@]}"
+out_count=0
 
-echo "${script_name}: INFO: Processing ${file_count} files." >&2
+echo "${script_name}: INFO: Processing ${in_count} files." >&2
 
 tmp_dir="$(mktemp --tmpdir --directory ${script_name}.XXXX)"
 
@@ -196,14 +212,18 @@ else
 fi
 
 bucket_size=100
-bucket_count=$(( file_count / bucket_size ))
+bucket_count=$(( in_count / bucket_size ))
 bucket=1
 
-for (( id = 1; id <= ${file_count}; id++ )); do
+if [[ -e "${p_script_dir}" ]]; then
+	rm -rf "${p_script_dir:?}"
+fi
+
+for (( id = 1; id <= ${in_count}; id++ )); do
 	file="${file_array[$(( id - 1 ))]//[$'\r\n']}"
 	p_script="${p_script_dir}/${bucket}/${id}.sh"
 
-	setup_p_script "${id}" "${file}" "${p_script}"
+	setup_p_script "${id}" "${file}" "${p_script}" out_count
 
 	if (( (id % bucket_size) == 0 )); then
 		echo "Processing bucket ${bucket} of ${bucket_count}." >&2
@@ -212,11 +232,11 @@ for (( id = 1; id <= ${file_count}; id++ )); do
 	fi
 done
 
-# FIXME: Use xargs???
+if [[ -e "${p_script_dir}/${bucket}" ]]; then
+	parallel -- $(find "${p_script_dir}/${bucket}" -type f -name '*.sh')
+fi
 
-parallel -- $(find "${p_script_dir}/${bucket}" -type f -name '*.sh')
-
-echo "${script_name}: INFO: Wrote ${file_count} m4a files to '${output_dir}'" >&2
+echo "${script_name}: INFO: Wrote ${out_count} m4a files to '${output_dir}'" >&2
 
 trap "on_exit 'Success'" EXIT
 exit 0
