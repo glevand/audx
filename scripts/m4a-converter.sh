@@ -168,12 +168,12 @@ trap "on_exit 'failed'" EXIT
 set -e
 set -o pipefail
 
-run_time="$(date +%Y.%m.%d-%H.%M.%S)"
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 process_opts "${@}"
 
 bitrate="${bitrate:-328k}"
-output_dir="${output_dir:-/tmp/audx-m4a-${run_time}}"
+output_dir="${output_dir:-/tmp/audx-m4a-${start_time}}"
 
 if [[ ${usage} ]]; then
 	usage
