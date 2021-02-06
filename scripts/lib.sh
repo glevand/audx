@@ -274,7 +274,7 @@ clean_tag() {
 	tag="${tag//[’\'\’\`\"!?]/}"
 	tag="${tag//[èéé]/e}"
 	tag="${tag//[à]/a}"
-	tag="${tag//[~*<>|]/-}"
+	tag="${tag//[~*<>|‐]/-}"
 
 	tag="${tag//[@]/A}"
 	tag="${tag//[+&]/and}"
@@ -370,6 +370,15 @@ flac_print_tag_set() {
 	echo "${FUNCNAME[0]}:   tracktotal:  '${_flac_print_tag_set__tags[tracktotal]}'" >&2
 }
 
+add_leading_zero() {
+	local -n _add_leading_zero_number=${1}
+
+	_add_leading_zero_num="${_add_leading_zero_num#0}"
+	if ((_add_leading_zero_num < 10)); then
+		_add_leading_zero_num="0${_add_leading_zero_num}"
+	fi
+}
+
 flac_fill_tag_set() {
 	local file="${1}"
 	local -n _flac_fill_tag_set__tags="${2}"
@@ -378,16 +387,13 @@ flac_fill_tag_set() {
 		return
 	fi
 
-	_flac_fill_tag_set__tags[artist]="$(flac_get_tag "artist" "${file}")"
-	_flac_fill_tag_set__tags[album]="$(flac_get_tag "album" "${file}")"
-	_flac_fill_tag_set__tags[title]="$(flac_get_tag "title" "${file}")"
-	_flac_fill_tag_set__tags[tracknumber]="$(flac_get_tag "tracknumber" "${file}")"
-	_flac_fill_tag_set__tags[tracktotal]="$(flac_get_tag "tracktotal" "${file}" 'optional')"
+	_flac_fill_tag_set__tags[artist]="$(flac_get_tag "ARTIST" "${file}")"
+	_flac_fill_tag_set__tags[album]="$(flac_get_tag "ALBUM" "${file}")"
+	_flac_fill_tag_set__tags[title]="$(flac_get_tag "TITLE" "${file}")"
+	_flac_fill_tag_set__tags[tracknumber]="$(flac_get_tag "TRACKNUMBER" "${file}")"
+	_flac_fill_tag_set__tags[tracktotal]="$(flac_get_tag "TRACKTOTAL" "${file}" 'optional')"
 
 	_flac_fill_tag_set__tags[tracknumber]="${_flac_fill_tag_set__tags[tracknumber]#0}"
-	if ((_flac_fill_tag_set__tags[tracknumber] < 10)); then
-		_flac_fill_tag_set__tags[tracknumber]="0${_flac_fill_tag_set__tags[tracknumber]}"
-	fi
 
 	if [[ ${debug} ]]; then
 		flac_print_tag_set "${file}" _flac_fill_tag_set__tags
@@ -448,6 +454,8 @@ flac_meta_path() {
 	if [[ ${debug} ]]; then
 		flac_print_tag_set "${src}" tags
 	fi
+
+	add_leading_zero "${tags[tracknumber]}"
 
 	local dest
 
