@@ -51,6 +51,7 @@ process_opts() {
 		-g | --debug)
 			verbose=1
 			debug=1
+			keep_tmp_dir=1
 			set -x
 			shift
 			;;
@@ -80,7 +81,7 @@ setup_p_script() {
 	local id=${1}
 	local in_file=${2}
 	local p_script=${3}
-	local -n _setup_p_script__out_count="${4}"
+	local -n _setup_p_script__out_counter="${4}"
 
 	declare -A triple
 	path_to_artist_album_title "${in_file}" triple
@@ -104,15 +105,15 @@ setup_p_script() {
 		#echo "${id}: Setup '${out_file}' @ '${p_script}'" >&2
 	fi
 
-	_setup_p_script__out_count=$(( _setup_p_script__out_count + 1 ))
+	_setup_p_script__out_counter=$(( _setup_p_script__out_counter + 1 ))
 
 	declare -A tags
 	flac_fill_tag_set "${in_file}" tags
 
-	mkdir -p "${p_script%/*}"
-
 	cat << EOF > "${p_script}"
 #!/usr/bin/env bash
+
+# set -x
 
 id='${id}'
 in_file='${in_file}'
@@ -153,6 +154,23 @@ eval "${sox_cmd} | ${fdkaac_cmd}"
 EOF
 
 	chmod +x "${p_script}"
+}
+
+gnu_parallel() {
+	local bucket_dir=${1}
+
+# 	echo -n "Bucket files:" >&2
+# 	ls "${bucket_dir}"/*.sh >&2
+	"${parallel}" ::: "${bucket_dir}"/*.sh
+}
+
+moreutils_parallel() {
+	local bucket_dir=${1}
+
+# 	echo -n "Bucket files:" >&2
+# 	ls "${bucket_dir}"/*.sh >&2
+# 	"${parallel}" -- $(find "${bucket_dir}" -type f -name '*.sh')
+	"${parallel}" -- "${bucket_dir}"/*.sh
 }
 
 #===============================================================================
@@ -199,17 +217,12 @@ check_program "sox" "${sox}"
 readarray file_array < <(find "${top_dir}" -type f -name '*.flac' | sort)
 
 in_count="${#file_array[@]}"
-out_count=0
 
-echo "${script_name}: INFO: Processing ${in_count} files." >&2
+echo "${script_name}: INFO: Processing ${in_count} input files." >&2
 
 tmp_dir="$(mktemp --tmpdir --directory ${script_name}.XXXX)"
 
-if [[ ${debug} ]]; then
-	p_script_dir="${output_dir}/p-scripts"
-else
-	p_script_dir="${tmp_dir}/p-scripts"
-fi
+p_script_dir="${tmp_dir}/p-scripts"
 
 bucket_size=100
 bucket_count=$(( in_count / bucket_size ))
@@ -219,24 +232,45 @@ if [[ -e "${p_script_dir}" ]]; then
 	rm -rf "${p_script_dir:?}"
 fi
 
+out_counter=0
+loop_counter=0
+
 for (( id = 1; id <= ${in_count}; id++ )); do
 	file="${file_array[$(( id - 1 ))]//[$'\r\n']}"
 	p_script="${p_script_dir}/${bucket}/${id}.sh"
 
-	setup_p_script "${id}" "${file}" "${p_script}" out_count
+	mkdir -p "${p_script_dir}/${bucket}"
+
+	setup_p_script "${id}" "${file}" "${p_script}" loop_counter
 
 	if (( (id % bucket_size) == 0 )); then
-		echo "Processing bucket ${bucket} of ${bucket_count}." >&2
-		parallel -- $(find "${p_script_dir}/${bucket}" -type f -name '*.sh')
+		if (( loop_counter == 0 )); then
+			echo "Bucket ${bucket} of ${bucket_count}: No new files." >&2
+			bucket=$(( bucket + 1 ))
+			continue
+		fi
+
+		echo "Bucket ${bucket} of ${bucket_count}: Processing ${loop_counter} files." >&2
+		out_counter=$(( out_counter + loop_counter ))
+		loop_counter=0
+
+		gnu_parallel "${p_script_dir}/${bucket}"
+# 		moreutils_parallel "${p_script_dir}/${bucket}"
+
 		bucket=$(( bucket + 1 ))
 	fi
 done
 
-if [[ -e "${p_script_dir}/${bucket}" ]]; then
-	parallel -- $(find "${p_script_dir}/${bucket}" -type f -name '*.sh')
+if (( loop_counter != 0 )); then
+	echo "Bucket ${bucket} of ${bucket_count}: Processing ${loop_counter} files." >&2
+	out_counter=$(( out_counter + loop_counter ))
+	loop_counter=0
+
+	gnu_parallel "${p_script_dir}/${bucket}"
+# 	moreutils_parallel "${p_script_dir}/${bucket}"
 fi
 
-echo "${script_name}: INFO: Wrote ${out_count} m4a files to '${output_dir}'" >&2
+echo "${script_name}: INFO: Wrote ${out_counter} m4a files to '${output_dir}'" >&2
 
 trap "on_exit 'Success'" EXIT
 exit 0
