@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
+unset keep_tmp_dir
+
 on_exit() {
 	local result=${1}
 	local sec="${SECONDS}"
 
-	if [[ -d "${tmp_dir}" ]]; then
+	if [[ ! ${keep_tmp_dir} && -d "${tmp_dir}" ]]; then
 		rm -rf "${tmp_dir}"
 	fi
 
