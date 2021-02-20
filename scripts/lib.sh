@@ -373,12 +373,15 @@ flac_print_tag_set() {
 }
 
 add_leading_zero() {
-	local -n _add_leading_zero_number=${1}
+	local -n _add_leading_zero_number="${1}"
 
-	_add_leading_zero_num="${_add_leading_zero_num#0}"
-	if ((_add_leading_zero_num < 10)); then
-		_add_leading_zero_num="0${_add_leading_zero_num}"
+	_add_leading_zero_number="${_add_leading_zero_number#0}"
+
+	if (( _add_leading_zero_number < 10 )); then
+		_add_leading_zero_number="0${_add_leading_zero_number}"
 	fi
+
+	echo "_add_leading_zero_number= '${_add_leading_zero_number}'" >&2
 }
 
 flac_fill_tag_set() {
@@ -457,7 +460,7 @@ flac_meta_path() {
 		flac_print_tag_set "${src}" tags
 	fi
 
-	add_leading_zero "${tags[tracknumber]}"
+	add_leading_zero tags[tracknumber]
 
 	local dest
 
