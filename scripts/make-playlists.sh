@@ -9,6 +9,8 @@ usage() {
 	echo "Option flags:" >&2
 	echo "  -c --canonical   - Output full canonical paths to playlist." >&2
 	echo "  -t --file-types  - File extension types {${known_file_types}}. Default: '${file_types}'." >&2
+#	echo "  -A --option-A  - Starting Date. Default: '${option_A}'." >&2
+#	echo "  -B --option-B    - Ending Date. Default: '${option_B}'." >&2
 	echo "  -h --help        - Show this help and exit." >&2
 	echo "  -v --verbose     - Verbose execution." >&2
 	echo "  -g --debug       - Extra verbose execution." >&2
@@ -16,8 +18,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="ct:hvg"
-	local long_opts="canonical,file-types:,help,verbose,debug"
+	local short_opts="ct:A:B:hvg"
+	local long_opts="canonical,file-types:,option-A:,option-B:,help,verbose,debug"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -33,6 +35,14 @@ process_opts() {
 			;;
 		-t | --file-types)
 			file_types="${2}"
+			shift 2
+			;;
+		-A | --option-A)
+			option_A="${2}"
+			shift 2
+			;;
+		-B | --option-B)
+			option_B="${2}"
 			shift 2
 			;;
 		-h | --help)
