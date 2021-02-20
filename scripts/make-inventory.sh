@@ -10,7 +10,7 @@ usage() {
 	echo "  -o --output-dir  - Output directory. Default: '${output_dir}'." >&2
 	echo "  -c --canonical   - Output full canonical paths to lists." >&2
 	echo "  -t --use-tags    - Use metadata tags to generate lists. Default: '${use_tags}'." >&2
-#	echo "  -B --option-b    - option-b. Default: '${option_b}'." >&2
+	echo "  -m --mtime       - Print file modification time. Default: '${mtime}'." >&2
 #	echo "  -C --option-c    - option-c. Default: '${option_c}'." >&2
 	echo "  -h --help        - Show this help and exit." >&2
 	echo "  -v --verbose     - Verbose execution." >&2
@@ -20,8 +20,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="o:ctB:C:hvg"
-	local long_opts="output-dir:,canonical,use-tags,option-b:,option-c:,\
+	local short_opts="o:ctmC:hvg"
+	local long_opts="output-dir:,canonical,use-tags,mtime,option-c:,\
 help,verbose,debug"
 
 	local opts
@@ -44,9 +44,9 @@ help,verbose,debug"
 			use_tags=1
 			shift
 			;;
-		-B | --option-b)
-			option_b="${2}"
-			shift 2
+		-m | --mtime)
+			mtime=1
+			shift
 			;;
 		-C | --option-c)
 			option_c="${2}"
@@ -119,7 +119,6 @@ if [[ ${use_tags} ]]; then
 	exit 1
 fi
 
-option_b="${option_b:-todo}"
 option_c="${option_c:-todo}"
 
 if [[ ${usage} ]]; then
@@ -149,7 +148,6 @@ for src_dir in "${src_dirs[@]}"; do
 		name="${name%album.m3u}"
 		name="${name%/}"
 
-
 		if [[ ${canonical} ]]; then
 			item="'$(realpath "${src_dir}/${name}")'"
 		else
@@ -159,7 +157,11 @@ for src_dir in "${src_dirs[@]}"; do
 			item="'${name}'"
 		fi
 
-		echo "[$(( i + 1 ))] ${item}" >> "${output_file}"
+		if [[ ${mtime} ]]; then
+			ftime=" $(ls -l --time-style='+%Y.%m.%d' "$(realpath "${src_dir}/${name}/01-"*)" | grep -E --only-matching '[[:digit:]]{4}(\.[[:digit:]]{2}){2}')"
+		fi
+
+		echo "[$(( i + 1 ))]${ftime} ${item}" >> "${output_file}"
 	done
 
 	if [[ ${verbose} ]]; then
