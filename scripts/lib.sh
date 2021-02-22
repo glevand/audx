@@ -183,6 +183,42 @@ delete_empty_paths() {
 	fi
 }
 
+find_first_file() {
+	local dir=${1}
+	local start=${2}
+	local end=${3}
+	local ext=${4}
+
+# 	verbose=1
+# 	echo "" >&2
+# 	echo "${FUNCNAME[0]}>------------------------" >&2
+# 	echo "${FUNCNAME[0]}: dir   = '${dir}'" >&2
+# 	echo "${FUNCNAME[0]}: start = '${start}'" >&2
+# 	echo "${FUNCNAME[0]}: end   = '${end}'" >&2
+# 	echo "${FUNCNAME[0]}: ext   = '${ext}'" >&2
+
+	local found
+	found="$(find "${dir}" -type f -name '*.flac' -newermt "${start}" \
+		! -newermt "${end}" -print -quit)"
+
+	local date
+	if [[ ${verbose} ]]; then
+		if [[ ${found} ]]; then
+			date="$(date --date="$(stat --format='%y' "${found}")" \
+				'+%Y-%m-%d')"
+			echo "OK: (${date}) '${dir}'" >&2
+		else
+			local file
+			file="$(find "${dir}" -type f -name '*.flac' -print -quit)"
+			date="$(date --date="$(stat --format='%y' "${file}")" \
+				'+%Y-%m-%d')"
+			echo "NG: (${date}) '${dir}'" >&2
+		fi
+	fi
+# 	echo "${FUNCNAME[0]}<------------------------" >&2
+	echo "${found}"
+}
+
 slash_count() {
 	local path=${1}
 	local count
