@@ -13,6 +13,7 @@ usage() {
 	echo "  -h --help        - Show this help and exit." >&2
 	echo "  -v --verbose     - Verbose execution. Default: '${verbose}'." >&2
 	echo "  -g --debug       - Extra verbose execution. Default: '${debug}'." >&2
+	echo "Send bug reports to: Geoff Levand <geoff@infradead.org>." >&2
 	eval "${old_xtrace}"
 }
 
@@ -198,6 +199,8 @@ if [[ ${usage} ]]; then
 	trap - EXIT
 	exit 0
 fi
+
+echo "audx ${script_name} - ${start_time}" >&2
 
 check_top_dir "${top_dir}"
 top_dir="$(realpath -e "${top_dir}")"
