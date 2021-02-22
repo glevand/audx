@@ -136,13 +136,12 @@ fi
 
 mkdir -p "${output_dir}"
 
-readarray file_array < <(find "${top_dir}" -type f -name '*.flac' | sort)
+readarray -t file_array < <(find "${top_dir}" -type f -name '*.flac' | sort)
 
 echo "${script_name}: INFO: Processing ${#file_array[@]} files." >&2
 
 for (( i = 0; i < ${#file_array[@]}; i++ )); do
-	file="${file_array[i]//[$'\r\n']}"
-	touch_file "${file}"
+	touch_file "${file_array[i]}"
 done
 
 echo "${script_name}: INFO: Wrote ${#file_array[@]} m4a files to '${output_dir}'" >&2
