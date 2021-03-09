@@ -102,13 +102,11 @@ metaflac="${metaflac:-metaflac}"
 
 check_program "metaflac" "${metaflac}"
 
-readarray file_array < <(find "${top_dir}" -type f | sort)
+readarray -t file_array < <(find "${top_dir}" -type f | sort)
 
 echo "${script_name}: INFO: Processing ${#file_array[@]} files." >&2
 
 for file in "${file_array[@]}"; do
-	file="${file//[$'\r\n']}"
-
 	if [[ ${various} || "${file}" == *'Various Artists/'* ]]; then
 		dest="$(flac_meta_path 'various' "${file}")"
 	else

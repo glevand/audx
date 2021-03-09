@@ -91,13 +91,11 @@ top_dir="$(realpath -e "${top_dir}")"
 out_dir="${out_dir:-/tmp/${script_name%%.sh}--$(date +%y.%m.%d.%H.%M.%S)}"
 mkdir -p "${out_dir}"
 
-readarray files_array < <(find "${top_dir}" -type f -name '*.sox' | sort)
+readarray -t files_array < <(find "${top_dir}" -type f -name '*.sox' | sort)
 
 echo "Processing ${#files_array[@]} files." >&2
 
 for in_file in "${files_array[@]}"; do
-	in_file="${in_file//[$'\r\n']}"
-
 	out_file_name="${in_file##*/}"
 	out_file_name="${out_file_name%%.sox}.flac"
 	

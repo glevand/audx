@@ -111,11 +111,9 @@ fi
 check_top_dir "${top_dir}"
 top_dir="$(realpath -e "${top_dir}")"
 
-readarray dir_array < <(find "${top_dir}" -type d | sort)
+readarray -t dir_array < <(find "${top_dir}" -type d | sort)
 
 for dir in "${dir_array[@]}"; do
-	dir="${dir//[$'\r\n']}"
-
 	if [[ ${verbose} ]]; then
 		echo "Processing: '${dir}'" >&2
 	fi
