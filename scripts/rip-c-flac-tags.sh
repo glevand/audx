@@ -107,12 +107,11 @@ check_program "metaflac" "${metaflac}"
 
 declare -A triple
 
-readarray files_array < <(find "${top_dir}" -type f -name '*.flac' | sort)
+readarray -t files_array < <(find "${top_dir}" -type f -name '*.flac' | sort)
 
 echo "Processing ${#files_array[@]} files." >&2
 
 for file in "${files_array[@]}"; do
-	file="${file//[$'\r\n']}"
 
 	path_to_artist_album_title "${file}" triple
 

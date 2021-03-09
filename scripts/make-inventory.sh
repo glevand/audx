@@ -133,18 +133,16 @@ mkdir -p "${output_dir}"
 
 for src_dir in "${src_dirs[@]}"; do
 	src_dir="${src_dir%/}"
+	output_file="${output_dir}/${src_dir##*/}.lst"
 
-	readarray file_array < <(cd "${src_dir}" && find . -type f -name 'album.m3u' | sort)
-
-	output_file="${output_dir}/${src_dir//[\/ ]/-}.lst"
+	readarray -t file_array < <(cd "${src_dir}" && find . -type f -name 'album.m3u' | sort)
 
 	echo "# ${script_name} (audx) - ${start_time}" > "${output_file}"
 	echo "# ${src_dir}: ${#file_array[@]} albums." >> "${output_file}"
 	echo '' >> "${output_file}"
 
 	for (( i = 0; i < ${#file_array[@]}; i++ )); do
-		name="${file_array[i]//[$'\r\n']}"
-		name="${name:2}"
+		name="${file_array[i]:2}"
 		name="${name%album.m3u}"
 		name="${name%/}"
 

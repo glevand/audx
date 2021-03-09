@@ -92,14 +92,10 @@ metaflac="${metaflac:-metaflac}"
 
 check_program "metaflac" "${metaflac}"
 
-readarray dir_array < <(find "${top_dir}" -type d | sort)
+readarray -t dir_array < <(find "${top_dir}" -type d | sort)
 
 for dir in "${dir_array[@]}"; do
-	dir="${dir//[$'\r\n']}"
-
-	readarray files < <(find "${dir}" -maxdepth 1 -type f -name '*.flac' | sort)
-
-	files[0]="${files[0]//[$'\r\n']}"
+	readarray -t files < <(find "${dir}" -maxdepth 1 -type f -name '*.flac' | sort)
 
 	if [[ ! -f "${files[0]}" ]]; then
 		continue

@@ -92,12 +92,11 @@ metaflac="${metaflac:-metaflac}"
 
 check_program "metaflac" "${metaflac}"
 
-readarray path_array < <((cd "${top_dir}" && find . -type f) | sort)
+readarray -t path_array < <((cd "${top_dir}" && find . -type f) | sort)
 
 echo "${script_name}: INFO: Processing ${#path_array[@]} files." >&2
 
 for path in "${path_array[@]}"; do
-	path="${path//[$'\r\n']}"
 	path="${path:2}"
 
 	flac_print_tags "${top_dir}/${path}"

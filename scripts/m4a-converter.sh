@@ -217,7 +217,7 @@ check_program "parallel" "${parallel}"
 sox="${sox:-sox}"
 check_program "sox" "${sox}"
 
-readarray file_array < <(find "${top_dir}" -type f -name '*.flac' | sort)
+readarray -t file_array < <(find "${top_dir}" -type f -name '*.flac' | sort)
 
 in_count="${#file_array[@]}"
 
@@ -239,7 +239,7 @@ out_counter=0
 loop_counter=0
 
 for (( id = 1; id <= ${in_count}; id++ )); do
-	file="${file_array[$(( id - 1 ))]//[$'\r\n']}"
+	file="${file_array[$(( id - 1 ))]}"
 	p_script="${p_script_dir}/${bucket}/${id}.sh"
 
 	mkdir -p "${p_script_dir}/${bucket}"

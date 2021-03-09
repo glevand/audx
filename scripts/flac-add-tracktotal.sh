@@ -74,24 +74,22 @@ flac_add_tracktotal() {
 	local p_array
 	local path
 
-	readarray p_array < <(find "${top}" -type d | sort)
+	readarray -t p_array < <(find "${top}" -type d | sort)
 
 	echo "${script_name}: INFO: Processing ${#p_array[@]} directories." >&2
 
 	for path in "${p_array[@]}"; do
-		path="${path//[$'\r\n']}"
 		#path="${path:2}"
 
 		local files
 		
-		readarray files < <(find "${path}" -maxdepth 1 -type f -name '*.flac' | sort)
+		readarray -t files < <(find "${path}" -maxdepth 1 -type f -name '*.flac' | sort)
 
 		if [[ ${#files[@]} -ne 0 ]]; then
 			echo "${FUNCNAME[0]}: ${path}: ${#files[@]} tracks." >&2
 
 			local file
 			for file in "${files[@]}"; do
-				file="${file//[$'\r\n']}"
 				metaflac_retag "${file}" "TRACKTOTAL" "${#files[@]}" 'add-tag'
 			done
 		fi
