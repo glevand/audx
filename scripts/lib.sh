@@ -6,8 +6,12 @@ on_exit() {
 	local result=${1}
 	local sec="${SECONDS}"
 
-	if [[ ! ${keep_tmp_dir} && -d "${tmp_dir}" ]]; then
-		rm -rf "${tmp_dir}"
+	if [[ -d "${tmp_dir}" ]]; then
+		if [[ ${keep_tmp_dir} ]]; then
+			echo "${script_name}: INFO: tmp dir preserved: '${tmp_dir}'" >&2
+		else
+			rm -rf "${tmp_dir}"
+		fi
 	fi
 
 	set +x
@@ -270,12 +274,21 @@ path_to_artist_album_title() {
 }
 
 clean_vfat_name() {
-	local name=${1}
+	local name_in=${1}
+	local name_out
 
-	#name="${name//[|\\<\":,]/}"
-	name="${name//[:]/}"
+	# Bruce Springsteen/Born In The U.S.A./01-Born In The U.S.A.
 
-	echo "${name}"
+	name_out="${name_in//[:.]/}"
+	#name_out="${name_out//[|\\<\":,]/}"
+
+	if [[ ${debug} ]]; then
+		echo "${FUNCNAME[0]}: '${name_in}' -> '${name_out}'" >&2
+	elif [[ ${verbose} && "${name_in}" != "${name_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${name_in}' -> '${name_out}'" >&2
+	fi
+
+	echo "${name_out}"
 }
 
 clean_tag() {
@@ -540,7 +553,7 @@ write_m3u_playlist() {
 
 	if (( ${#files[@]} == 0 )); then
 		if [[ ${verbose} ]]; then
-			echo "No ${type} found: '${dir}'" >&2
+			echo "${script_name}: No ${type} found: '${dir}'" >&2
 		fi
 		return
 	fi
