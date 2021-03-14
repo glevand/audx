@@ -114,7 +114,10 @@ trap "on_exit 'failed'" EXIT
 set -e
 set -o pipefail
 
-#run_time="$(date +%Y.%m.%d-%H.%M.%S)"
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+
+process_opts "${@}"
+
 unset clean_names
 
 process_opts "${@}"
@@ -128,6 +131,7 @@ fi
 check_top_dir "${top_dir}"
 top_dir="$(realpath -e "${top_dir}")"
 
+check_dir_exists 'output-dir' "${output_dir}"
 output_dir="$(realpath "${output_dir}")"
 
 if [[ -d "${output_dir}" ]]; then
