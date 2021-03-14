@@ -7,10 +7,11 @@ usage() {
 	echo "${script_name} (audx) - Recursively create m3u album playlists." >&2
 	echo "Usage: ${script_name} [flags] top-dir" >&2
 	echo "Option flags:" >&2
-	echo "  -c --canonical   - Output full canonical paths to playlist." >&2
+	echo "  -n --canonical   - Output full canonical paths to playlist." >&2
 	echo "  -t --file-types  - File extension types {${known_file_types}}. Default: '${file_types}'." >&2
-#	echo "  -A --option-A  - Starting Date. Default: '${option_A}'." >&2
-#	echo "  -B --option-B    - Ending Date. Default: '${option_B}'." >&2
+	echo "  -c --clobber     - Overwrite existing files. Default: '${clobber}'." >&2
+#	echo "  -A --option-A    - option-A. Default: '${option_A}'." >&2
+#	echo "  -B --option-B    - option-B. Default: '${option_B}'." >&2
 	echo "  -h --help        - Show this help and exit." >&2
 	echo "  -v --verbose     - Verbose execution." >&2
 	echo "  -g --debug       - Extra verbose execution." >&2
@@ -18,8 +19,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="ct:A:B:hvg"
-	local long_opts="canonical,file-types:,option-A:,option-B:,help,verbose,debug"
+	local short_opts="nt:cA:B:hvg"
+	local long_opts="canonical,file-types:,clobber,option-A:,option-B:,help,verbose,debug"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -29,13 +30,17 @@ process_opts() {
 	while true ; do
 		#echo "${FUNCNAME[0]}: @${1}@ @${2}@"
 		case "${1}" in
-		-c | --canonical)
+		-n | --canonical)
 			canonical=1
 			shift
 			;;
 		-t | --file-types)
 			file_types="${2}"
 			shift 2
+			;;
+		-c | --clobber)
+			clobber=1
+			shift
 			;;
 		-A | --option-A)
 			option_A="${2}"
@@ -115,13 +120,20 @@ readarray -t dir_array < <(find "${top_dir}" -type d | sort)
 
 for dir in "${dir_array[@]}"; do
 	if [[ ${verbose} ]]; then
-		echo "Processing: '${dir}'" >&2
+		echo "${script_name}: Processing: '${dir}'" >&2
 	fi
 
 	out_file="${dir}/${m3u_file}"
 
 	if [[ -f "${out_file}" ]]; then
-		rm -f "${out_file:?}"
+		if [[ ${clobber} ]]; then
+			rm -f "${out_file:?}"
+		else
+			if [[ ${verbose} ]]; then
+				echo "${script_name}: File exists: '${out_file}'" >&2
+			fi
+			continue
+		fi
 	fi
 
 # 	TODO: Need an empty check with header.

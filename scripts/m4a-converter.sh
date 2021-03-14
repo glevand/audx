@@ -89,10 +89,10 @@ setup_p_script() {
 
 	triple[artist]="$(clean_vfat_name "${triple[artist]}")"
 	triple[album]="$(clean_vfat_name "${triple[album]}")"
-	triple[title]="$(clean_vfat_name "${triple[title]}")"
+	triple[title]="$(clean_vfat_name "${triple[title]%.flac}")"
 
 	local out_file
-	out_file="${output_dir}/${triple[artist]}/${triple[album]}/${triple[title]%.flac}.m4a"
+	out_file="${output_dir}/${triple[artist]}/${triple[album]}/${triple[title]}.m4a"
 
 	if [[ ! ${clobber} && -e "${out_file}" ]]; then
 		if [[ ${verbose} ]]; then
@@ -224,6 +224,7 @@ in_count="${#file_array[@]}"
 echo "${script_name}: INFO: Processing ${in_count} input files." >&2
 
 tmp_dir="$(mktemp --tmpdir --directory ${script_name}.XXXX)"
+keep_tmp_dir=1
 
 p_script_dir="${tmp_dir}/p-scripts"
 
@@ -275,5 +276,6 @@ fi
 
 echo "${script_name}: INFO: Wrote ${out_counter} m4a files to '${output_dir}'" >&2
 
+unset keep_tmp_dir
 trap "on_exit 'Success'" EXIT
 exit 0
