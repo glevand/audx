@@ -16,6 +16,12 @@ usage() {
 	echo "  -v --verbose     - Verbose execution." >&2
 	echo "  -d --dry-run     - Dry run, don't modify files." >&2
 	echo "  -g --debug       - Extra verbose execution." >&2
+	echo "Common TAGs:" >&2
+	echo "  ARTIST" >&2
+	echo "  ALBUM" >&2
+	echo "  TITLE" >&2
+	echo "  TRACKNUMBER" >&2
+	echo "  TRACKTOTAL" >&2
 	eval "${old_xtrace}"
 }
 
