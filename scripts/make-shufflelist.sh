@@ -136,6 +136,9 @@ echo "audx ${script_name} - ${start_time}" >&2
 parallel="${parallel:-parallel}"
 check_program "parallel" "${parallel}"
 
+shuf="${shuf:-shuf}"
+check_program "shuf" "${shuf}"
+
 check_top_dir "${top_dir}"
 top_dir="$(realpath -e "${top_dir}")"
 
@@ -171,19 +174,20 @@ export -f find_first_file
 export -f test_album_file
 
 readarray -t good_array < <(parallel test_album_file {} "'${start_date}'" "'${end_date}'" ::: "${album_array[@]}")
+good_count="${#good_array[@]}"
 
 unset album_array
 
-echo "INFO: Found ${#good_array[@]} eligible albums." >&2
+echo "INFO: Found ${good_count} eligible albums." >&2
 
 if [[ ${verbose} ]]; then
-	for (( i = 0; i < ${#good_array[@]}; i++ )); do
+	for (( i = 0; i < ${good_count}; i++ )); do
 		echo "${i}: '${good_array[i]}'" >&2
 	done
 fi
 
-if (( ${#good_array[@]} < ${count} )); then
-	echo "${script_name}: ERROR: Not enough albums to fill playlist: (${#good_array[@]} < ${count})." >&2
+if (( ${good_count} < ${count} )); then
+	echo "${script_name}: ERROR: Not enough albums to fill playlist: (${good_count} < ${count})." >&2
 	exit 1
 fi
 
@@ -191,11 +195,10 @@ if [[ -f "${out_file}" ]]; then
 	rm -f "${out_file:?}"
 fi
 
-good_count="${#good_array[@]}"
 
 for (( i = 0; i < ${count}; i++ )); do
 	for (( j = 0; ; j++ )); do
-		rand=$(( RANDOM % ${#good_array[@]} ))
+		rand="$("${shuf}" -n1 -i0-${good_count})"
 
 		#echo "good_count = ${good_count}, j = ${j}" >&2
 		if [[ ${good_array[rand]} ]]; then
