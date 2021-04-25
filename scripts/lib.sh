@@ -41,6 +41,29 @@ cpu_count() {
 	fi
 }
 
+get_bool_opt() {
+	local opt=${1}
+	local value=${2}
+	local out
+
+	case "${value}" in
+	y | yes | 1)
+		out='y'
+		;;
+	n | no | 0)
+		out='n'
+		;;
+	*)
+		echo "${FUNCNAME[0]}: ERROR: Unknown value: ${opt} = '${value}'" >&2
+		usage
+		exit 1
+		;;
+	esac
+
+	# echo "${FUNCNAME[0]}: ${opt} '${value}' => '${out}'" >&2
+	echo "${out}"
+}
+
 check_dir_exists() {
 	local msg="${1}"
 	local dir="${2}"
