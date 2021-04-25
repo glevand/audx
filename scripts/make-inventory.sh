@@ -11,7 +11,7 @@ usage() {
 	echo "  -c --canonical   - Output full canonical paths to lists." >&2
 	echo "  -t --use-tags    - Use metadata tags to generate lists. Default: '${use_tags}'." >&2
 	echo "  -m --mtime       - Print file modification time. Default: '${mtime}'." >&2
-#	echo "  -C --option-c    - option-c. Default: '${option_c}'." >&2
+	echo "  -r --tracks      - Include album tracks. Default: '${tracks}'." >&2
 	echo "  -h --help        - Show this help and exit." >&2
 	echo "  -v --verbose     - Verbose execution." >&2
 	echo "  -g --debug       - Extra verbose execution." >&2
@@ -20,9 +20,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="o:ctmC:hvg"
-	local long_opts="output-dir:,canonical,use-tags,mtime,option-c:,\
-help,verbose,debug"
+	local short_opts="o:ctmrhvg"
+	local long_opts="output-dir:,canonical,use-tags,mtime,tracks,help,verbose,debug"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -48,9 +47,9 @@ help,verbose,debug"
 			mtime=1
 			shift
 			;;
-		-C | --option-c)
-			option_c="${2}"
-			shift 2
+		-r | --tracks)
+			tracks='y'
+			shift
 			;;
 		-h | --help)
 			usage=1
@@ -105,6 +104,7 @@ set -e
 set -o pipefail
 
 start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+tracks='n'
 
 declare -a src_dirs
 
@@ -119,8 +119,6 @@ if [[ ${use_tags} ]]; then
 	exit 1
 fi
 
-option_c="${option_c:-todo}"
-
 if [[ ${usage} ]]; then
 	usage
 	trap - EXIT
@@ -132,34 +130,54 @@ check_src_dirs "${src_dirs[@]}"
 mkdir -p "${output_dir}"
 
 for src_dir in "${src_dirs[@]}"; do
-	src_dir="${src_dir%/}"
-	output_file="${output_dir}/${src_dir##*/}.lst"
+	if [[ "${tracks}" == 'y' ]]; then
+		list_type='tracks'
+	else
+		list_type='albums'
+	fi
 
-	readarray -t file_array < <(cd "${src_dir}" && find . -type f -name 'album.m3u' | sort)
+	src_dir="${src_dir%/}"
+	output_file="${output_dir}/${src_dir##*/}-${list_type}.lst"
+	src_path="$(realpath "${src_dir}")"
+
+	readarray -t album_array < <(find "${src_path}" -type f -name 'album.m3u' | sort)
 
 	echo "# ${script_name} (audx) - ${start_time}" > "${output_file}"
-	echo "# ${src_dir}: ${#file_array[@]} albums." >> "${output_file}"
+	echo "# ${src_dir}: ${#album_array[@]} albums." >> "${output_file}"
 	echo '' >> "${output_file}"
 
-	for (( i = 0; i < ${#file_array[@]}; i++ )); do
-		name="${file_array[i]:2}"
-		name="${name%album.m3u}"
-		name="${name%/}"
+	for (( i = 0; i < ${#album_array[@]}; i++ )); do
+		album_path="${album_array[i]%/album.m3u}"
+		album="${album_path##*/}"
+		artist_path="${album_path%/*}"
+		artist="${artist_path##*/}"
 
 		if [[ ${canonical} ]]; then
-			item="'$(realpath "${src_dir}/${name}")'"
+			item="'${album_path}'"
 		else
-			if [[ ! ${name} ]]; then
+			if [[ ! ${artist} || ! ${album} ]]; then
 				echo "${script_name}: WARNING: No path, use --canonical" >&2
 			fi
-			item="'${name}'"
+			item="'${artist}/${album}'"
 		fi
 
 		if [[ ${mtime} ]]; then
-			ftime=" $(ls -l --time-style='+%Y.%m.%d' "$(realpath "${src_dir}/${name}/01-"*)" | grep -E --only-matching '[[:digit:]]{4}(\.[[:digit:]]{2}){2}')"
+			ftime=" $(ls -l --time-style='+%Y.%m.%d' "$(realpath "${src_dir}/${album}/01-"*)" | grep -E --only-matching '[[:digit:]]{4}(\.[[:digit:]]{2}){2}')"
 		fi
 
 		echo "[$(( i + 1 ))]${ftime} ${item}" >> "${output_file}"
+
+		if [[ "${tracks}" == 'y' ]]; then
+			readarray -t track_array < <(find "${album_path}" -type f -name '*.flac' -o -name '*.m4a' | sort)
+
+			for (( j = 0; j < ${#track_array[@]}; j++ )); do
+				track="${track_array[j]##*/}"
+				track="${track%.*}"
+				#echo "  [$(( i + 1 )).$(( j + 1 ))] ${track}" >> "${output_file}"
+				echo "  '${track}'" >> "${output_file}"
+			done
+		fi
+
 	done
 
 	if [[ ${verbose} ]]; then
