@@ -97,7 +97,7 @@ script_name="${0##*/}"
 SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 SECONDS=0
 
-source "${SCRIPTS_TOP}/lib.sh"
+source "${SCRIPTS_TOP}/audx-lib.sh"
 
 trap "on_exit 'Failed.'" EXIT
 set -e
