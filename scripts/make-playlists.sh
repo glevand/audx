@@ -99,7 +99,7 @@ trap "on_exit 'failed'" EXIT
 set -e
 set -o pipefail
 
-run_time="$(date +%Y.%m.%d-%H.%M.%S)"
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 m3u_file="album.m3u"
 
 process_opts "${@}"

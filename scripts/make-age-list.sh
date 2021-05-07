@@ -79,11 +79,11 @@ trap "on_exit 'failed'" EXIT
 set -e
 set -o pipefail
 
-run_time="$(date +%Y.%m.%d-%H.%M.%S)"
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 process_opts "${@}"
 
-out_file="${out_file:-/tmp/audx-age-${run_time}.lst}"
+out_file="${out_file:-/tmp/audx-age-${start_time}.lst}"
 
 if [[ ${usage} ]]; then
 	usage
