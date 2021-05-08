@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
+#
+# (@PACKAGE_NAME@) version @PACKAGE_VERSION@
+# @PACKAGE_URL@
+# Send bug reports to: Geoff Levand <geoff@infradead.org>
+#
 
-unset keep_tmp_dir
+dry_run=''
 
 on_exit() {
 	local result=${1}
+
 	local sec="${SECONDS}"
 
-	if [[ -d "${tmp_dir}" ]]; then
-		if [[ ${keep_tmp_dir} ]]; then
+	if [[ -d "${tmp_dir:-}" ]]; then
+		if [[ ${keep_tmp_dir:-} ]]; then
 			echo "${script_name}: INFO: tmp dir preserved: '${tmp_dir}'" >&2
 		else
-			rm -rf "${tmp_dir}"
+			rm -rf "${tmp_dir:?}"
 		fi
 	fi
 
@@ -18,14 +24,37 @@ on_exit() {
 	echo "${script_name}: Done: ${result}, ${sec} sec ($(sec_to_min "${sec}") min)." >&2
 }
 
+on_err() {
+	local f_name=${1}
+	local line_no=${2}
+	local err_no=${3}
+
+	{
+		if [[ ${debug} ]]; then
+			echo '------------------------'
+			set
+			echo '------------------------'
+		fi
+
+		echo "${script_name}: ERROR: function=${f_name}, line=${line_no}, result=${err_no}"
+	} >&2
+
+	exit "${err_no}"
+}
+
 sec_to_min() {
 	local sec=${1}
-	local min=$(( sec / 60 ))
-	local frac_10=$(( (sec - min * 60) * 10 / 60 ))
-	local frac_100=$(( (sec - min * 60) * 100 / 60 ))
+
+	local min
+	local frac_10
+	local frac_100
+
+	min=$(( sec / 60 ))
+	frac_10=$(( (sec - min * 60) * 10 / 60 ))
+	frac_100=$(( (sec - min * 60) * 100 / 60 ))
 
 	if (( frac_10 != 0 )); then
-		unset frac_10
+		frac_10=''
 	fi
 
 	echo "${min}.${frac_10}${frac_100}"
@@ -108,10 +137,17 @@ move_file() {
 
 	check_file 'source file' "${src}"
 
-	if [[ ${verbose} ]]; then
-		echo -e "${FUNCNAME[0]}: '${src}' -> '${dest}'" >&2
+	local echo_extra
+	if [[ ${dry_run} ]]; then
+		echo_extra=' (dry run)'
 	else
-		echo "${FUNCNAME[0]}: -> '${dest}'" >&2
+		echo_extra=''
+	fi
+
+	if [[ ${verbose} ]]; then
+		echo "${FUNCNAME[0]}${echo_extra}: '${src}' -> '${dest}'" >&2
+	else
+		echo "${FUNCNAME[0]}${echo_extra}: -> '${dest}'" >&2
 	fi
 
 	if [[ ! ${dry_run} ]]; then
@@ -317,13 +353,14 @@ clean_vfat_name() {
 clean_tag() {
 	local tag="${1}"
 
-	tag="${tag//AC-DC/ACDC}"
+	tag="${tag//ACDC/AC-DC}"
+	tag="${tag//AC\/DC/AC-DC}"
 
 	tag="${tag//U S A /USA}"
 	tag="${tag//W M A /WMA}"
 
-	tag="${tag//The Times They Are A‐Changin/The times They are a Changin}"
-	tag="${tag//I Dont Want Your Love (Shep Pettibone 7″ mix)/I Dont Want Your Love (Shep Pettibone)}"
+	# tag="${tag//The Times They Are A‐Changin/The times They are a Changin}"
+	# tag="${tag//I Dont Want Your Love (Shep Pettibone 7″ mix)/I Dont Want Your Love (Shep Pettibone)}"
 
 	tag="${tag//Disk/Disc}"
 	tag="${tag//[Dd]isc 1/- Disc1}"
@@ -338,6 +375,15 @@ clean_tag() {
 	if [[ "${tag}" =~ ${regex} ]]; then
 		tag="${BASH_REMATCH[1]} - ${BASH_REMATCH[2]}"
 	fi
+
+	# x: y -> x - y
+	local regex="^(.*[^ ]): (.*)"
+	if [[ "${tag}" =~ ${regex} ]]; then
+		tag="${BASH_REMATCH[1]} - ${BASH_REMATCH[2]}"
+	fi
+
+	# x:y -> x-y
+	tag="${tag/:/-}"
 
 	tag="${tag//[\/\\]/-}"
 	tag="${tag//_/ }"
@@ -368,10 +414,10 @@ clean_tag() {
 
 flac_check_file() {
 	local file=${1}
-	local verbose=${2}
+	local quiet=${2}
 
 	if [[ "$(file "${file}")" != *'FLAC audio'* ]]; then
-		if [[ ${verbose} ]]; then
+		if [[ "${quiet}" != 'quiet' ]]; then
 			echo "${FUNCNAME[0]}: Not a flac file: '${file}'" >&2
 		fi
 		return 1
@@ -406,7 +452,7 @@ flac_get_tag() {
 	local file=${2}
 	local optional=${3}
 
-	if [[ ${optional} && ${optional} != 'optional' ]]; then
+	if [[ "${optional}" != 'optional' && "${optional}" != 'required' ]]; then
 		echo "${FUNCNAME[0]}: ERROR: Bad optional '${optional}'" >&2
 		exit 1
 	fi
@@ -449,25 +495,27 @@ add_leading_zero() {
 
 	_add_leading_zero_number="${_add_leading_zero_number#0}"
 
-	if (( _add_leading_zero_number < 10 )); then
+	if (( ${_add_leading_zero_number} < 10 )); then
 		_add_leading_zero_number="0${_add_leading_zero_number}"
 	fi
 
-	echo "_add_leading_zero_number= '${_add_leading_zero_number}'" >&2
+	if [[ ${debug} ]]; then
+		echo "_add_leading_zero_number= '${_add_leading_zero_number}'" >&2
+	fi
 }
 
 flac_fill_tag_set() {
 	local file="${1}"
 	local -n _flac_fill_tag_set__tags="${2}"
 
-	if ! flac_check_file "${file}"; then
+	if ! flac_check_file "${file}" 'quiet'; then
 		return
 	fi
 
-	_flac_fill_tag_set__tags[artist]="$(flac_get_tag "ARTIST" "${file}")"
-	_flac_fill_tag_set__tags[album]="$(flac_get_tag "ALBUM" "${file}")"
-	_flac_fill_tag_set__tags[title]="$(flac_get_tag "TITLE" "${file}")"
-	_flac_fill_tag_set__tags[tracknumber]="$(flac_get_tag "TRACKNUMBER" "${file}")"
+	_flac_fill_tag_set__tags[artist]="$(flac_get_tag "ARTIST" "${file}" 'required')"
+	_flac_fill_tag_set__tags[album]="$(flac_get_tag "ALBUM" "${file}" 'required')"
+	_flac_fill_tag_set__tags[title]="$(flac_get_tag "TITLE" "${file}" 'required')"
+	_flac_fill_tag_set__tags[tracknumber]="$(flac_get_tag "TRACKNUMBER" "${file}" 'required')"
 	_flac_fill_tag_set__tags[tracktotal]="$(flac_get_tag "TRACKTOTAL" "${file}" 'optional')"
 
 	_flac_fill_tag_set__tags[tracknumber]="${_flac_fill_tag_set__tags[tracknumber]#0}"
@@ -480,7 +528,7 @@ flac_fill_tag_set() {
 flac_print_tags() {
 	local file=${1}
 
-	if ! flac_check_file "${file}"; then
+	if ! flac_check_file "${file}" 'quiet'; then
 		return
 	fi
 
@@ -494,7 +542,7 @@ metaflac_retag() {
 	local file=${1}
 	local tag_name=${2}
 	local tag_data=${3}
-	local add_tag=${4}
+	local op=${4}
 
 	if ! flac_check_file "${file}" 'verbose'; then
 		return
@@ -502,11 +550,18 @@ metaflac_retag() {
 
 	local old_tag
 
-	if [[ ${add_tag} ]]; then
+	case "${op}" in
+	'add')
 		old_tag="$(flac_get_tag "${tag_name}" "${file}" 'optional')"
-	else
-		old_tag="$(flac_get_tag "${tag_name}" "${file}")"
-	fi
+		;;
+	'update')
+		old_tag="$(flac_get_tag "${tag_name}" "${file}" 'required')"
+		;;
+	*)
+		echo "${FUNCNAME[0]}: ERROR: Bad op: '${op}'" >&2
+		exit 1
+		;;
+	esac
 
 	echo "${FUNCNAME[0]}: file: '${file}'" >&2
 	echo "${FUNCNAME[0]}:   ${tag_name}: '${old_tag}' => '${tag_data}'" >&2
@@ -541,7 +596,7 @@ flac_meta_path() {
 		dest="${tags[artist]}/${tags[album]}/${tags[tracknumber]}-${tags[title]}.flac"
 		;;
 	various)
-		dest="${tags[album]}/${tags[tracknumber]}-${tags[artist]} - ${tags[title]}.flac"
+		dest="Various Artists/${tags[album]}/${tags[tracknumber]}-${tags[artist]} - ${tags[title]}.flac"
 		;;
 	*)
 		echo "${script_name}: ERROR: Internal: Bad type '${type}'" >&2
@@ -571,10 +626,12 @@ write_m3u_playlist() {
 	local type=${3}
 	local canonical=${4}
 
-	local files
-	readarray files < <(find "${dir}" -maxdepth 1 -type f -name "*.${type}" | sort -n)
+	local files_array
+	readarray files_array < <( find "${dir}" -maxdepth 1 -type f -name "*.${type}" | sort -n \
+		|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+		kill -SIGUSR1 $$; } )
 
-	if (( ${#files[@]} == 0 )); then
+	if (( ${#files_array[@]} == 0 )); then
 		if [[ ${verbose} ]]; then
 			echo "${script_name}: No ${type} found: '${dir}'" >&2
 		fi
@@ -583,11 +640,11 @@ write_m3u_playlist() {
 
 	if [[ ! ${canonical} ]]; then
 		local i
-		for (( i = 0; i < ${#files[@]}; i++ )); do
-			files[i]="${files[i]##*/}"
+		for (( i = 0; i < ${#files_array[@]}; i++ )); do
+			files_array[i]="${files_array[i]##*/}"
 		done
 	fi
 
-	printf "%s" "${files[@]}" > "${out_file}"
-	echo "${script_name}: Wrote ${#files[@]} ${type} entries: '${out_file}'" >&2
+	printf "%s" "${files_array[@]}" > "${out_file}"
+	echo "${script_name}: Wrote ${#files_array[@]} ${type} entries: '${out_file}'" >&2
 }

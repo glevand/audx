@@ -4,13 +4,20 @@ usage() {
 	local old_xtrace
 	old_xtrace="$(shopt -po xtrace || :)"
 	set +o xtrace
-	echo "${script_name} (audx) - Create an age list of collection." >&2
-	echo "Usage: ${script_name} [flags] top-dir" >&2
-	echo "Option flags:" >&2
-	echo "  -o --out-file - Playlist output file. Default: '${out_file}'." >&2
-	echo "  -h --help     - Show this help and exit." >&2
-	echo "  -v --verbose  - Verbose execution." >&2
-	echo "  -g --debug    - Extra verbose execution." >&2
+
+	{
+		echo "${script_name} - Create an age list of collection."
+		echo "Usage: ${script_name} [flags] top-dir"
+		echo "Option flags:"
+		echo "  -o --out-file - Playlist output file. Default: '${out_file}'."
+		echo "  -h --help     - Show this help and exit."
+		echo "  -v --verbose  - Verbose execution."
+		echo "  -g --debug    - Extra verbose execution."
+		echo "Info:"
+		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
+		echo "  @PACKAGE_URL@"
+		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+	} >&2
 	eval "${old_xtrace}"
 }
 
@@ -18,13 +25,18 @@ process_opts() {
 	local short_opts="o:hvg"
 	local long_opts="out-file:,help,verbose,debug"
 
+	out_file=''
+	usage=''
+	verbose=''
+	debug=''
+
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
 
 	eval set -- "${opts}"
 
 	while true ; do
-		#echo "${FUNCNAME[0]}: @${1}@ @${2}@"
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
 		-o | --out-file)
 			out_file="${2}"
@@ -46,16 +58,11 @@ process_opts() {
 			;;
 		--)
 			shift
-			if [[ ${1} ]]; then
-				top_dir="${1}"
+			top_dir="${1:-}"
+			if [[ ${top_dir} ]]; then
 				shift
 			fi
-			if [[ ${*} ]]; then
-				set +o xtrace
-				echo "${script_name}: ERROR: Got extra args: '${*}'" >&2
-				usage
-				exit 1
-			fi
+			extra_args="${*}"
 			break
 			;;
 		*)
@@ -67,19 +74,24 @@ process_opts() {
 }
 
 #===============================================================================
-export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-"?"}):\[\e[0m\] '
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
 script_name="${0##*/}"
 
-SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 SECONDS=0
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+
+SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
+
+tmp_dir=''
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+set -eE
+set -o pipefail
+set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
-
-trap "on_exit 'failed'" EXIT
-set -e
-set -o pipefail
-
-start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 process_opts "${@}"
 
@@ -89,6 +101,13 @@ if [[ ${usage} ]]; then
 	usage
 	trap - EXIT
 	exit 0
+fi
+
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
 fi
 
 check_top_dir "${top_dir}"
