@@ -4,35 +4,51 @@ usage() {
 	local old_xtrace
 	old_xtrace="$(shopt -po xtrace || :)"
 	set +o xtrace
-	echo "${script_name} (audx) - Rip audio cassettes." >&2
-	echo "Usage: ${script_name} [flags]" >&2
-	echo "Option flags:" >&2
-	echo "  -h --help         - Show this help and exit." >&2
-	echo "  -v --verbose      - Verbose execution." >&2
-	echo "  --base-name       - Output file base name. Default: '${base_name}'." >&2
-	echo "  --start-duration  - Silence start duration. Default: '${start_duration}'." >&2
-	echo "  --start-threshold - Silence start threshold. Default: '${start_threshold}'." >&2
-	echo "  --end-duration    - Silence end duration. Default: '${end_duration}'." >&2
-	echo "  --end-threshold   - Silence end threshold. Default: '${end_threshold}'." >&2
-#	echo "  --split-time      - Split time . Default: '${split_time}'." >&2
-	echo "  -f --force        - Force overwrite if exisitng output file." >&2
-	echo "  -c --config-file  - Configuration file. Default: '${config_file}'." >&2
-	echo "Option steps:" >&2
-	echo "  -1 --rip-sox      - Rip to sox file." >&2
-	echo "  -2 --split-sox    - Split sox file." >&2
-	echo "  -3 --encode-flac  - Encode to flac." >&2
+
+	{
+		echo "${script_name} - Rip audio cassettes."
+		echo "Usage: ${script_name} [flags]"
+		echo "Option flags:"
+		echo "  --base-name       - Output file base name. Default: '${base_name}'."
+		echo "  --start-duration  - Silence start duration. Default: '${start_duration}'."
+		echo "  --start-threshold - Silence start threshold. Default: '${start_threshold}'."
+		echo "  --end-duration    - Silence end duration. Default: '${end_duration}'."
+		echo "  --end-threshold   - Silence end threshold. Default: '${end_threshold}'."
+	#	echo "  --split-time      - Split time . Default: '${split_time}'."
+		echo "  -f --force        - Force overwrite if exisitng output file."
+		echo "  -c --config-file  - Configuration file. Default: '${config_file}'."
+		echo "  -h --help        - Show this help and exit."
+		echo "  -v --verbose     - Verbose execution."
+		echo "  -g --debug       - Extra verbose execution."
+		echo "Option steps:"
+		echo "  -1 --rip-sox      - Rip to sox file."
+		echo "  -2 --split-sox    - Split sox file."
+		echo "  -3 --encode-flac  - Encode to flac."
+		echo "Info:"
+		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
+		echo "  @PACKAGE_URL@"
+		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+	} >&2
 	eval "${old_xtrace}"
 }
 
 process_opts() {
-	local short_opts="hv123fc:"
-	local long_opts="help,verbose,\
-base-name:,\
-start-duration:,start-threshold:,\
-end-duration:,end-threshold:,\
-split-time:,\
-rip-sox,split-sox,encode-flac,\
-config-file:,force"
+	local short_opts="fc:hvg123"
+	local long_opts="base-name:,start-duration:,start-threshold:,\
+end-duration:,end-threshold:,split-time:,force,config-file:,help,verbose,debug,\
+rip-sox,split-sox,encode-flac"
+
+	start_duration=''
+	start_threshold=''
+	end_duration=''
+	end_threshold=''
+	base_name=''
+	split_time=''
+	force=''
+	config_file=''
+	usage=''
+	verbose=''
+	debug=''
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -40,17 +56,8 @@ config-file:,force"
 	eval set -- "${opts}"
 
 	while true ; do
-		#echo "${FUNCNAME[0]}: @${1}@ @${2}@"
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
-		-h | --help)
-			usage=1
-			shift
-			;;
-		-v | --verbose)
-			set -x
-			#verbose=1
-			shift
-			;;
 		--start-duration)
 			start_duration="${2}"
 			shift 2
@@ -83,6 +90,20 @@ config-file:,force"
 			config_file="${2}"
 			shift 2
 			;;
+		-h | --help)
+			usage=1
+			shift
+			;;
+		-v | --verbose)
+			verbose=1
+			shift
+			;;
+		-g | --debug)
+			verbose=1
+			debug=1
+			set -x
+			shift
+			;;
 		-1 | --rip-sox)
 			#step_rip_sox=1
 			shift
@@ -97,12 +118,7 @@ config-file:,force"
 			;;
 		--)
 			shift
-			if [[ ${*} ]]; then
-				set +o xtrace
-				echo "${script_name}: ERROR: Got extra args: '${*}'" >&2
-				usage
-				exit 1
-			fi
+			extra_args="${*}"
 			break
 			;;
 		*)
@@ -114,12 +130,24 @@ config-file:,force"
 }
 
 #===============================================================================
-export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-"?"}):\[\e[0m\] '
-script_name="${0##*/}"
-SECONDS=0
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
 
-trap "on_exit 'failed'" EXIT
-set -e
+script_name="${0##*/}"
+
+SECONDS=0
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+
+SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
+
+tmp_dir=''
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+set -eE
+set -o pipefail
+set -o nounset
+
+source "${SCRIPTS_TOP}/audx-lib.sh"
 
 process_opts "${@}"
 
@@ -139,7 +167,12 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
-SECONDS=0
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
+fi
 
 if ! test -x "$(command -v rec)"; then
 	echo "${script_name}: ERROR: Please install 'sox'." >&2

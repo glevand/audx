@@ -4,17 +4,24 @@ usage() {
 	local old_xtrace
 	old_xtrace="$(shopt -po xtrace || :)"
 	set +o xtrace
-	echo "${script_name} (audx) - Recursively create m3u album playlists." >&2
-	echo "Usage: ${script_name} [flags] top-dir" >&2
-	echo "Option flags:" >&2
-	echo "  -n --canonical   - Output full canonical paths to playlist." >&2
-	echo "  -t --file-types  - File extension types {${known_file_types}}. Default: '${file_types}'." >&2
-	echo "  -c --clobber     - Overwrite existing files. Default: '${clobber}'." >&2
-#	echo "  -A --option-A    - option-A. Default: '${option_A}'." >&2
-#	echo "  -B --option-B    - option-B. Default: '${option_B}'." >&2
-	echo "  -h --help        - Show this help and exit." >&2
-	echo "  -v --verbose     - Verbose execution." >&2
-	echo "  -g --debug       - Extra verbose execution." >&2
+
+	{
+		echo "${script_name} - Recursively create m3u album playlists."
+		echo "Usage: ${script_name} [flags] top-dir"
+		echo "Option flags:"
+		echo "  -n --canonical   - Output full canonical paths to playlist."
+		echo "  -t --file-types  - File extension types {${known_file_types}}. Default: '${file_types}'."
+		echo "  -c --clobber     - Overwrite existing files. Default: '${clobber}'."
+	#	echo "  -A --option-A    - option-A. Default: '${option_A}'."
+	#	echo "  -B --option-B    - option-B. Default: '${option_B}'."
+		echo "  -h --help        - Show this help and exit."
+		echo "  -v --verbose     - Verbose execution."
+		echo "  -g --debug       - Extra verbose execution."
+		echo "Info:"
+		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
+		echo "  @PACKAGE_URL@"
+		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+	} >&2
 	eval "${old_xtrace}"
 }
 
@@ -22,13 +29,22 @@ process_opts() {
 	local short_opts="nt:cA:B:hvg"
 	local long_opts="canonical,file-types:,clobber,option-A:,option-B:,help,verbose,debug"
 
+	canonical=''
+	file_types=''
+	clobber=''
+	option_A=''
+	option_B=''
+	usage=''
+	verbose=''
+	debug=''
+
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
 
 	eval set -- "${opts}"
 
 	while true ; do
-		#echo "${FUNCNAME[0]}: @${1}@ @${2}@"
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
 		-n | --canonical)
 			canonical=1
@@ -66,16 +82,11 @@ process_opts() {
 			;;
 		--)
 			shift
-			if [[ ${1} ]]; then
-				top_dir="${1}"
+			top_dir="${1:-}"
+			if [[ ${top_dir} ]]; then
 				shift
 			fi
-			if [[ ${*} ]]; then
-				set +o xtrace
-				echo "${script_name}: ERROR: Got extra args: '${*}'" >&2
-				usage
-				exit 1
-			fi
+			extra_args="${*}"
 			break
 			;;
 		*)
@@ -87,22 +98,28 @@ process_opts() {
 }
 
 #===============================================================================
-export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-"?"}):\[\e[0m\] '
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
 script_name="${0##*/}"
 
-SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 SECONDS=0
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+
+SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+
+set -eE
+set -o pipefail
+set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
 
-trap "on_exit 'failed'" EXIT
-set -e
-set -o pipefail
-
-start_time="$(date +%Y.%m.%d-%H.%M.%S)"
-m3u_file="album.m3u"
-
 process_opts "${@}"
+
+m3u_file="album.m3u"
 
 known_file_types="flac mp3 m4a sox wav"
 file_types="${file_types:-flac}"
@@ -113,10 +130,19 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
+fi
+
 check_top_dir "${top_dir}"
 top_dir="$(realpath -e "${top_dir}")"
 
-readarray -t dir_array < <(find "${top_dir}" -type d | sort)
+readarray -t dir_array < <( find "${top_dir}" -type d | sort \
+	|| { echo "${script_name}: ERROR: dir_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+	kill -SIGUSR1 $$; } )
 
 for dir in "${dir_array[@]}"; do
 	if [[ ${verbose} ]]; then

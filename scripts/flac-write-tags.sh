@@ -5,23 +5,28 @@ usage() {
 	old_xtrace="$(shopt -po xtrace || :)"
 	set +o xtrace
 
-	echo "${script_name} (audx) - Write new FLAC metadata tags using --tag or --tag-name, --tag-value." >&2
-
-	echo "Usage: ${script_name} [flags] top-dir" >&2
-	echo "Option flags:" >&2
-	echo "  -t --tag         - Full tag 'NAME=VALUE'. Default='${tag_full}'." >&2
-	echo "  -n --tag-name    - Tag Name. Default='${tag_name}'." >&2
-	echo "  -l --tag-value   - Tag data. Default='${tag_value}'.'" >&2
-	echo "  -h --help        - Show this help and exit." >&2
-	echo "  -v --verbose     - Verbose execution." >&2
-	echo "  -d --dry-run     - Dry run, don't modify files." >&2
-	echo "  -g --debug       - Extra verbose execution." >&2
-	echo "Common TAGs:" >&2
-	echo "  ARTIST" >&2
-	echo "  ALBUM" >&2
-	echo "  TITLE" >&2
-	echo "  TRACKNUMBER" >&2
-	echo "  TRACKTOTAL" >&2
+	{
+		echo "${script_name} - Write new FLAC metadata tags using --tag, or --tag-name and --tag-value."
+		echo "Usage: ${script_name} [flags] top-dir"
+		echo "Option flags:"
+		echo "  -t --tag         - Full tag 'NAME=VALUE'. Default='${tag_full}'."
+		echo "  -n --tag-name    - Tag Name. Default='${tag_name}'."
+		echo "  -l --tag-value   - Tag data. Default='${tag_value}'.'"
+		echo "  -h --help        - Show this help and exit."
+		echo "  -v --verbose     - Verbose execution."
+		echo "  -d --dry-run     - Dry run, don't modify files."
+		echo "  -g --debug       - Extra verbose execution."
+		echo "Common TAGs:"
+		echo "  ARTIST"
+		echo "  ALBUM"
+		echo "  TITLE"
+		echo "  TRACKNUMBER"
+		echo "  TRACKTOTAL"
+		echo "Info:"
+		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
+		echo "  @PACKAGE_URL@"
+		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+	} >&2
 	eval "${old_xtrace}"
 }
 
@@ -29,13 +34,20 @@ process_opts() {
 	local short_opts="t:n:l:hvdg"
 	local long_opts="tag:,tag-name:,tag-value:,help,verbose,dry-run,debug"
 
+	tag_full=''
+	tag_name=''
+	tag_value=''
+	usage=''
+	verbose=''
+	debug=''
+
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
 
 	eval set -- "${opts}"
 
 	while true ; do
-		#echo "${FUNCNAME[0]}: @${1}@ @${2}@"
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
 		-t | --tag)
 			tag_full="${2}"
@@ -69,16 +81,11 @@ process_opts() {
 			;;
 		--)
 			shift
-			if [[ ${1} ]]; then
-				top_dir="${1}"
+			top_dir="${1:-}"
+			if [[ ${top_dir} ]]; then
 				shift
 			fi
-			if [[ ${*} ]]; then
-				set +o xtrace
-				echo "${script_name}: ERROR: Got extra args: '${*}'" >&2
-				usage
-				exit 1
-			fi
+			extra_args="${*}"
 			break
 			;;
 		*)
@@ -90,17 +97,26 @@ process_opts() {
 }
 
 #===============================================================================
-export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-"?"}):\[\e[0m\] '
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
 script_name="${0##*/}"
 
-SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 SECONDS=0
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+
+SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
+
+tmp_dir=''
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+
+set -eE
+set -o pipefail
+set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
-
-trap "on_exit 'failed'" EXIT
-set -e
-set -o pipefail
 
 process_opts "${@}"
 
@@ -110,8 +126,26 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
-check_top_dir "${top_dir}"
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
+fi
+
+if [[ ! ${top_dir} ]]; then
+	echo "${script_name}: ERROR: No top-dir given." >&2
+	usage
+	exit 1
+fi
+
 top_dir="$(realpath -e "${top_dir}")"
+
+if [[ ! -d "${top_dir}" && ! -f "${top_dir}" ]]; then
+	echo "${script_name}: ERROR: Bad top-dir: '${top_dir}'" >&2
+	usage
+	exit 1
+fi
 
 metaflac="${metaflac:-metaflac}"
 
@@ -141,18 +175,25 @@ else
 	check_opt '--tag OR --tag-data' "${tag_data}"
 fi
 
-readarray -t path_array < <((cd "${top_dir}" && find . -type f) | sort)
+if [[ -d "${top_dir}" ]]; then
+	readarray -t path_array < <((cd "${top_dir}" && find . -type f) | sort \
+		|| { echo "${script_name}: ERROR: path_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+		kill -SIGUSR1 $$; } )
 
-echo "${script_name}: INFO: Processing ${#path_array[@]} files." >&2
+	echo "${script_name}: INFO: Processing ${#path_array[@]} files." >&2
 
-for path in "${path_array[@]}"; do
-	path="${path:2}"
+	for path in "${path_array[@]}"; do
+		path="${path:2}"
 
-	if ! flac_check_file "${top_dir}/${path}"; then
-		continue
-	fi
-	metaflac_retag "${top_dir}/${path}" "${tag_name}" "${tag_value}" 'add-tag'
-done
+		if ! flac_check_file "${top_dir}/${path}" 'quiet'; then
+			continue
+		fi
+		metaflac_retag "${top_dir}/${path}" "${tag_name}" "${tag_value}" 'add'
+	done
+else
+	flac_check_file "${top_dir}" 'verbose'
+	metaflac_retag "${top_dir}" "${tag_name}" "${tag_value}" 'add'
+fi
 
 trap "on_exit 'Success'" EXIT
 exit 0

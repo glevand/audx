@@ -5,21 +5,32 @@ usage() {
 	old_xtrace="$(shopt -po xtrace || :)"
 	set +o xtrace
 
-	echo "${script_name} (audx) - Rename files based on FLAC metadata tags." >&2
-	echo "Usage: ${script_name} [flags] top-dir" >&2
-	echo "Option flags:" >&2
-	echo "  -r --various - Use 'Various Artists' logic." >&2
-	echo "  -h --help    - Show this help and exit." >&2
-	echo "  -v --verbose - Verbose execution." >&2
-	echo "  -d --dry-run - Dry run, don't rename files." >&2
-	echo "  -g --debug   - Extra verbose execution." >&2
-	echo "Send bug reports to: Geoff Levand <geoff@infradead.org>." >&2
+	{
+		echo "${script_name} - Rename files based on FLAC metadata tags."
+		echo "Usage: ${script_name} [flags] top-dir"
+		echo "Option flags:"
+		echo "  -a --various - Use 'Various Artists' logic."
+		echo "  -d --dry-run - Dry run, don't rename files."
+		echo "  -h --help    - Show this help and exit."
+		echo "  -v --verbose - Verbose execution."
+		echo "  -g --debug   - Extra verbose execution."
+		echo "Info:"
+		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
+		echo "  @PACKAGE_URL@"
+		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+	} >&2
 	eval "${old_xtrace}"
 }
 
 process_opts() {
-	local short_opts="rhvdg"
-	local long_opts="various,help,verbose,dry-run,debug"
+	local short_opts="adhvg"
+	local long_opts="various,dry-run,help,verbose,debug"
+
+	various=''
+	dry_run=''
+	usage=''
+	verbose=''
+	debug=''
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -27,10 +38,14 @@ process_opts() {
 	eval set -- "${opts}"
 
 	while true ; do
-		#echo "${FUNCNAME[0]}: @${1}@ @${2}@"
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
-		-r | --various)
+		-a | --various)
 			various=1
+			shift
+			;;
+		-d | --dry-run)
+			dry_run=1
 			shift
 			;;
 		-h | --help)
@@ -41,10 +56,6 @@ process_opts() {
 			verbose=1
 			shift
 			;;
-		-d | --dry-run)
-			dry_run=1
-			shift
-			;;
 		-g | --debug)
 			verbose=1
 			debug=1
@@ -53,16 +64,11 @@ process_opts() {
 			;;
 		--)
 			shift
-			if [[ ${1} ]]; then
-				top_dir="${1}"
+			top_dir="${1:-}"
+			if [[ ${top_dir} ]]; then
 				shift
 			fi
-			if [[ ${*} ]]; then
-				set +o xtrace
-				echo "${script_name}: ERROR: Got extra args: '${*}'" >&2
-				usage
-				exit 1
-			fi
+			extra_args="${*}"
 			break
 			;;
 		*)
@@ -74,17 +80,26 @@ process_opts() {
 }
 
 #===============================================================================
-export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-"?"}):\[\e[0m\] '
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
 script_name="${0##*/}"
 
-SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 SECONDS=0
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+
+SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
+
+tmp_dir=''
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+
+set -eE
+set -o pipefail
+set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
-
-trap "on_exit 'failed'" EXIT
-set -e
-set -o pipefail
 
 process_opts "${@}"
 
@@ -94,19 +109,27 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
+fi
+
 check_top_dir "${top_dir}"
 top_dir="$(realpath -e "${top_dir}")"
 move_dir="${top_dir}.moves"
 
 metaflac="${metaflac:-metaflac}"
-
 check_program "metaflac" "${metaflac}"
 
-readarray -t file_array < <(find "${top_dir}" -type f | sort)
+readarray -t files_array < <(find "${top_dir}" -type f | sort \
+	|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+	kill -SIGUSR1 $$; } )
 
-echo "${script_name}: INFO: Processing ${#file_array[@]} files." >&2
+echo "${script_name}: INFO: Processing ${#files_array[@]} files." >&2
 
-for file in "${file_array[@]}"; do
+for file in "${files_array[@]}"; do
 	if [[ ${various} || "${file}" == *'Various Artists/'* ]]; then
 		dest="$(flac_meta_path 'various' "${file}")"
 	else
