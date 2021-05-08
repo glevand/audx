@@ -4,16 +4,28 @@ usage() {
 	local old_xtrace
 	old_xtrace="$(shopt -po xtrace || :)"
 	set +o xtrace
-	echo "${script_name} (audx) - Create an m3u playlist of random albums." >&2
-	echo "Usage: ${script_name} [flags] top-dir" >&2
-	echo "Option flags:" >&2
-	echo "  -c --count       - Number of albums in playlist. Default: '${count}'." >&2
-	echo "  -o --output-file - Playlist output file. Default: '${out_file}'." >&2
-	echo "  -s --start-date  - Starting date. Default: '${start_date}'." >&2
-	echo "  -e --end-date    - Ending date. Default: '${end_date}'." >&2
-	echo "  -h --help        - Show this help and exit." >&2
-	echo "  -v --verbose     - Verbose execution." >&2
-	echo "  -g --debug       - Extra verbose execution." >&2
+
+	{
+		echo "${script_name} - Create an m3u playlist of random albums."
+		echo "Usage: ${script_name} [flags] top-dir"
+		echo 'Option flags:'
+		echo "  -c --count       - Number of albums in playlist. Default: '${count}'."
+		echo "  -o --output-file - Playlist output file. Default: '${out_file}'."
+		echo "  -s --start-date  - Starting date. Default: '${start_date}'."
+		echo "  -e --end-date    - Ending date. Default: '${end_date}'."
+		echo "  -h --help        - Show this help and exit."
+		echo "  -v --verbose     - Verbose execution."
+		echo "  -g --debug       - Extra verbose execution."
+		echo 'Date Specifiers:'
+		echo "  '2 days ago'"
+		echo "  '3 months ago'"
+		echo "  'last week'"
+		echo "  'last Thursday'"
+		echo 'Info:'
+		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
+		echo "  @PACKAGE_URL@"
+		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+	} >&2
 	eval "${old_xtrace}"
 }
 
@@ -21,13 +33,21 @@ process_opts() {
 	local short_opts="c:o:s:e:hvg"
 	local long_opts="count:,output-file:,start-date:,end-date:,help,verbose,debug"
 
+	count=''
+	out_file=''
+	start_date=''
+	end_date=''
+	usage=''
+	verbose=''
+	debug=''
+
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
 
 	eval set -- "${opts}"
 
 	while true ; do
-		#echo "${FUNCNAME[0]}: @${1}@ @${2}@"
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
 		-c | --count)
 			count="${2}"
@@ -61,16 +81,11 @@ process_opts() {
 			;;
 		--)
 			shift
-			if [[ ${1} ]]; then
-				top_dir="${1}"
+			top_dir="${1:-}"
+			if [[ ${top_dir} ]]; then
 				shift
 			fi
-			if [[ ${*} ]]; then
-				set +o xtrace
-				echo "${script_name}: ERROR: Got extra args: '${*}'" >&2
-				usage
-				exit 1
-			fi
+			extra_args="${*}"
 			break
 			;;
 		*)
@@ -105,22 +120,30 @@ test_album_file() {
 }
 
 #===============================================================================
-export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-"?"}):\[\e[0m\] '
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
 script_name="${0##*/}"
 
-SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 SECONDS=0
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+
+SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
+
+tmp_dir=''
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+
+set -eE
+set -o pipefail
+set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
 
-trap "on_exit 'failed'" EXIT
-set -e
-set -o pipefail
-
-start_time="$(date +%Y.%m.%d-%H.%M.%S)"
-m3u_file="album.m3u"
-
 process_opts "${@}"
+
+m3u_file="album.m3u"
 
 count="${count:-6}"
 out_file="${out_file:-/tmp/audx-shufflelist-${start_time}.m3u}"
@@ -129,6 +152,13 @@ if [[ ${usage} ]]; then
 	usage
 	trap - EXIT
 	exit 0
+fi
+
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
 fi
 
 echo "audx ${script_name} - ${start_time}" >&2
@@ -162,7 +192,10 @@ if [[ ${verbose} ]]; then
 	echo "INFO: End date   = '${end_date}'." >&2
 fi
 
-readarray -t album_array < <(find "${top_dir}" -type f -name "${m3u_file}" -print)
+readarray -t album_array < <( \
+	find "${top_dir}" -type f -name "${m3u_file}" -print \
+	|| { echo "${script_name}: ERROR: album_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+	kill -SIGUSR1 $$; } )
 
 echo "INFO: Considering ${#album_array[@]} albums." >&2
 
@@ -173,7 +206,10 @@ echo "INFO: Considering ${#album_array[@]} albums." >&2
 export -f find_first_file
 export -f test_album_file
 
-readarray -t good_array < <(parallel test_album_file {} "'${start_date}'" "'${end_date}'" ::: "${album_array[@]}")
+readarray -t good_array < <( \
+	parallel test_album_file {} "'${start_date}'" "'${end_date}'" ::: "${album_array[@]}" \
+	|| { echo "${script_name}: ERROR: good_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+	kill -SIGUSR1 $$; } )
 good_count="${#good_array[@]}"
 
 unset album_array
@@ -200,10 +236,14 @@ for (( i = 0; i < ${count}; i++ )); do
 	for (( j = 0; ; j++ )); do
 		rand="$("${shuf}" -n1 -i0-${good_count})"
 
-		#echo "good_count = ${good_count}, j = ${j}" >&2
-		if [[ ${good_array[rand]} ]]; then
+		# echo "good_count = ${good_count}, j = ${j}" >&2
+
+		if [[ -v good_array[rand] ]]; then
+			# echo "good rand = ${rand} = '${good_array[rand]}'" >&2
 			break
 		fi
+
+		# echo "bad rand = ${rand}" >&2
 
 		if (( j > (good_count * good_count) )); then
 			echo "${script_name}: INTERNAL ERROR: random loop." >&2

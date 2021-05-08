@@ -4,21 +4,33 @@ usage() {
 	local old_xtrace
 	old_xtrace="$(shopt -po xtrace || :)"
 	set +o xtrace
-	echo "${script_name} (audx) - Check vfat file names."
-	echo "Usage: ${script_name} [flags] top-dir" >&2
-	echo "Option flags:" >&2
-	echo "  -o --output-dir  - Output directory. Default: '${output_dir}'." >&2
-	echo "  -c --clean-names - Clean file names using standard rules. Default: '${clean_names}'." >&2
-	echo "  -h --help        - Show this help and exit." >&2
-	echo "  -v --verbose     - Verbose execution." >&2
-	echo "  -g --debug       - Extra verbose execution." >&2
-	echo "Send bug reports to: Geoff Levand <geoff@infradead.org>." >&2
+
+	{
+		echo "${script_name} - Check vfat file names."
+		echo "Usage: ${script_name} [flags] top-dir"
+		echo "Option flags:"
+		echo "  -d --vfat-dir    - vfat test directory. Default: '${vfat_dir}'."
+		echo "  -c --clean-names - Clean file names using standard rules. Default: '${clean_names}'."
+		echo "  -h --help        - Show this help and exit."
+		echo "  -v --verbose     - Verbose execution."
+		echo "  -g --debug       - Extra verbose execution."
+		echo "Info:"
+		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
+		echo "  @PACKAGE_URL@"
+		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+	} >&2
 	eval "${old_xtrace}"
 }
 
 process_opts() {
-	local short_opts="o:chvg"
-	local long_opts="output-dir:,clean-names,help,verbose,debug"
+	local short_opts="d:chvg"
+	local long_opts="vfat-dir:,clean-names,help,verbose,debug"
+
+	vfat_dir=''
+	clean_names=''
+	usage=''
+	verbose=''
+	debug=''
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -26,10 +38,10 @@ process_opts() {
 	eval set -- "${opts}"
 
 	while true ; do
-		#echo "${FUNCNAME[0]}: @${1}@ @${2}@"
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
-		-o | --output-dir)
-			output_dir="${2}"
+		-d | --vfat-dir)
+			vfat_dir="${2}"
 			shift 2
 			;;
 		-c | --clean-names)
@@ -52,16 +64,11 @@ process_opts() {
 			;;
 		--)
 			shift
-			if [[ ${1} ]]; then
-				top_dir="${1}"
+			top_dir="${1:-}"
+			if [[ ${top_dir} ]]; then
 				shift
 			fi
-			if [[ ${*} ]]; then
-				set +o xtrace
-				echo "${script_name}: ERROR: Got extra args: '${*}'" >&2
-				usage
-				exit 1
-			fi
+			extra_args="${*}"
 			break
 			;;
 		*)
@@ -85,40 +92,51 @@ touch_file() {
 	fi
 
 	local out_file
-	out_file="${output_dir}/${triple[artist]}/${triple[album]}/${triple[title]%.flac}.m4a"
+	out_file="${vfat_dir}/${triple[artist]}/${triple[album]}/${triple[title]%.flac}.m4a"
 
 	if [[ ${verbose} ]]; then
 		echo "out_file: '${out_file}'" >&2
 		#echo "${FUNCNAME[0]}: '${p_script}'" >&2
 	fi
 
-	local bad
-	unset bad
+	if ! mkdir -p "${out_file%/*}"; then
+		{
+			echo "${script_name}: ERROR: mkdir '${out_file%/*}'"
+			echo "${script_name}: Test file: '${in_file}'"
+		} >&2
+		exit 1
+	fi
 
-	mkdir -p "${out_file%/*}" || bad=1
-	if [[ ! ${bad} ]]; then
-		touch "${out_file}" || :
+	if ! touch "${out_file}"; then
+		{
+			echo "${script_name}: ERROR: touch '${out_file}'"
+			echo "${script_name}: Test file: '${in_file}'"
+		} >&2
+		exit 1
 	fi
 }
 
 #===============================================================================
-export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-"?"}):\[\e[0m\] '
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
 script_name="${0##*/}"
 
-SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 SECONDS=0
-
-source "${SCRIPTS_TOP}/audx-lib.sh"
-
-trap "on_exit 'failed'" EXIT
-set -e
-set -o pipefail
-
 start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
-process_opts "${@}"
+SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 
-unset clean_names
+tmp_dir=''
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+
+set -eE
+set -o pipefail
+set -o nounset
+
+source "${SCRIPTS_TOP}/audx-lib.sh"
 
 process_opts "${@}"
 
@@ -128,19 +146,30 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
+fi
+
+check_opt '--vfat-dir' "${vfat_dir}"
+check_dir_exists '--vfat-dir' "${vfat_dir}"
+vfat_dir="$(realpath -e "${vfat_dir}")"
+
 check_top_dir "${top_dir}"
 top_dir="$(realpath -e "${top_dir}")"
 
-check_dir_exists 'output-dir' "${output_dir}"
-output_dir="$(realpath "${output_dir}")"
-
-if [[ -d "${output_dir}" ]]; then
-	rm -rf "${output_dir:?}"
+if [[ -d "${vfat_dir}" ]]; then
+	rm -rf "${vfat_dir:?}"
 fi
 
-mkdir -p "${output_dir}"
+mkdir -p "${vfat_dir}"
 
-readarray -t file_array < <(find "${top_dir}" -type f -name '*.flac' | sort)
+readarray -t file_array < <( find "${top_dir}" -type f -name '*.flac' | sort \
+	|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+	kill -SIGUSR1 $$; } )
+
 
 echo "${script_name}: INFO: Processing ${#file_array[@]} files." >&2
 
@@ -148,7 +177,7 @@ for (( i = 0; i < ${#file_array[@]}; i++ )); do
 	touch_file "${file_array[i]}"
 done
 
-echo "${script_name}: INFO: Wrote ${#file_array[@]} m4a files to '${output_dir}'" >&2
+echo "${script_name}: INFO: Wrote ${#file_array[@]} m4a files to '${vfat_dir}'" >&2
 
 trap "on_exit 'Success'" EXIT
 exit 0

@@ -4,16 +4,22 @@ usage() {
 	local old_xtrace
 	old_xtrace="$(shopt -po xtrace || :)"
 	set +o xtrace
-	echo "${script_name} (audx) - Convert FLAC files to m4a AAC encoded files suitable for download to Walkman type devices."
-	echo "Usage: ${script_name} [flags] top-dir" >&2
-	echo "Option flags:" >&2
-	echo "  -b --bitrate     - Encoding bitrate. Default: '${bitrate}'." >&2
-	echo "  -o --output-dir  - Output directory. Default: '${output_dir}'." >&2
-	echo "  -c --clobber     - Overwrite existing files. Default: '${clobber}'." >&2
-	echo "  -h --help        - Show this help and exit." >&2
-	echo "  -v --verbose     - Verbose execution. Default: '${verbose}'." >&2
-	echo "  -g --debug       - Extra verbose execution. Default: '${debug}'." >&2
-	echo "Send bug reports to: Geoff Levand <geoff@infradead.org>." >&2
+
+	{
+		echo "${script_name} - Convert FLAC files to m4a AAC encoded files suitable for download to Walkman type devices."
+		echo "Usage: ${script_name} [flags] top-dir"
+		echo "Option flags:"
+		echo "  -b --bitrate     - Encoding bitrate. Default: '${bitrate}'."
+		echo "  -o --output-dir  - Output directory. Default: '${output_dir}'."
+		echo "  -c --clobber     - Overwrite existing files. Default: '${clobber}'."
+		echo "  -h --help        - Show this help and exit."
+		echo "  -v --verbose     - Verbose execution. Default: '${verbose}'."
+		echo "  -g --debug       - Extra verbose execution. Default: '${debug}'."
+		echo "Info:"
+		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
+		echo "  @PACKAGE_URL@"
+		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+	} >&2
 	eval "${old_xtrace}"
 }
 
@@ -21,13 +27,21 @@ process_opts() {
 	local short_opts="b:o:chvg"
 	local long_opts="bitrate:,output-dir:,clobber,help,verbose,debug"
 
+	bitrate=''
+	output_dir=''
+	clobber=''
+	usage=''
+	verbose=''
+	debug=''
+	keep_tmp_dir=''
+
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
 
 	eval set -- "${opts}"
 
 	while true ; do
-		#echo "${FUNCNAME[0]}: @${1}@ @${2}@"
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
 		-b | --bitrate)
 			bitrate="${2}"
@@ -58,16 +72,11 @@ process_opts() {
 			;;
 		--)
 			shift
-			if [[ ${1} ]]; then
-				top_dir="${1}"
+			top_dir="${1:-}"
+			if [[ ${top_dir} ]]; then
 				shift
 			fi
-			if [[ ${*} ]]; then
-				set +o xtrace
-				echo "${script_name}: ERROR: Got extra args: '${*}'" >&2
-				usage
-				exit 1
-			fi
+			extra_args="${*}"
 			break
 			;;
 		*)
@@ -175,19 +184,26 @@ moreutils_parallel() {
 }
 
 #===============================================================================
-export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-"?"}):\[\e[0m\] '
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
 script_name="${0##*/}"
 
-SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 SECONDS=0
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+
+SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
+
+tmp_dir=''
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+
+set -eE
+set -o pipefail
+set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
-
-trap "on_exit 'failed'" EXIT
-set -e
-set -o pipefail
-
-start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 process_opts "${@}"
 
@@ -198,6 +214,13 @@ if [[ ${usage} ]]; then
 	usage
 	trap - EXIT
 	exit 0
+fi
+
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
 fi
 
 echo "audx ${script_name} - ${start_time}" >&2
@@ -217,19 +240,20 @@ check_program "parallel" "${parallel}"
 sox="${sox:-sox}"
 check_program "sox" "${sox}"
 
-readarray -t file_array < <(find "${top_dir}" -type f -name '*.flac' | sort)
+readarray -t files_array < <(find "${top_dir}" -type f -name '*.flac' | sort \
+	|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+	kill -SIGUSR1 $$; } )
 
-in_count="${#file_array[@]}"
+in_count="${#files_array[@]}"
 
 echo "${script_name}: INFO: Processing ${in_count} input files." >&2
 
 tmp_dir="$(mktemp --tmpdir --directory ${script_name}.XXXX)"
-keep_tmp_dir=1
 
 p_script_dir="${tmp_dir}/p-scripts"
 
 bucket_size=100
-bucket_count=$(( in_count / bucket_size ))
+bucket_count=$(( 1 + in_count / bucket_size ))
 bucket=1
 
 if [[ -e "${p_script_dir}" ]]; then
@@ -240,7 +264,7 @@ out_counter=0
 loop_counter=0
 
 for (( id = 1; id <= ${in_count}; id++ )); do
-	file="${file_array[$(( id - 1 ))]}"
+	file="${files_array[$(( id - 1 ))]}"
 	p_script="${p_script_dir}/${bucket}/${id}.sh"
 
 	mkdir -p "${p_script_dir}/${bucket}"
@@ -276,6 +300,5 @@ fi
 
 echo "${script_name}: INFO: Wrote ${out_counter} m4a files to '${output_dir}'" >&2
 
-unset keep_tmp_dir
 trap "on_exit 'Success'" EXIT
 exit 0
