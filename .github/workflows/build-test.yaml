@@ -1,0 +1,17 @@
+name: audx test
+
+on: workflow_dispatch
+
+jobs:
+
+  build:
+    name: audx test
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+            submodules: recursive
+
+      - name: run build test
+        run: ./tests/build-test.sh .
