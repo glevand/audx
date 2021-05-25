@@ -15,6 +15,8 @@ usage() {
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution. Default: '${verbose}'."
 		echo "  -g --debug       - Extra verbose execution. Default: '${debug}'."
+		echo 'Inputs:'
+		echo "  top-dir          - '${top_dir}'"
 		echo "Info:"
 		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
 		echo "  @PACKAGE_URL@"
@@ -207,6 +209,11 @@ source "${SCRIPTS_TOP}/audx-lib.sh"
 
 process_opts "${@}"
 
+if [[ -f "${HOME}/.audx.conf" ]]; then
+	source "${HOME}/.audx.conf"
+fi
+
+top_dir="${top_dir:-${favorites_top:-}}"
 bitrate="${bitrate:-328k}"
 output_dir="${output_dir:-/tmp/audx-m4a-${start_time}}"
 

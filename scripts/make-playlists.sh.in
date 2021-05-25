@@ -17,6 +17,8 @@ usage() {
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution."
 		echo "  -g --debug       - Extra verbose execution."
+		echo 'Inputs:'
+		echo "  top-dir          - '${top_dir}'"
 		echo "Info:"
 		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
 		echo "  @PACKAGE_URL@"
@@ -119,7 +121,12 @@ source "${SCRIPTS_TOP}/audx-lib.sh"
 
 process_opts "${@}"
 
-m3u_file="album.m3u"
+if [[ -f "${HOME}/.audx.conf" ]]; then
+	source "${HOME}/.audx.conf"
+fi
+
+top_dir="${top_dir:-${favorites_top:-}}"
+m3u_file="${m3u_file:-album.m3u}"
 
 known_file_types="flac mp3 m4a sox wav"
 file_types="${file_types:-flac}"
