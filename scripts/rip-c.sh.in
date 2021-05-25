@@ -151,6 +151,10 @@ source "${SCRIPTS_TOP}/audx-lib.sh"
 
 process_opts "${@}"
 
+if [[ -f "${HOME}/.audx.conf" ]]; then
+	source "${HOME}/.audx.conf"
+fi
+
 base_name="${base_name:-$(pwd)/rip--$(date +%Y.%m.%d-%H.%M.%S)}"
 
 start_duration="${start_duration:-0.2}"

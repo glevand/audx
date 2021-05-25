@@ -13,6 +13,8 @@ usage() {
 		echo "  -h --help     - Show this help and exit."
 		echo "  -v --verbose  - Verbose execution."
 		echo "  -g --debug    - Extra verbose execution."
+		echo 'Inputs:'
+		echo "  top-dir          - '${top_dir}'"
 		echo "Info:"
 		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
 		echo "  @PACKAGE_URL@"
@@ -95,6 +97,11 @@ source "${SCRIPTS_TOP}/audx-lib.sh"
 
 process_opts "${@}"
 
+if [[ -f "${HOME}/.audx.conf" ]]; then
+	source "${HOME}/.audx.conf"
+fi
+
+top_dir="${top_dir:-${collection_top:-}}"
 out_file="${out_file:-/tmp/audx-age-${start_time}.lst}"
 
 if [[ ${usage} ]]; then

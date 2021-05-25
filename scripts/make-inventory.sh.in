@@ -30,15 +30,6 @@ process_opts() {
 	local short_opts="o:cmtThvg"
 	local long_opts="output-dir:,canonical,mtime,tracks,use-tags,help,verbose,debug"
 
-	output_dir=''
-	canonical=''
-	mtime=''
-	tracks=''
-	use_tags=''
-	usage=''
-	verbose=''
-	debug=''
-
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
 
@@ -83,7 +74,9 @@ process_opts() {
 			;;
 		--)
 			shift
-			src_dirs=("$@")
+			if [[ ${1:-} ]]; then
+				src_dirs=("$@")
+			fi
 			break
 			;;
 		*)
@@ -126,10 +119,27 @@ source "${SCRIPTS_TOP}/audx-lib.sh"
 
 declare -a src_dirs
 
-process_opts "${@}"
+output_dir="/tmp/audx-inventory-${start_time}"
+canonical=''
+mtime=''
+tracks=''
+use_tags=''
+usage=''
+verbose=''
+debug=''
 
-output_dir="${output_dir:-/tmp/audx-inventory-${start_time}}"
-output_dir="$(realpath --canonicalize-missing "${output_dir}")"
+if [[ -f "${HOME}/.audx.conf" ]]; then
+	source "${HOME}/.audx.conf"
+fi
+
+if [[ ! ${src_dirs:-} ]]; then
+	echo "1 NO src_dirs"
+	src_dirs=( "${collection_top}"/* )
+fi
+
+echo "src_dirs = '${src_dirs[@]}'"
+
+process_opts "${@}"
 
 if [[ ${use_tags} ]]; then
 	echo "${script_name}: ERROR: --use-tags: TODO" >&2
@@ -142,6 +152,8 @@ if [[ ${usage} ]]; then
 	trap - EXIT
 	exit 0
 fi
+
+output_dir="$(realpath --canonicalize-missing "${output_dir}")"
 
 check_src_dirs "${src_dirs[@]}"
 
@@ -163,9 +175,11 @@ for src_dir in "${src_dirs[@]}"; do
 		|| { echo "${script_name}: ERROR: album_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 		kill -SIGUSR1 $$; } )
 
-	echo "# ${script_name} (audx) - ${start_time}" > "${output_file}"
-	echo "# ${src_dir}: ${#album_array[@]} albums." >> "${output_file}"
-	echo '' >> "${output_file}"
+	{
+		echo "# ${script_name} (@PACKAGE_NAME@) - ${start_time}"
+		echo "# ${src_dir}: ${#album_array[@]} albums."
+		echo ''
+	} > "${output_file}"
 
 	for (( i = 0; i < ${#album_array[@]}; i++ )); do
 		album_path="${album_array[i]%/album.m3u}"

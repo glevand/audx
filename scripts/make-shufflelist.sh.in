@@ -16,6 +16,8 @@ usage() {
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution."
 		echo "  -g --debug       - Extra verbose execution."
+		echo 'Inputs:'
+		echo "  top-dir          - '${top_dir}'"
 		echo 'Date Specifiers:'
 		echo "  '2 days ago'"
 		echo "  '3 months ago'"
@@ -32,14 +34,6 @@ usage() {
 process_opts() {
 	local short_opts="c:o:s:e:hvg"
 	local long_opts="count:,output-file:,start-date:,end-date:,help,verbose,debug"
-
-	count=''
-	out_file=''
-	start_date=''
-	end_date=''
-	usage=''
-	verbose=''
-	debug=''
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -81,8 +75,8 @@ process_opts() {
 			;;
 		--)
 			shift
-			top_dir="${1:-}"
-			if [[ ${top_dir} ]]; then
+			if [[ ${1:-} ]]; then
+				top_dir="${1}"
 				shift
 			fi
 			extra_args="${*}"
@@ -141,12 +135,23 @@ set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
 
+count='6'
+out_file="/tmp/audx-shufflelist-${start_time}.m3u"
+start_date=''
+end_date=''
+usage=''
+verbose=''
+debug=''
+
+m3u_file="${m3u_file:-album.m3u}"
+
+if [[ -f "${HOME}/.audx.conf" ]]; then
+	source "${HOME}/.audx.conf"
+fi
+
+top_dir="${top_dir:-${favorites_top:-}}"
+
 process_opts "${@}"
-
-m3u_file="album.m3u"
-
-count="${count:-6}"
-out_file="${out_file:-/tmp/audx-shufflelist-${start_time}.m3u}"
 
 if [[ ${usage} ]]; then
 	usage
@@ -160,6 +165,8 @@ if [[ ${extra_args} ]]; then
 	usage
 	exit 1
 fi
+
+top_dir="$(realpath --canonicalize-existing "${top_dir}")"
 
 echo "audx ${script_name} - ${start_time}" >&2
 
