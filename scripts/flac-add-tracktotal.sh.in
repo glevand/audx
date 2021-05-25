@@ -125,6 +125,10 @@ source "${SCRIPTS_TOP}/audx-lib.sh"
 
 process_opts "${@}"
 
+if [[ -f "${HOME}/.audx.conf" ]]; then
+	source "${HOME}/.audx.conf"
+fi
+
 if [[ ${usage} ]]; then
 	usage
 	trap - EXIT
