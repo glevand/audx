@@ -120,6 +120,13 @@ fi
 check_top_dir "${top_dir}"
 top_dir="$(realpath -e "${top_dir}")"
 
+out_file="$(realpath -m "${out_file}")"
+
+if [[ -e "${out_file}" && ! -f "${out_file}" ]]; then
+	echo "${script_name}: ERROR: '${out_file}' exists and is not a file." >&2
+	exit 1
+fi
+
 (cd "${top_dir}" && find . -type f -name '*.flac' -exec ls -l --time-style='+%Y.%m.%d' {} \;) \
 	| grep -E --only-matching '[[:digit:]]{4}(\.[[:digit:]]{2}){2} .*$' \
 	| sort > "${out_file}"
