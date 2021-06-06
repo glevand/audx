@@ -5,8 +5,6 @@
 # Send bug reports to: Geoff Levand <geoff@infradead.org>
 #
 
-dry_run=''
-
 on_exit() {
 	local result=${1}
 
@@ -138,7 +136,7 @@ move_file() {
 	check_file 'source file' "${src}"
 
 	local echo_extra
-	if [[ ${dry_run} ]]; then
+	if [[ ${dry_run:-} ]]; then
 		echo_extra=' (dry run)'
 	else
 		echo_extra=''
@@ -150,7 +148,7 @@ move_file() {
 		echo "${FUNCNAME[0]}${echo_extra}: -> '${dest}'" >&2
 	fi
 
-	if [[ ! ${dry_run} ]]; then
+	if [[ ! ${dry_run:-} ]]; then
 		mkdir -p "${dest%/*}"
 		mv --no-clobber "${src}" "${dest}"
 	fi
@@ -566,7 +564,7 @@ metaflac_retag() {
 	echo "${FUNCNAME[0]}: file: '${file}'" >&2
 	echo "${FUNCNAME[0]}:   ${tag_name}: '${old_tag}' => '${tag_data}'" >&2
 
-	if [[ ! ${dry_run} ]]; then
+	if [[ ! ${dry_run:-} ]]; then
 		${metaflac} --preserve-modtime --remove-tag="${tag_name}" --set-tag="${tag_name}=${tag_data}" "${file}"
 	fi
 }

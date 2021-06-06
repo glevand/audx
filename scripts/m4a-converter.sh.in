@@ -29,14 +29,6 @@ process_opts() {
 	local short_opts="b:o:chvg"
 	local long_opts="bitrate:,output-dir:,clobber,help,verbose,debug"
 
-	bitrate=''
-	output_dir=''
-	clobber=''
-	usage=''
-	verbose=''
-	debug=''
-	keep_tmp_dir=''
-
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
 
@@ -195,8 +187,6 @@ start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 
-tmp_dir=''
-
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
 trap 'on_err SIGUSR1 ? 3' SIGUSR1
@@ -207,6 +197,15 @@ set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
 
+bitrate='328k'
+output_dir="/tmp/audx-m4a-${start_time}"
+clobber=''
+usage=''
+verbose=''
+debug=''
+keep_tmp_dir=''
+top_dir=''
+
 process_opts "${@}"
 
 if [[ -f "${HOME}/.audx.conf" ]]; then
@@ -214,8 +213,6 @@ if [[ -f "${HOME}/.audx.conf" ]]; then
 fi
 
 top_dir="${top_dir:-${favorites_top:-}}"
-bitrate="${bitrate:-328k}"
-output_dir="${output_dir:-/tmp/audx-m4a-${start_time}}"
 
 if [[ ${usage} ]]; then
 	usage

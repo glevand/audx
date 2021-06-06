@@ -10,18 +10,21 @@ usage() {
 		echo "Usage: ${script_name} [flags] top-dir"
 		echo "Option flags:"
 		echo "  -t --tag         - Full tag 'NAME=VALUE'. Default='${tag_full}'."
-		echo "  -n --tag-name    - Tag Name. Default='${tag_name}'."
-		echo "  -l --tag-value   - Tag data. Default='${tag_value}'.'"
+		echo "  -n --tag-name    - Tag name. Default='${tag_name}'."
+		echo "  -l --tag-value   - Tag value. Default='${tag_value}'.'"
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution."
-		echo "  -d --dry-run     - Dry run, don't modify files."
 		echo "  -g --debug       - Extra verbose execution."
+		echo "  -d --dry-run     - Dry run, don't modify files."
 		echo "Common TAGs:"
 		echo "  ARTIST"
 		echo "  ALBUM"
 		echo "  TITLE"
 		echo "  TRACKNUMBER"
 		echo "  TRACKTOTAL"
+		echo "Examples:"
+		echo "  ${script_name} \"\${collection}/Phil Collins/No Jacket Required\" --tag='ALBUM=No Jacket Required'"
+		echo "  ${script_name} \"\${collection}/Ultravox\" --tag-name='ARTIST' --tag-value='Ultravox'"
 		echo "Info:"
 		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
 		echo "  @PACKAGE_URL@"
@@ -31,15 +34,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="t:n:l:hvdg"
-	local long_opts="tag:,tag-name:,tag-value:,help,verbose,dry-run,debug"
-
-	tag_full=''
-	tag_name=''
-	tag_value=''
-	usage=''
-	verbose=''
-	debug=''
+	local short_opts="t:n:l:hvgd"
+	local long_opts="tag:,tag-name:,tag-value:,help,verbose,debug,dry-run"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -69,14 +65,14 @@ process_opts() {
 			verbose=1
 			shift
 			;;
-		-d | --dry-run)
-			dry_run=1
-			shift
-			;;
 		-g | --debug)
 			verbose=1
 			debug=1
 			set -x
+			shift
+			;;
+		-d | --dry-run)
+			dry_run=1
 			shift
 			;;
 		--)
@@ -106,8 +102,6 @@ start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 
-tmp_dir=''
-
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
 trap 'on_err SIGUSR1 ? 3' SIGUSR1
@@ -117,6 +111,14 @@ set -o pipefail
 set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
+
+tag_full=''
+tag_name=''
+tag_value=''
+usage=''
+verbose=''
+debug=''
+dry_run=''
 
 process_opts "${@}"
 
@@ -184,7 +186,11 @@ if [[ -d "${top_dir}" ]]; then
 		|| { echo "${script_name}: ERROR: path_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 		kill -SIGUSR1 $$; } )
 
-	echo "${script_name}: INFO: Processing ${#path_array[@]} files." >&2
+	if [[ ${dry_run} ]]; then
+		echo "${script_name}: INFO: Processing ${#path_array[@]} files (dry-run)." >&2
+	else
+		echo "${script_name}: INFO: Processing ${#path_array[@]} files." >&2
+	fi
 
 	for path in "${path_array[@]}"; do
 		path="${path:2}"
