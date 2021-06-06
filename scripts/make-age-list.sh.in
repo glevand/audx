@@ -27,11 +27,6 @@ process_opts() {
 	local short_opts="o:hvg"
 	local long_opts="out-file:,help,verbose,debug"
 
-	out_file=''
-	usage=''
-	verbose=''
-	debug=''
-
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
 
@@ -85,8 +80,6 @@ start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 
-tmp_dir=''
-
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
 set -eE
@@ -95,6 +88,12 @@ set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
 
+out_file="/tmp/audx-age-${start_time}.lst"
+usage=''
+verbose=''
+debug=''
+top_dir=''
+
 process_opts "${@}"
 
 if [[ -f "${HOME}/.audx.conf" ]]; then
@@ -102,7 +101,6 @@ if [[ -f "${HOME}/.audx.conf" ]]; then
 fi
 
 top_dir="${top_dir:-${collection_top:-}}"
-out_file="${out_file:-/tmp/audx-age-${start_time}.lst}"
 
 if [[ ${usage} ]]; then
 	usage
