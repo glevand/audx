@@ -9,10 +9,10 @@ usage() {
 		echo "${script_name} - Add FLAC tracktotal metadata tags."
 		echo "Usage: ${script_name} [flags] top-dir"
 		echo "Option flags:"
-		echo "  -d --dry-run     - Dry run, don't modify files."
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution."
 		echo "  -g --debug       - Extra verbose execution."
+		echo "  -d --dry-run     - Dry run, don't modify files."
 		echo "Info:"
 		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
 		echo "  @PACKAGE_URL@"
@@ -22,13 +22,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="dhvg"
-	local long_opts="dry-run,help,verbose,debug"
-
-	dry_run=''
-	usage=''
-	verbose=''
-	debug=''
+	local short_opts="hvgd"
+	local long_opts="help,verbose,debug,dry-run"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -38,10 +33,6 @@ process_opts() {
 	while true ; do
 		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
-		-d | --dry-run)
-			dry_run=1
-			shift
-			;;
 		-h | --help)
 			usage=1
 			shift
@@ -54,6 +45,10 @@ process_opts() {
 			verbose=1
 			debug=1
 			set -x
+			shift
+			;;
+		-d | --dry-run)
+			dry_run=1
 			shift
 			;;
 		--)
@@ -111,8 +106,6 @@ start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 
-tmp_dir=''
-
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
 trap 'on_err SIGUSR1 ? 3' SIGUSR1
@@ -122,6 +115,11 @@ set -o pipefail
 set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
+
+usage=''
+verbose=''
+debug=''
+dry_run=''
 
 process_opts "${@}"
 

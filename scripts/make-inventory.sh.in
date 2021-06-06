@@ -105,8 +105,6 @@ start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 
-tmp_dir=''
-
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
 trap 'on_err SIGUSR1 ? 3' SIGUSR1
@@ -127,14 +125,15 @@ use_tags=''
 usage=''
 verbose=''
 debug=''
+src_dirs=''
 
 if [[ -f "${HOME}/.audx.conf" ]]; then
 	source "${HOME}/.audx.conf"
 fi
 
-if [[ ! ${src_dirs:-} ]]; then
-	echo "1 NO src_dirs"
+if [[ ! ${src_dirs} ]]; then
 	src_dirs=( "${collection_top}"/* )
+	echo "${script_name}: INFO: No source directories given. Using '${src_dirs[@]}'" >&2
 fi
 
 echo "src_dirs = '${src_dirs[@]}'"

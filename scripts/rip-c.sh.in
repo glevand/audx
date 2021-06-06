@@ -38,18 +38,6 @@ process_opts() {
 end-duration:,end-threshold:,split-time:,force,config-file:,help,verbose,debug,\
 rip-sox,split-sox,encode-flac"
 
-	start_duration=''
-	start_threshold=''
-	end_duration=''
-	end_threshold=''
-	base_name=''
-	split_time=''
-	force=''
-	config_file=''
-	usage=''
-	verbose=''
-	debug=''
-
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
 
@@ -139,8 +127,6 @@ start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 
-tmp_dir=''
-
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
 set -eE
@@ -148,6 +134,18 @@ set -o pipefail
 set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
+
+start_duration=''
+start_threshold=''
+end_duration=''
+end_threshold=''
+base_name=''
+split_time=''
+force=''
+config_file=''
+usage=''
+verbose=''
+debug=''
 
 process_opts "${@}"
 

@@ -26,12 +26,6 @@ process_opts() {
 	local short_opts="d:chvg"
 	local long_opts="vfat-dir:,clean-names,help,verbose,debug"
 
-	vfat_dir=''
-	clean_names=''
-	usage=''
-	verbose=''
-	debug=''
-
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
 
@@ -126,8 +120,6 @@ start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 
-tmp_dir=''
-
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
 trap 'on_err SIGUSR1 ? 3' SIGUSR1
@@ -137,6 +129,12 @@ set -o pipefail
 set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
+
+vfat_dir=''
+clean_names=''
+usage=''
+verbose=''
+debug=''
 
 process_opts "${@}"
 
