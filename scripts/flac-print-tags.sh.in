@@ -7,7 +7,7 @@ usage() {
 
 	{
 		echo "${script_name} - Recursively print FLAC metadata tags."
-		echo "Usage: ${script_name} [flags] top-dir"
+		echo "Usage: ${script_name} [flags] <top-dir|file>"
 		echo "Option flags:"
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution."
@@ -106,24 +106,39 @@ if [[ ${extra_args} ]]; then
 	exit 1
 fi
 
-check_top_dir "${top_dir}"
+if [[ ! ${top_dir} ]]; then
+	echo "${script_name}: ERROR: No input file or directory given." >&2
+	usage
+	exit 1
+fi
+
 top_dir="$(realpath -e "${top_dir}")"
+
+if [[ ! -d "${top_dir}" && ! -f "${top_dir}" ]]; then
+	echo "${script_name}: ERROR: Bad top-dir: '${top_dir}'" >&2
+	usage
+	exit 1
+fi
 
 metaflac="${metaflac:-metaflac}"
 
 check_program "metaflac" "${metaflac}"
 
-readarray -t path_array < <( (cd "${top_dir}" && find . -type f) | sort \
-	|| { echo "${script_name}: ERROR: path_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
-	kill -SIGUSR1 $$; } )
+if [[ -d "${top_dir}" ]]; then
+	readarray -t path_array < <( (cd "${top_dir}" && find . -type f) | sort \
+		|| { echo "${script_name}: ERROR: path_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+		kill -SIGUSR1 $$; } )
 
-echo "${script_name}: INFO: Processing ${#path_array[@]} files." >&2
+	echo "${script_name}: INFO: Processing ${#path_array[@]} files." >&2
 
-for path in "${path_array[@]}"; do
-	path="${path:2}"
+	for path in "${path_array[@]}"; do
+		path="${path:2}"
 
-	flac_print_tags "${top_dir}/${path}"
-done
+		flac_print_tags "${top_dir}/${path}"
+	done
+else
+	flac_print_tags "${top_dir}"
+fi
 
 trap "on_exit 'Success'" EXIT
 exit 0
