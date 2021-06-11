@@ -7,7 +7,7 @@ usage() {
 
 	{
 		echo "${script_name} - Write new FLAC metadata tags using --tag, or --tag-name and --tag-value."
-		echo "Usage: ${script_name} [flags] top-dir"
+		echo "Usage: ${script_name} [flags] <top-dir|file>"
 		echo "Option flags:"
 		echo "  -t --tag         - Full tag 'NAME=VALUE'. Default='${tag_full}'."
 		echo "  -n --tag-name    - Tag name. Default='${tag_name}'."
@@ -140,7 +140,7 @@ if [[ ${extra_args} ]]; then
 fi
 
 if [[ ! ${top_dir} ]]; then
-	echo "${script_name}: ERROR: No top-dir given." >&2
+	echo "${script_name}: ERROR: No input file or directory given." >&2
 	usage
 	exit 1
 fi
