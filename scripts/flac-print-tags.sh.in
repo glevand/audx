@@ -9,9 +9,10 @@ usage() {
 		echo "${script_name} - Recursively print FLAC metadata tags."
 		echo "Usage: ${script_name} [flags] <top-dir|file>"
 		echo "Option flags:"
-		echo "  -h --help        - Show this help and exit."
-		echo "  -v --verbose     - Verbose execution."
-		echo "  -g --debug       - Extra verbose execution."
+		echo "  -a --all     - Print the VORBIS_COMMENT block."
+		echo "  -h --help    - Show this help and exit."
+		echo "  -v --verbose - Verbose execution."
+		echo "  -g --debug   - Extra verbose execution."
 		echo "Info:"
 		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
 		echo "  @PACKAGE_URL@"
@@ -21,8 +22,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="hvg"
-	local long_opts="help,verbose,debug"
+	local short_opts="ahvg"
+	local long_opts="all,help,verbose,debug"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -32,6 +33,10 @@ process_opts() {
 	while true ; do
 		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
+		-a | --vorbis)
+			vorbis_comment=1
+			shift
+			;;
 		-h | --help)
 			usage=1
 			shift
@@ -83,6 +88,7 @@ set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
 
+vorbis_comment=''
 usage=''
 verbose=''
 debug=''
@@ -130,14 +136,23 @@ if [[ -d "${top_dir}" ]]; then
 		kill -SIGUSR1 $$; } )
 
 	echo "${script_name}: INFO: Processing ${#path_array[@]} files." >&2
+	echo ''
 
 	for path in "${path_array[@]}"; do
 		path="${path:2}"
 
-		flac_print_tags "${top_dir}/${path}"
+		if [[ ${vorbis_comment} ]]; then
+			flac_print_vorbis_comment "${top_dir}/${path}"
+		else
+			flac_print_tags "${top_dir}/${path}"
+		fi
 	done
 else
-	flac_print_tags "${top_dir}"
+	if [[ ${vorbis_comment} ]]; then
+		flac_print_vorbis_comment "${top_dir}"
+	else
+		flac_print_tags "${top_dir}"
+	fi
 fi
 
 trap "on_exit 'Success'" EXIT

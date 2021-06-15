@@ -457,7 +457,7 @@ flac_get_tag() {
 
 	local tag
 
-	tag="$(${metaflac} --show-tag="${t_name}" "${file}")"
+	tag="$("${metaflac}" --show-tag="${t_name}" "${file}")"
 
 	local regex_tag="[^=]+=([^=]+)"
 
@@ -521,6 +521,18 @@ flac_fill_tag_set() {
 	if [[ ${debug} ]]; then
 		flac_print_tag_set "${file}" _flac_fill_tag_set__tags
 	fi
+}
+
+flac_print_vorbis_comment() {
+	local file=${1}
+
+	if ! flac_check_file "${file}" 'quiet'; then
+		return
+	fi
+
+	echo "${FUNCNAME[0]}: file: '${file}'"
+	"${metaflac}" --list --block-type=VORBIS_COMMENT "${file}"
+	echo ''
 }
 
 flac_print_tags() {
