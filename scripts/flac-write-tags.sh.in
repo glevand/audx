@@ -20,6 +20,7 @@ usage() {
 		echo "  ARTIST"
 		echo "  ALBUM"
 		echo "  TITLE"
+		echo "  DATE"
 		echo "  TRACKNUMBER"
 		echo "  TRACKTOTAL"
 		echo "Examples:"
