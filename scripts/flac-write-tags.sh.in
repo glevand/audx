@@ -201,9 +201,19 @@ if [[ -d "${top_dir}" ]]; then
 		fi
 		metaflac_retag "${top_dir}/${path}" "${tag_name}" "${tag_value}" 'add'
 	done
+
+	if [[ ${dry_run} ]]; then
+		echo "${script_name}: INFO: Processed ${#path_array[@]} files (dry-run)." >&2
+	else
+		echo "${script_name}: INFO: Processed ${#path_array[@]} files." >&2
+	fi
 else
 	flac_check_file "${top_dir}" 'verbose'
 	metaflac_retag "${top_dir}" "${tag_name}" "${tag_value}" 'add'
+
+	if [[ ${dry_run} ]]; then
+		echo "${script_name}: INFO: Processed 1 file (dry-run)." >&2
+	fi
 fi
 
 trap "on_exit 'Success'" EXIT
