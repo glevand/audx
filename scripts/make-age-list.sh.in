@@ -10,11 +10,12 @@ usage() {
 		echo "Usage: ${script_name} [flags] top-dir"
 		echo "Option flags:"
 		echo "  -o --out-file - Playlist output file. Default: '${out_file}'."
+		echo "  -t --tracks   - Include album tracks. Default: '${tracks}'."
 		echo "  -h --help     - Show this help and exit."
 		echo "  -v --verbose  - Verbose execution."
 		echo "  -g --debug    - Extra verbose execution."
 		echo 'Inputs:'
-		echo "  top-dir          - '${top_dir}'"
+		echo "  top-dir       - '${top_dir}'"
 		echo "Info:"
 		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
 		echo "  @PACKAGE_URL@"
@@ -24,8 +25,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="o:hvg"
-	local long_opts="out-file:,help,verbose,debug"
+	local short_opts="o:thvg"
+	local long_opts="out-file:,tracks,help,verbose,debug"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -38,6 +39,10 @@ process_opts() {
 		-o | --out-file)
 			out_file="${2}"
 			shift 2
+			;;
+		-t | --tracks)
+			tracks=1
+			shift
 			;;
 		-h | --help)
 			usage=1
@@ -88,7 +93,8 @@ set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
 
-out_file="/tmp/audx-age-${start_time}.lst"
+out_file=''
+tracks=''
 usage=''
 verbose=''
 debug=''
@@ -101,6 +107,14 @@ if [[ -f "${HOME}/.audx.conf" ]]; then
 fi
 
 top_dir="${top_dir:-${collection_top:-}}"
+
+if [[ ! ${out_file} ]]; then
+	if [[ ${tracks} ]]; then
+		out_file="/tmp/audx-tracks-age-${start_time}.lst"
+	else
+		out_file="/tmp/audx-albums-age-${start_time}.lst"
+	fi
+fi
 
 if [[ ${usage} ]]; then
 	usage
@@ -125,9 +139,42 @@ if [[ -e "${out_file}" && ! -f "${out_file}" ]]; then
 	exit 1
 fi
 
-(cd "${top_dir}" && find . -type f -name '*.flac' -exec ls -l --time-style='+%Y.%m.%d' {} \;) \
-	| grep -E --only-matching '[[:digit:]]{4}(\.[[:digit:]]{2}){2} .*$' \
-	| sort > "${out_file}"
+if [[ ${tracks} ]]; then
+	readarray -t files_array < <( (cd "${top_dir}" && find . -type f -name '*.flac' -exec ls -l --time-style='+%Y.%m.%d' {} \;) \
+		| grep -E --only-matching '[[:digit:]]{4}(\.[[:digit:]]{2}){2} .*.flac$' \
+		| sort \
+		|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+		kill -SIGUSR1 $$; } )
+else
+	readarray -t files_array < <( (cd "${top_dir}" && find . -type f -name '01-*.flac' -exec ls -l --time-style='+%Y.%m.%d' {} \;) \
+		| grep -E --only-matching '[[:digit:]]{4}(\.[[:digit:]]{2}){2} .*/01-' \
+		| sort \
+		|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+		kill -SIGUSR1 $$; } )
+fi
+
+if (( ${#files_array[@]} == 0 )); then
+	echo "${script_name}: No files found: '${top_dir}'" >&2
+	trap "on_exit 'Success'" EXIT
+	exit 0
+fi
+
+echo "${script_name}: INFO: Processing ${#files_array[@]} files." >&2
+
+{
+	echo "# ${script_name} (@PACKAGE_NAME@) - ${start_time}"
+	echo "# ${top_dir}: ${#files_array[@]} files."
+	echo ''
+} > "${out_file}"
+
+if [[ ${tracks} ]]; then
+	printf "%s\n" "${files_array[@]}" >> "${out_file}"
+else
+	# 2007.04.25 ./ABC/Beauty Stab/01-
+	for file in "${files_array[@]}"; do
+		echo "${file:0:11}${file:13:-4}" >> "${out_file}"
+	done
+fi
 
 echo "${script_name}: INFO: Age list in '${out_file}'" >&2
 
