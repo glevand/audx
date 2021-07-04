@@ -4,18 +4,15 @@ usage() {
 	local old_xtrace
 	old_xtrace="$(shopt -po xtrace || :)"
 	set +o xtrace
-
 	{
-		echo "${script_name} - Create an age list of collection."
-		echo "Usage: ${script_name} [flags] top-dir"
+		echo "${script_name} - Make age lists of an album collection."
+		echo "Usage: ${script_name} [flags] src-directory [src-directory]..."
 		echo "Option flags:"
-		echo "  -o --out-file - Playlist output file. Default: '${out_file}'."
-		echo "  -t --tracks   - Include album tracks. Default: '${tracks}'."
-		echo "  -h --help     - Show this help and exit."
-		echo "  -v --verbose  - Verbose execution."
-		echo "  -g --debug    - Extra verbose execution."
-		echo 'Inputs:'
-		echo "  top-dir       - '${top_dir}'"
+		echo "  -o --output-dir - Output directory. Default: '${output_dir}'."
+		echo "  -t --tracks     - Output an album track list. Default: '${tracks}'."
+		echo "  -h --help       - Show this help and exit."
+		echo "  -v --verbose    - Verbose execution."
+		echo "  -g --debug      - Extra verbose execution."
 		echo "Info:"
 		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
 		echo "  @PACKAGE_URL@"
@@ -26,7 +23,7 @@ usage() {
 
 process_opts() {
 	local short_opts="o:thvg"
-	local long_opts="out-file:,tracks,help,verbose,debug"
+	local long_opts="output-dir:,tracks,help,verbose,debug"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -36,8 +33,8 @@ process_opts() {
 	while true ; do
 		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
-		-o | --out-file)
-			out_file="${2}"
+		-o | --output-dir)
+			output_dir="${2}"
 			shift 2
 			;;
 		-t | --tracks)
@@ -60,11 +57,9 @@ process_opts() {
 			;;
 		--)
 			shift
-			top_dir="${1:-}"
-			if [[ ${top_dir} ]]; then
-				shift
+			if [[ ${1:-} ]]; then
+				src_dirs=("$@")
 			fi
-			extra_args="${*}"
 			break
 			;;
 		*)
@@ -72,6 +67,83 @@ process_opts() {
 			exit 1
 			;;
 		esac
+	done
+}
+
+generate_age_list() {
+	local list_type=${1}
+
+	local name_exp
+	local grep_exp
+
+	case "${list_type}" in
+	'albums')
+		name_exp='01-*.flac'
+		grep_exp='[[:digit:]]{4}(\.[[:digit:]]{2}){2} .*/01-'
+		;;
+	'tracks')
+		name_exp='*.flac'
+		grep_exp='[[:digit:]]{4}(\.[[:digit:]]{2}){2} .*.flac$'
+		;;
+	*)
+		echo "${script_name}: ERROR: Internal - Bad list_type: '${list_type}'" >&2
+		exit 1
+		;;
+	esac
+
+	local src_dir
+	local output_file
+	local src_path
+
+	for src_dir in "${src_dirs[@]}"; do
+		src_dir="${src_dir%/}"
+		output_file="${output_dir}/${src_dir##*/}-${list_type}-age.lst"
+		src_path="$(realpath "${src_dir}")"
+
+		if [[ -n "$(find "${src_dir}" -maxdepth 0 -type d -empty 2>/dev/null)" ]]; then
+			echo "${script_name}: INFO: Empty directory: '${src_dir}'" >&2
+			continue
+		fi
+
+		if [[ -z "$(find "${src_dir}" -type f -name "${name_exp}" -print -quit 2>/dev/null)" ]]; then
+			echo "${script_name}: INFO: No files found: '${src_dir}'" >&2
+			continue
+		fi
+
+		declare -a files_array
+		readarray -t files_array < <( (cd "${src_dir}" \
+			&& find . -type f -name "${name_exp}" -exec ls -l --time-style='+%Y.%m.%d' {} \;) \
+			| grep -E --only-matching "${grep_exp}" \
+			| sort \
+			|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+			kill -SIGUSR1 $$; } )
+
+		{
+			echo "# ${script_name} (@PACKAGE_NAME@) - ${start_time}"
+			echo "# ${src_dir}: ${#files_array[@]} albums."
+			echo ''
+		} > "${output_file}"
+
+		verbose_echo "${script_name}: INFO: Processing ${#files_array[@]} files." >&2
+		verbose_echo "src = '${src_dir}'"
+		verbose_echo "out = '${output_file}'"
+
+		local file
+		local txt
+		for file in "${files_array[@]}"; do
+			# 2007.04.21 ./Michael Franks/Skin Dive/01-Read My Lips.flac
+			if [[ "${list_type}" == 'tracks' ]]; then
+				txt="${file:0:11}'${file:13}'"
+			else
+				txt="${file:0:11}'${file:13:-4}'"
+			fi
+
+			if [[ ${verbose} ]]; then
+				echo "${txt}"
+			fi
+			echo "${txt}" >> "${output_file}"
+		done
+		verbose_echo
 	done
 }
 
@@ -87,33 +159,32 @@ SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+
 set -eE
 set -o pipefail
 set -o nounset
 
 source "${SCRIPTS_TOP}/audx-lib.sh"
 
-out_file=''
+declare -a src_dirs
+
+output_dir="/tmp/audx-age-${start_time}"
 tracks=''
 usage=''
 verbose=''
 debug=''
-top_dir=''
-
-process_opts "${@}"
+src_dirs=''
 
 if [[ -f "${HOME}/.audx.conf" ]]; then
 	source "${HOME}/.audx.conf"
 fi
 
-top_dir="${top_dir:-${collection_top:-}}"
+process_opts "${@}"
 
-if [[ ! ${out_file} ]]; then
-	if [[ ${tracks} ]]; then
-		out_file="/tmp/audx-tracks-age-${start_time}.lst"
-	else
-		out_file="/tmp/audx-albums-age-${start_time}.lst"
-	fi
+if [[ ! ${src_dirs} ]]; then
+	src_dirs=( "${collection_top}"/* )
+	echo "${script_name}: INFO: No source directories given. Using '${src_dirs[@]}'" >&2
 fi
 
 if [[ ${usage} ]]; then
@@ -122,61 +193,18 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
-if [[ ${extra_args} ]]; then
-	set +o xtrace
-	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
-	usage
-	exit 1
-fi
+output_dir="$(realpath --canonicalize-missing "${output_dir}")"
 
-check_top_dir "${top_dir}"
-top_dir="$(realpath -e "${top_dir}")"
+check_src_dirs "${src_dirs[@]}"
 
-out_file="$(realpath -m "${out_file}")"
+mkdir -p "${output_dir}"
 
-if [[ -e "${out_file}" && ! -f "${out_file}" ]]; then
-	echo "${script_name}: ERROR: '${out_file}' exists and is not a file." >&2
-	exit 1
-fi
+generate_age_list 'albums'
 
 if [[ ${tracks} ]]; then
-	readarray -t files_array < <( (cd "${top_dir}" && find . -type f -name '*.flac' -exec ls -l --time-style='+%Y.%m.%d' {} \;) \
-		| grep -E --only-matching '[[:digit:]]{4}(\.[[:digit:]]{2}){2} .*.flac$' \
-		| sort \
-		|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
-		kill -SIGUSR1 $$; } )
-else
-	readarray -t files_array < <( (cd "${top_dir}" && find . -type f -name '01-*.flac' -exec ls -l --time-style='+%Y.%m.%d' {} \;) \
-		| grep -E --only-matching '[[:digit:]]{4}(\.[[:digit:]]{2}){2} .*/01-' \
-		| sort \
-		|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
-		kill -SIGUSR1 $$; } )
+	generate_age_list 'tracks'
 fi
 
-if (( ${#files_array[@]} == 0 )); then
-	echo "${script_name}: No files found: '${top_dir}'" >&2
-	trap "on_exit 'Success'" EXIT
-	exit 0
-fi
-
-echo "${script_name}: INFO: Processing ${#files_array[@]} files." >&2
-
-{
-	echo "# ${script_name} (@PACKAGE_NAME@) - ${start_time}"
-	echo "# ${top_dir}: ${#files_array[@]} files."
-	echo ''
-} > "${out_file}"
-
-if [[ ${tracks} ]]; then
-	printf "%s\n" "${files_array[@]}" >> "${out_file}"
-else
-	# 2007.04.25 ./ABC/Beauty Stab/01-
-	for file in "${files_array[@]}"; do
-		echo "${file:0:11}${file:13:-4}" >> "${out_file}"
-	done
-fi
-
-echo "${script_name}: INFO: Age list in '${out_file}'" >&2
-
-trap "on_exit 'Success'" EXIT
+echo "${script_name}: Age lists generated in '${output_dir}'."  >&2
+trap $'on_exit "Success"' EXIT
 exit 0
