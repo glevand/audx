@@ -28,7 +28,7 @@ on_err() {
 	local err_no=${3}
 
 	{
-		if [[ ${debug} ]]; then
+		if [[ ${debug:-} ]]; then
 			echo '------------------------'
 			set
 			echo '------------------------'
@@ -56,6 +56,19 @@ sec_to_min() {
 	fi
 
 	echo "${min}.${frac_10}${frac_100}"
+}
+
+verbose_echo() {
+	local msg="${*}"
+
+	if [[ "${verbose:-}" &&  "${verbose:-}" == 'y' || "${verbose:-}" == '1' ]]; then
+		echo "${msg}"
+		return
+	fi
+
+	if [[ "${quiet:-}" &&  "${quiet:-}" != 'y' && "${quiet:-}" != '1' ]]; then
+		echo "${msg}"
+	fi
 }
 
 cpu_count() {
