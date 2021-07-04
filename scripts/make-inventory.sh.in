@@ -4,25 +4,23 @@ usage() {
 	local old_xtrace
 	old_xtrace="$(shopt -po xtrace || :)"
 	set +o xtrace
-
 	{
 		echo "${script_name} - Make inventory lists of an album collection."
 		echo "Usage: ${script_name} [flags] src-directory [src-directory]..."
 		echo "Option flags:"
-		echo "  -o --output-dir  - Output directory. Default: '${output_dir}'."
-		echo "  -c --canonical   - Output full canonical paths to lists."
-		echo "  -m --mtime       - Print file modification time. Default: '${mtime}'."
-		echo "  -t --tracks      - Include album tracks. Default: '${tracks}'."
-		echo "  -T --use-tags    - Use metadata tags to generate lists. Default: '${use_tags}'."
-		echo "  -h --help        - Show this help and exit."
-		echo "  -v --verbose     - Verbose execution."
-		echo "  -g --debug       - Extra verbose execution."
+		echo "  -o --output-dir - Output directory. Default: '${output_dir}'."
+		echo "  -c --canonical  - Output full canonical paths to lists."
+		echo "  -m --mtime      - Print file modification time. Default: '${mtime}'."
+		echo "  -t --tracks     - Output an album track list. Default: '${tracks}'."
+		echo "  -T --use-tags   - Use metadata tags to generate lists. Default: '${use_tags}'."
+		echo "  -h --help       - Show this help and exit."
+		echo "  -v --verbose    - Verbose execution."
+		echo "  -g --debug      - Extra verbose execution."
 		echo "Info:"
 		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
 		echo "  @PACKAGE_URL@"
 		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
 	} >&2
-
 	eval "${old_xtrace}"
 }
 
@@ -87,12 +85,90 @@ process_opts() {
 	done
 }
 
-on_exit() {
-	local result=${1}
-	local sec=${SECONDS}
+generate_inventory_list() {
+	local list_type=${1}
 
-	set +x
-	echo "${script_name}: Done: ${result}, ${sec} sec ($(sec_to_min "${sec}") min)." >&2
+	local src_dir
+	local output_file
+	local src_path
+	for src_dir in "${src_dirs[@]}"; do
+		src_dir="${src_dir%/}"
+		output_file="${output_dir}/${src_dir##*/}-${list_type}.lst"
+		src_path="$(realpath "${src_dir}")"
+
+		if [[ -n "$(find "${src_dir}" -maxdepth 0 -type d -empty 2>/dev/null)" ]]; then
+			echo "${script_name}: INFO: Empty directory: '${src_dir}'" >&2
+			continue
+		fi
+
+		if [[ -z "$(find "${src_dir}" -type f -name 'album.m3u' -print -quit 2>/dev/null)" ]]; then
+			echo "${script_name}: INFO: No files found: '${src_dir}'" >&2
+			continue
+		fi
+
+		readarray -t album_array < <( \
+			find "${src_path}" -type f -name 'album.m3u' | sort \
+			|| { echo "${script_name}: ERROR: album_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+			kill -SIGUSR1 $$; } )
+
+		{
+			echo "# ${script_name} (@PACKAGE_NAME@) - ${start_time}"
+			echo "# ${src_dir}: ${#album_array[@]} albums."
+			echo ''
+		} > "${output_file}"
+
+		local album_path
+		local album
+		local artist_path
+		local artist
+		local item
+		local ftime
+
+		for (( i = 0; i < ${#album_array[@]}; i++ )); do
+			album_path="${album_array[i]%/album.m3u}"
+			album="${album_path##*/}"
+			artist_path="${album_path%/*}"
+			artist="${artist_path##*/}"
+
+			if [[ ${canonical} ]]; then
+				item="'${album_path}'"
+			else
+				if [[ ! ${artist} || ! ${album} ]]; then
+					echo "${script_name}: WARNING: No path, use --canonical" >&2
+				fi
+				item="'${artist}/${album}'"
+			fi
+
+			if [[ ${mtime} ]]; then
+				ftime=" $(ls -l --time-style='+%Y.%m.%d' "$(realpath "${src_dir}/${album}/01-"*)" | grep -E --only-matching '[[:digit:]]{4}(\.[[:digit:]]{2}){2}')"
+			else
+				ftime=''
+			fi
+
+			echo "[$(( i + 1 ))]${ftime} ${item}" >> "${output_file}"
+
+			if [[ "${list_type}" == 'tracks' ]]; then
+				readarray -t track_array < <( \
+					find "${album_path}" -type f -name '*.flac' -o -name '*.m4a' | sort \
+					|| { echo "${script_name}: ERROR: track_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+					kill -SIGUSR1 $$; } )
+
+				for (( j = 0; j < ${#track_array[@]}; j++ )); do
+					track="${track_array[j]##*/}"
+					track="${track%.*}"
+					#echo "  [$(( i + 1 )).$(( j + 1 ))] ${track}" >> "${output_file}"
+					echo "  '${track}'" >> "${output_file}"
+				done
+			fi
+
+		done
+
+		if [[ ${verbose} ]]; then
+			echo "# ${output_file}"
+			cat "${output_file}"
+			echo ''
+		fi
+	done
 }
 
 #===============================================================================
@@ -131,14 +207,12 @@ if [[ -f "${HOME}/.audx.conf" ]]; then
 	source "${HOME}/.audx.conf"
 fi
 
+process_opts "${@}"
+
 if [[ ! ${src_dirs} ]]; then
 	src_dirs=( "${collection_top}"/* )
 	echo "${script_name}: INFO: No source directories given. Using '${src_dirs[@]}'" >&2
 fi
-
-echo "src_dirs = '${src_dirs[@]}'"
-
-process_opts "${@}"
 
 if [[ ${use_tags} ]]; then
 	echo "${script_name}: ERROR: --use-tags: TODO" >&2
@@ -158,73 +232,11 @@ check_src_dirs "${src_dirs[@]}"
 
 mkdir -p "${output_dir}"
 
+generate_inventory_list 'albums'
+
 if [[ ${tracks} ]]; then
-	list_type='tracks'
-else
-	list_type='albums'
+	generate_inventory_list 'tracks'
 fi
-
-for src_dir in "${src_dirs[@]}"; do
-	src_dir="${src_dir%/}"
-	output_file="${output_dir}/${src_dir##*/}-${list_type}.lst"
-	src_path="$(realpath "${src_dir}")"
-
-	readarray -t album_array < <( \
-		find "${src_path}" -type f -name 'album.m3u' | sort \
-		|| { echo "${script_name}: ERROR: album_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
-		kill -SIGUSR1 $$; } )
-
-	{
-		echo "# ${script_name} (@PACKAGE_NAME@) - ${start_time}"
-		echo "# ${src_dir}: ${#album_array[@]} albums."
-		echo ''
-	} > "${output_file}"
-
-	for (( i = 0; i < ${#album_array[@]}; i++ )); do
-		album_path="${album_array[i]%/album.m3u}"
-		album="${album_path##*/}"
-		artist_path="${album_path%/*}"
-		artist="${artist_path##*/}"
-
-		if [[ ${canonical} ]]; then
-			item="'${album_path}'"
-		else
-			if [[ ! ${artist} || ! ${album} ]]; then
-				echo "${script_name}: WARNING: No path, use --canonical" >&2
-			fi
-			item="'${artist}/${album}'"
-		fi
-
-		if [[ ${mtime} ]]; then
-			ftime=" $(ls -l --time-style='+%Y.%m.%d' "$(realpath "${src_dir}/${album}/01-"*)" | grep -E --only-matching '[[:digit:]]{4}(\.[[:digit:]]{2}){2}')"
-		else
-			ftime=''
-		fi
-
-		echo "[$(( i + 1 ))]${ftime} ${item}" >> "${output_file}"
-
-		if [[ ${tracks} ]]; then
-			readarray -t track_array < <( \
-				find "${album_path}" -type f -name '*.flac' -o -name '*.m4a' | sort \
-				|| { echo "${script_name}: ERROR: track_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
-				kill -SIGUSR1 $$; } )
-
-			for (( j = 0; j < ${#track_array[@]}; j++ )); do
-				track="${track_array[j]##*/}"
-				track="${track%.*}"
-				#echo "  [$(( i + 1 )).$(( j + 1 ))] ${track}" >> "${output_file}"
-				echo "  '${track}'" >> "${output_file}"
-			done
-		fi
-
-	done
-
-	if [[ ${verbose} ]]; then
-		echo "# ${output_file}"
-		cat "${output_file}"
-		echo ''
-	fi
-done
 
 echo "${script_name}: Album lists generated in '${output_dir}'."  >&2
 trap $'on_exit "Success"' EXIT
