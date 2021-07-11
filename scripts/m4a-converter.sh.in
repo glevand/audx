@@ -7,7 +7,7 @@ usage() {
 
 	{
 		echo "${script_name} - Convert FLAC files to m4a AAC encoded files suitable for download to Walkman type devices."
-		echo "Usage: ${script_name} [flags] top-dir"
+		echo "Usage: ${script_name} [flags] <top-dir|m3u playlist>"
 		echo "Option flags:"
 		echo "  -b --bitrate     - Encoding bitrate. Default: '${bitrate}'."
 		echo "  -o --output-dir  - Output directory. Default: '${output_dir}'."
@@ -15,8 +15,12 @@ usage() {
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution. Default: '${verbose}'."
 		echo "  -g --debug       - Extra verbose execution. Default: '${debug}'."
-		echo 'Inputs:'
-		echo "  top-dir          - '${top_dir}'"
+		echo 'Input:'
+		if [[ ${top_dir} ]]; then
+			echo "  top-dir: '${top_dir}'"
+		else
+			echo "  playlist: '${playlist}'"
+		fi
 		echo "Info:"
 		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
 		echo "  @PACKAGE_URL@"
@@ -66,8 +70,8 @@ process_opts() {
 			;;
 		--)
 			shift
-			top_dir="${1:-}"
-			if [[ ${top_dir} ]]; then
+			arg_1="${1:-}"
+			if [[ ${arg_1} ]]; then
 				shift
 			fi
 			extra_args="${*}"
@@ -204,7 +208,7 @@ usage=''
 verbose=''
 debug=''
 keep_tmp_dir=''
-top_dir=''
+arg_1=''
 
 process_opts "${@}"
 
@@ -212,7 +216,20 @@ if [[ -f "${HOME}/.audx.conf" ]]; then
 	source "${HOME}/.audx.conf"
 fi
 
-top_dir="${top_dir:-${favorites_top:-}}"
+playlist=''
+top_dir=''
+
+if [[ ! ${arg_1} ]]; then
+	top_dir="${top_dir:-${favorites_top:-}}"
+elif [[ -f "${arg_1}" ]]; then
+	playlist="${arg_1}"
+elif [[ -d "${arg_1}" ]]; then
+	top_dir="${arg_1}"
+else
+	echo "${script_name}: ERROR: Bad input: '${arg_1}'" >&2
+	usage
+	exit 1
+fi
 
 if [[ ${usage} ]]; then
 	usage
@@ -229,9 +246,6 @@ fi
 
 echo "audx ${script_name} - ${start_time}" >&2
 
-check_top_dir "${top_dir}"
-top_dir="$(realpath -e "${top_dir}")"
-
 fdkaac="${fdkaac:-fdkaac}"
 check_program "fdkaac" "${fdkaac}"
 
@@ -244,9 +258,20 @@ check_program "parallel" "${parallel}"
 sox="${sox:-sox}"
 check_program "sox" "${sox}"
 
-readarray -t files_array < <(find "${top_dir}" -type f -name '*.flac' | sort \
-	|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
-	kill -SIGUSR1 $$; } )
+if [[ ${top_dir} ]]; then
+	echo "${script_name}: INFO: Using top-dir '${top_dir}'." >&2
+	check_top_dir "${top_dir}"
+	top_dir="$(realpath -e "${top_dir}")"
+
+	readarray -t files_array < <(find "${top_dir}" -type f -name '*.flac' | sort \
+		|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+		kill -SIGUSR1 $$; } )
+else
+	echo "${script_name}: INFO: Using playlist '${playlist}'." >&2
+	check_file 'playlist' "${playlist}"
+	playlist="$(realpath -e "${playlist}")"
+	readarray -t files_array < "${playlist}"
+fi
 
 in_count="${#files_array[@]}"
 
