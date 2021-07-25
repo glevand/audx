@@ -8,6 +8,7 @@ composed_bin_scripts = \
 	scripts/flac-clean-tags.sh \
 	scripts/flac-meta-rename.sh \
 	scripts/flac-print-tags.sh \
+	scripts/flac-tag-switcher.sh \
 	scripts/flac-write-tags.sh \
 	scripts/audx-lib.sh \
 	scripts/m4a-converter.sh \
