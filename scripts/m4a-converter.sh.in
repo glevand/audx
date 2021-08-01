@@ -108,7 +108,7 @@ setup_p_script() {
 		return
 	fi
 
-	if [[ ${verbose} ]]; then
+	if [[ ${debug} ]]; then
 		echo "${id}: Setup '${out_file}'" >&2
 		#echo "${id}: Setup '${out_file}' @ '${p_script}'" >&2
 	fi
@@ -140,9 +140,14 @@ bitrate='${bitrate}'
 
 EOF
 
-	cat << 'EOF' >> "${p_script}"
+	if [[ ${verbose} ]]; then
+		cat << 'EOF' >> "${p_script}"
 echo "${id}: Creating '${out_file}'" >&2
 
+EOF
+	fi
+
+	cat << 'EOF' >> "${p_script}"
 mkdir -p "${out_file%/*}"
 
 sox_cmd="${sox} '${in_file}' -t wav -"
@@ -275,6 +280,7 @@ fi
 
 in_count="${#files_array[@]}"
 
+echo "${script_name}: INFO: Writing files to '${output_dir}'." >&2
 echo "${script_name}: INFO: Processing ${in_count} input files." >&2
 
 tmp_dir="$(mktemp --tmpdir --directory ${script_name}.XXXX)"
