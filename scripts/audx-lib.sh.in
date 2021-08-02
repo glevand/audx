@@ -478,7 +478,7 @@ flac_get_tag() {
 		if [[ ${optional} == 'optional' ]]; then
 			return
 		fi
-		echo "${FUNCNAME[0]}: ERROR: '${t_name}' not found in '${tag}'" >&2
+		echo "${FUNCNAME[0]}: ERROR: Required tag '${t_name}' not found in '${tag}' file '${file}'." >&2
 		exit 1
 	fi
 
