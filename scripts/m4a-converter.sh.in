@@ -12,6 +12,7 @@ usage() {
 		echo "  -b --bitrate     - Encoding bitrate. Default: '${bitrate}'."
 		echo "  -o --output-dir  - Output directory. Default: '${output_dir}'."
 		echo "  -c --clobber     - Overwrite existing files. Default: '${clobber}'."
+		echo "  -k --keep-tmp    - Keep tmp directory. Default: '${keep_tmp_dir}'."
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution. Default: '${verbose}'."
 		echo "  -g --debug       - Extra verbose execution. Default: '${debug}'."
@@ -30,8 +31,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="b:o:chvg"
-	local long_opts="bitrate:,output-dir:,clobber,help,verbose,debug"
+	local short_opts="b:o:ckhvg"
+	local long_opts="bitrate:,output-dir:,clobber,keep-tmp,help,verbose,debug"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -51,6 +52,10 @@ process_opts() {
 			;;
 		-c | --clobber)
 			clobber=1
+			shift
+			;;
+		-k | --keep-tmp)
+			keep_tmp_dir=1
 			shift
 			;;
 		-h | --help)
@@ -83,6 +88,15 @@ process_opts() {
 			;;
 		esac
 	done
+}
+
+clean_txt() {
+	local txt=${1}
+
+	txt="${txt//$/\\$}"
+	txt="${txt//\'/\'\"\'\"\'}"
+
+	echo "${txt}"
 }
 
 setup_p_script() {
@@ -121,49 +135,30 @@ setup_p_script() {
 	cat << EOF > "${p_script}"
 #!/usr/bin/env bash
 
-# set -x
+if (( ${debug:-0} )); then
+  set -x
+fi
 
-id='${id}'
-in_file='${in_file}'
-out_file='${out_file}'
+if (( ${verbose:-0} )); then
+  echo "${id}: Creating '$(clean_txt "${out_file}")'" >&2
+fi
 
-artist='${tags[artist]}'
-album='${tags[album]}'
-title='${tags[title]}'
-tracknumber='${tags[tracknumber]}'
-tracktotal='${tags[tracktotal]}'
+mkdir -p '$(clean_txt "${out_file%/*}")'
 
-sox='${sox}'
-fdkaac='${fdkaac}'
+sox_cmd='"${sox}" "$(clean_txt "${in_file}")" -t wav -'
 
-bitrate='${bitrate}'
-
-EOF
-
-	if [[ ${verbose} ]]; then
-		cat << 'EOF' >> "${p_script}"
-echo "${id}: Creating '${out_file}'" >&2
-
-EOF
-	fi
-
-	cat << 'EOF' >> "${p_script}"
-mkdir -p "${out_file%/*}"
-
-sox_cmd="${sox} '${in_file}' -t wav -"
-
-fdkaac_cmd="${fdkaac} \
+fdkaac_cmd='"${fdkaac}" \
   --silent \
   --ignorelength \
   --profile 2 \
   --bitrate-mode=0 --bitrate=${bitrate} \
-  --artist='${artist}' \
-  --album='${album}' \
-  --title='${title}' \
-  --track='${tracknumber}/${tracktotal}' \
-  -o '${out_file}' -"
+  --artist="$(clean_txt "${tags[artist]}")" \
+  --album="$(clean_txt "${tags[album]}")" \
+  --title="$(clean_txt "${tags[title]}")" \
+  --track="${tags[tracknumber]}/${tags[tracktotal]}" \
+  -o "$(clean_txt "${out_file}")" -'
 
-eval "${sox_cmd} | ${fdkaac_cmd}"
+eval "\${sox_cmd} | \${fdkaac_cmd}"
 EOF
 
 	chmod +x "${p_script}"
