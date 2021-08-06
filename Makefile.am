@@ -3,6 +3,7 @@ AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4
 
 composed_bin_scripts = \
+	scripts/audx-lib.sh \
 	scripts/check-vfat-names.sh \
 	scripts/flac-add-tracktotal.sh \
 	scripts/flac-clean-tags.sh \
@@ -10,14 +11,14 @@ composed_bin_scripts = \
 	scripts/flac-print-tags.sh \
 	scripts/flac-tag-switcher.sh \
 	scripts/flac-write-tag.sh \
-	scripts/audx-lib.sh \
 	scripts/m4a-converter.sh \
 	scripts/make-age-list.sh \
 	scripts/make-inventory.sh \
 	scripts/make-playlists.sh \
 	scripts/make-shufflelist.sh \
-	scripts/rip-c-flac-tags.sh \
+	scripts/play-m4a.sh \
 	scripts/rip-c.sh \
+	scripts/rip-c-flac-tags.sh \
 	scripts/rip-c-to-flac.sh
 
 bin_SCRIPTS = $(composed_bin_scripts)
