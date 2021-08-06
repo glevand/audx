@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+
+usage() {
+	local old_xtrace
+	old_xtrace="$(shopt -po xtrace || :)"
+	set +o xtrace
+
+	{
+		echo "${script_name} - Play m4a AAC encoded files."
+		echo "Usage: ${script_name} [flags] <top-dir | m3u playlist | m4a file>"
+		echo "Option flags:"
+		echo "  -h --help        - Show this help and exit."
+		echo "  -v --verbose     - Verbose execution. Default: '${verbose}'."
+		echo "  -g --debug       - Extra verbose execution. Default: '${debug}'."
+		echo 'Input:'
+		case "${input_type}" in
+		m4a_file)
+			echo "  m4a file: '${arg_1}'"
+			;;
+		playlist)
+			echo "  playlist: '${arg_1}'"
+			;;
+		top_dir)
+			echo "  top-dir: '${arg_1}'"
+			;;
+		esac
+		echo "Info:"
+		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
+		echo "  @PACKAGE_URL@"
+		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+	} >&2
+	eval "${old_xtrace}"
+}
+
+process_opts() {
+	local short_opts="hvg"
+	local long_opts="help,verbose,debug"
+
+	local opts
+	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
+
+	eval set -- "${opts}"
+
+	while true ; do
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
+		case "${1}" in
+		-h | --help)
+			usage=1
+			shift
+			;;
+		-v | --verbose)
+			verbose=1
+			shift
+			;;
+		-g | --debug)
+			verbose=1
+			debug=1
+			keep_tmp_dir=1
+			set -x
+			shift
+			;;
+		--)
+			shift
+			arg_1="${1:-}"
+			if [[ ${arg_1} ]]; then
+				shift
+			fi
+			extra_args="${*}"
+			break
+			;;
+		*)
+			echo "${script_name}: ERROR: Internal opts: '${*}'" >&2
+			exit 1
+			;;
+		esac
+	done
+}
+
+#===============================================================================
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
+script_name="${0##*/}"
+
+SECONDS=0
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+
+SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+
+set -eE
+set -o pipefail
+set -o nounset
+
+source "${SCRIPTS_TOP}/audx-lib.sh"
+
+usage=''
+verbose=''
+debug=''
+arg_1=''
+
+process_opts "${@}"
+
+if [[ -f "${HOME}/.audx.conf" ]]; then
+	source "${HOME}/.audx.conf"
+fi
+
+input_type=''
+
+if [[ -d "${arg_1}" ]]; then
+	input_type='top_dir'
+elif [[ -f "${arg_1}" && "${arg_1##*.}" == 'm3u' ]]; then
+	input_type='playlist'
+elif [[ -f "${arg_1}" && "${arg_1##*.}" == 'm4a' ]]; then
+	input_type='m4a_file'
+fi
+
+if [[ ${usage} ]]; then
+	usage
+	trap - EXIT
+	exit 0
+fi
+
+echo "${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@" >&2
+
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
+fi
+
+ffplay="${ffplay:-ffplay}"
+check_program "ffplay" "${ffplay}"
+
+arg_1="$(realpath -e "${arg_1}")"
+
+case "${input_type}" in
+m4a_file)
+	if [[ ${verbose} ]]; then echo "INFO: Using m4a_file '${arg_1}'." >&2; fi
+	check_file 'm4a_file' "${arg_1}"
+	files_array=("${arg_1}")
+	files_prefix=''
+	;;
+playlist)
+	if [[ ${verbose} ]]; then echo "INFO: Using playlist '${arg_1}'." >&2; fi
+	check_file 'playlist' "${arg_1}"
+	readarray -t files_array < "${arg_1}"
+	files_prefix="${arg_1%/*}/"
+	;;
+top_dir)
+	if [[ ${verbose} ]]; then echo "INFO: Using top-dir '${arg_1}'." >&2; fi
+	check_top_dir "${arg_1}"
+
+	readarray -t files_array < <(find "${arg_1}" -type f -name '*.m4a' | sort \
+		|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+		kill -SIGUSR1 $$; } )
+	files_prefix=''
+	;;
+*)
+	echo "${script_name}: ERROR: Unknown input type: '${arg_1}'" >&2
+	usage
+	exit 1
+	;;
+esac
+
+in_count="${#files_array[@]}"
+
+echo "INFO: Playing ${in_count} input files." >&2
+
+for (( id = 1; id <= ${in_count}; id++ )); do
+	file="${files_array[$(( id - 1 ))]}"
+	echo "${id}: '${files_prefix}${file}'" >&2
+	"${ffplay}" -loglevel quiet -nodisp -autoexit "${files_prefix}${file}" > /dev/null
+done
+
+trap "on_exit 'Success'" EXIT
+exit 0
