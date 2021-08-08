@@ -7,7 +7,7 @@ usage() {
 
 	{
 		echo "${script_name} - Convert FLAC files to m4a AAC encoded files suitable for download to Walkman type devices."
-		echo "Usage: ${script_name} [flags] <top-dir|m3u playlist>"
+		echo "Usage: ${script_name} [flags] <top-dir | m3u playlist | flac file>"
 		echo "Option flags:"
 		echo "  -b --bitrate     - Encoding bitrate. Default: '${bitrate}'."
 		echo "  -o --output-dir  - Output directory. Default: '${output_dir}'."
@@ -17,11 +17,17 @@ usage() {
 		echo "  -v --verbose     - Verbose execution. Default: '${verbose}'."
 		echo "  -g --debug       - Extra verbose execution. Default: '${debug}'."
 		echo 'Input:'
-		if [[ ${top_dir} ]]; then
-			echo "  top-dir: '${top_dir}'"
-		else
-			echo "  playlist: '${playlist}'"
-		fi
+		case "${input_type}" in
+		flac_file)
+			echo "  flac file: '${arg_1}'"
+			;;
+		playlist)
+			echo "  playlist: '${arg_1}'"
+			;;
+		top_dir)
+			echo "  top-dir: '${arg_1}'"
+			;;
+		esac
 		echo "Info:"
 		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
 		echo "  @PACKAGE_URL@"
@@ -216,20 +222,16 @@ if [[ -f "${HOME}/.audx.conf" ]]; then
 	source "${HOME}/.audx.conf"
 fi
 
-playlist=''
-top_dir=''
+input_type=''
 
-if [[ ! ${arg_1} ]]; then
-	top_dir="${top_dir:-${favorites_top:-}}"
-elif [[ -f "${arg_1}" ]]; then
-	playlist="${arg_1}"
-elif [[ -d "${arg_1}" ]]; then
-	top_dir="${arg_1}"
-else
-	echo "${script_name}: ERROR: Bad input: '${arg_1}'" >&2
-	usage
-	exit 1
+if [[ -d "${arg_1}" ]]; then
+	input_type='top_dir'
+elif [[ -f "${arg_1}" && "${arg_1##*.}" == 'm3u' ]]; then
+	input_type='playlist'
+elif [[ -f "${arg_1}" && "${arg_1##*.}" == 'flac' ]]; then
+	input_type='flac_file'
 fi
+
 
 if [[ ${usage} ]]; then
 	usage
@@ -237,14 +239,14 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
+echo "${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@" >&2
+
 if [[ ${extra_args} ]]; then
 	set +o xtrace
 	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
 	usage
 	exit 1
 fi
-
-echo "audx ${script_name} - ${start_time}" >&2
 
 fdkaac="${fdkaac:-fdkaac}"
 check_program "fdkaac" "${fdkaac}"
@@ -258,20 +260,36 @@ check_program "parallel" "${parallel}"
 sox="${sox:-sox}"
 check_program "sox" "${sox}"
 
-if [[ ${top_dir} ]]; then
-	echo "${script_name}: INFO: Using top-dir '${top_dir}'." >&2
-	check_top_dir "${top_dir}"
-	top_dir="$(realpath -e "${top_dir}")"
+arg_1="$(realpath -e "${arg_1}")"
 
-	readarray -t files_array < <(find "${top_dir}" -type f -name '*.flac' | sort \
+case "${input_type}" in
+flac_file)
+	if [[ ${verbose} ]]; then echo "INFO: Using flac_file '${arg_1}'." >&2; fi
+	check_file 'flac_file' "${arg_1}"
+	files_array=("${arg_1}")
+	files_prefix=''
+	;;
+playlist)
+	if [[ ${verbose} ]]; then echo "INFO: Using playlist '${arg_1}'." >&2; fi
+	check_file 'playlist' "${arg_1}"
+	readarray -t files_array < "${arg_1}"
+	files_prefix="${arg_1%/*}/"
+	;;
+top_dir)
+	if [[ ${verbose} ]]; then echo "INFO: Using top-dir '${arg_1}'." >&2; fi
+	check_top_dir "${arg_1}"
+
+	readarray -t files_array < <(find "${arg_1}" -type f -name '*.flac' | sort \
 		|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 		kill -SIGUSR1 $$; } )
-else
-	echo "${script_name}: INFO: Using playlist '${playlist}'." >&2
-	check_file 'playlist' "${playlist}"
-	playlist="$(realpath -e "${playlist}")"
-	readarray -t files_array < "${playlist}"
-fi
+	files_prefix=''
+	;;
+*)
+	echo "${script_name}: ERROR: Unknown input type: '${arg_1}'" >&2
+	usage
+	exit 1
+	;;
+esac
 
 in_count="${#files_array[@]}"
 
@@ -299,7 +317,7 @@ for (( id = 1; id <= ${in_count}; id++ )); do
 
 	mkdir -p "${p_script_dir}/${bucket}"
 
-	setup_p_script "${id}" "${file}" "${p_script}" loop_counter
+	setup_p_script "${id}" "${files_prefix}/${file}" "${p_script}" loop_counter
 
 	if (( (id % bucket_size) == 0 )); then
 		if (( loop_counter == 0 )); then
