@@ -122,9 +122,9 @@ setup_p_script() {
 	out_file="${output_dir}/${triple[artist]}/${triple[album]}/${triple[title]}.m4a"
 
 	if [[ ! ${clobber} && -e "${out_file}" ]]; then
-		if [[ ${verbose} ]]; then
-			echo "${id}: File exists '${out_file}'" >&2
-		fi
+# 		if [[ ${debug} ]]; then
+# 			echo "${id}: File exists '${out_file}'" >&2
+# 		fi
 		return
 	fi
 
@@ -146,7 +146,7 @@ if (( ${debug:-0} )); then
 fi
 
 if (( ${verbose:-0} )); then
-  echo "${id}: Creating '$(clean_txt "${out_file}")'" >&2
+  echo "${id}: Creating '${out_file}'" >&2
 fi
 
 mkdir -p '$(clean_txt "${out_file%/*}")'
