@@ -322,7 +322,7 @@ path_to_artist_album() {
 }
 
 path_to_artist_album_title() {
-	local path=${1}
+	local path=${1%.*}
 	local -n _path_to_artist_album_title__triple="${2}"
 
 	local regex="^.*/([^/]*)/([^/]*)/([^/]*)$"
