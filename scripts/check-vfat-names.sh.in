@@ -86,7 +86,7 @@ touch_file() {
 	fi
 
 	local out_file
-	out_file="${vfat_dir}/${triple[artist]}/${triple[album]}/${triple[title]%.flac}.m4a"
+	out_file="${vfat_dir}/${triple[artist]}/${triple[album]}/${triple[title]}.m4a"
 
 	if [[ ${verbose} ]]; then
 		echo "out_file: '${out_file}'" >&2
@@ -161,6 +161,8 @@ vfat_dir="$(realpath -e "${vfat_dir}")"
 
 check_top_dir "${top_dir}"
 top_dir="$(realpath -e "${top_dir}")"
+
+echo "${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@" >&2
 
 if [[ -d "${vfat_dir}" ]]; then
 	rm -rf "${vfat_dir:?}"
