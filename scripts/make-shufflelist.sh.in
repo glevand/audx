@@ -100,7 +100,7 @@ test_album_file() {
 # 	echo "${FUNCNAME[0]}: end   = '${end}'" >&2
 
 	local output
-	output="$(find_first_file "${file%/*}" "${start}" "${end}" '*.flac' )"
+	output="$(find_first_file "${file%/*}" "${start}" "${end}" '')"
 
 	if [[ ${output} ]]; then
 # 		echo "${FUNCNAME[0]}: Add '${file}'" >&2
@@ -234,7 +234,6 @@ if [[ -f "${out_file}" ]]; then
 	rm -f "${out_file:?}"
 fi
 
-
 for (( i = 0; i < ${count}; i++ )); do
 	for (( j = 0; ; j++ )); do
 		rand="$("${shuf}" -n1 -i0-${good_count})"
@@ -264,6 +263,8 @@ for (( i = 0; i < ${count}; i++ )); do
 	echo "$(( i + 1 )): ${triple[artist]} -- ${triple[album]}" >&2
 
 	readarray -t track_array < "${album_file}"
+
+	# TODO: Clean album_file comments.
 
 	track_count="${#track_array[@]}"
 
