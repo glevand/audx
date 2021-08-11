@@ -25,9 +25,7 @@ usage() {
 			;;
 		esac
 		echo "Info:"
-		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
-		echo "  @PACKAGE_URL@"
-		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+		print_project_info
 	} >&2
 	eval "${old_xtrace}"
 }
@@ -123,7 +121,7 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
-echo "${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@" >&2
+$(print_project_banner) >&2
 
 if [[ ${extra_args} ]]; then
 	set +o xtrace

@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
 #
-# (@PACKAGE_NAME@) version @PACKAGE_VERSION@
-# @PACKAGE_URL@
-# Send bug reports to: Geoff Levand <geoff@infradead.org>
+# @PACKAGE_NAME@ ${script_name}"
+# Version: @PACKAGE_VERSION@"
+# Home: @PACKAGE_URL@"
 #
+
+print_project_banner() {
+	echo "${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
+}
+
+print_project_info() {
+	echo "  @PACKAGE_NAME@ ${script_name}"
+	echo "  Version: @PACKAGE_VERSION@"
+	echo "  Home: @PACKAGE_URL@"
+}
 
 on_exit() {
 	local result=${1}

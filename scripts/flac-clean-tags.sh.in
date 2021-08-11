@@ -14,9 +14,7 @@ usage() {
 		echo "  -g --debug       - Extra verbose execution."
 		echo "  -d --dry-run     - Dry run, don't modify files."
 		echo "Info:"
-		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
-		echo "  @PACKAGE_URL@"
-		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+		print_project_info
 	} >&2
 	eval "${old_xtrace}"
 }

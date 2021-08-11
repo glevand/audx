@@ -15,9 +15,7 @@ usage() {
 		echo "  -v --verbose     - Verbose execution."
 		echo "  -g --debug       - Extra verbose execution."
 		echo "Info:"
-		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
-		echo "  @PACKAGE_URL@"
-		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+		print_project_info
 	} >&2
 	eval "${old_xtrace}"
 }
@@ -162,7 +160,7 @@ vfat_dir="$(realpath -e "${vfat_dir}")"
 check_top_dir "${top_dir}"
 top_dir="$(realpath -e "${top_dir}")"
 
-echo "${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@" >&2
+$(print_project_banner) >&2
 
 if [[ -d "${vfat_dir}" ]]; then
 	rm -rf "${vfat_dir:?}"
