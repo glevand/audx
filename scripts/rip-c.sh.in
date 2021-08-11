@@ -25,9 +25,7 @@ usage() {
 		echo "  -2 --split-sox    - Split sox file."
 		echo "  -3 --encode-flac  - Encode to flac."
 		echo "Info:"
-		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
-		echo "  @PACKAGE_URL@"
-		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+		print_project_info
 	} >&2
 	eval "${old_xtrace}"
 }

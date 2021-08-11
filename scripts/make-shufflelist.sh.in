@@ -24,9 +24,7 @@ usage() {
 		echo "  'last week'"
 		echo "  'last Thursday'"
 		echo 'Info:'
-		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
-		echo "  @PACKAGE_URL@"
-		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+		print_project_info
 	} >&2
 	eval "${old_xtrace}"
 }
@@ -166,7 +164,7 @@ fi
 
 top_dir="$(realpath --canonicalize-existing "${top_dir}")"
 
-echo "audx ${script_name} - ${start_time}" >&2
+echo "@PACKAGE_NAME@ ${script_name} - ${start_time}" >&2
 
 parallel="${parallel:-parallel}"
 check_program "parallel" "${parallel}"

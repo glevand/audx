@@ -1,6 +1,6 @@
 ## configure.ac -- Process this file with autoconf to produce configure
 
-AC_INIT([audx],
+AC_INIT([AUDX],
     [m4_esyscmd_s([./version.sh])],
     [Geoff Levand <geoff@infradead.org>],
     [audx],

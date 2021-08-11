@@ -20,9 +20,7 @@ usage() {
 		echo 'Inputs:'
 		echo "  top-dir          - '${top_dir}'"
 		echo "Info:"
-		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
-		echo "  @PACKAGE_URL@"
-		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+		print_project_info
 	} >&2
 	eval "${old_xtrace}"
 }
@@ -172,7 +170,7 @@ for dir in "${dir_array[@]}"; do
 # 	TODO: Need an empty check with header.
 # 	declare -A pair
 # 	path_to_artist_album "${dir}" pair
-# 	write_m3u_header "${out_file}" 'audx playlist' "${pair[artist]}" "${pair[album]}"
+# 	write_m3u_header "${out_file}" '@PACKAGE_NAME@ playlist' "${pair[artist]}" "${pair[album]}"
 
 	for type in ${file_types}; do
 		write_m3u_playlist "${out_file}" "${dir}" "${type}" "${canonical}"
