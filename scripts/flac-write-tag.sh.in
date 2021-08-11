@@ -27,9 +27,7 @@ usage() {
 		echo "  ${script_name} \"\${collection}/Phil Collins/No Jacket Required\" --tag='ALBUM=No Jacket Required'"
 		echo "  ${script_name} \"\${collection}/Ultravox\" --tag-name='ARTIST' --tag-value='Ultravox'"
 		echo "Info:"
-		echo "  ${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
-		echo "  @PACKAGE_URL@"
-		echo "  Send bug reports to: Geoff Levand <geoff@infradead.org>."
+		print_project_info
 	} >&2
 	eval "${old_xtrace}"
 }
