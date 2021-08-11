@@ -32,6 +32,8 @@ start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+
 set -eE
 set -o pipefail
 set -o nounset
@@ -57,7 +59,7 @@ cd "${build_dir}"
 
 {
 	echo '==========================================='
-	echo "${script_name} (audx) - ${start_time}"
+	echo "${script_name} (AUDX) - ${start_time}"
 	echo '==========================================='
 	echo ''
 }
@@ -75,7 +77,16 @@ echo "--- make install ---"
 make install
 
 echo "--- show help ---"
-find "${build_dir}/install/bin" -name '*.sh' -print | sort | xargs -n1 -L1 -P1 -I {} bash -c '{} --help'
+readarray -t files_array < <(find "${build_dir}/install/bin" -type f -name '*.sh' | sort \
+	|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+	kill -SIGUSR1 $$; } )
+
+for file in "${files_array[@]}"; do
+{
+	$("${file}" --help)
+	echo '-----------------'
+} >&2
+done
 
 echo "--- Done ---"
 

@@ -62,7 +62,7 @@ mkdir -p "${test_out_dir}"
 {
 	echo ''
 	echo '==========================================='
-	echo "${script_name} (audx) - ${start_time}"
+	echo "${script_name} (AUDX) - ${start_time}"
 	echo '==========================================='
 	echo ''
 }
