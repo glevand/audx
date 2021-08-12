@@ -121,7 +121,7 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
-$(print_project_banner) >&2
+print_project_banner >&2
 
 if [[ ${extra_args} ]]; then
 	set +o xtrace
@@ -146,7 +146,16 @@ playlist)
 	if [[ ${verbose} ]]; then echo "INFO: Using playlist '${arg_1}'." >&2; fi
 	check_file 'playlist' "${arg_1}"
 	readarray -t files_array < "${arg_1}"
-	files_prefix="${arg_1%/*}/"
+
+# 	echo "INFO: track1 = '${files_array[0]}'." >&2
+
+	if [[ -f "${files_array[0]}" ]]; then
+		files_prefix=''
+	elif [[ -f "${arg_1%/*}/${files_array[0]}" ]]; then
+		files_prefix="${arg_1%/*}/"
+	else
+		echo "${script_name}: ERROR: Unknown files_prefix: playlist = '${arg_1}', track = '${files_array[0]}'" >&2
+	fi
 	;;
 top_dir)
 	if [[ ${verbose} ]]; then echo "INFO: Using top-dir '${arg_1}'." >&2; fi
