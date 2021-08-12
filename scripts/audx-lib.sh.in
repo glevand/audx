@@ -289,12 +289,12 @@ find_first_file() {
 	if [[ ${verbose} ]]; then
 		if [[ ${found} ]]; then
 			date="$(date --date="$(stat --format='%y' "${found}")" '+%Y-%m-%d')"
-			echo "OK: (${date}) '${dir}'" >&2
+			echo "${FUNCNAME[0]}: OK: (${date}) '${dir}'" >&2
 		else
 			local file
 			file="$(find "${dir}" -type f -type f \( -name '*.flac' -o -name '*.m4a' \) -print -quit)"
 			date="$(date --date="$(stat --format='%y' "${file}")" '+%Y-%m-%d')"
-			echo "NG: (${date}) '${dir}'" >&2
+			echo "${FUNCNAME[0]}: NG: (${date}) '${dir}'" >&2
 		fi
 	fi
 # 	echo "${FUNCNAME[0]}<------------------------" >&2

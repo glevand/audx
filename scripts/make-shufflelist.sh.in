@@ -89,25 +89,27 @@ process_opts() {
 }
 
 test_album_file() {
-	local file="${1}"
+	local album_file="${1}"
 	local start="${2}"
 	local end="${3}"
 
 # 	echo "" >&2
 # 	echo "${FUNCNAME[0]}>------------------------" >&2
-# 	echo "${FUNCNAME[0]}: file  = '${file}'" >&2
-# 	echo "${FUNCNAME[0]}: start = '${start}'" >&2
-# 	echo "${FUNCNAME[0]}: end   = '${end}'" >&2
+# 	echo "${FUNCNAME[0]}: album  = '${album_file}'" >&2
+# 	echo "${FUNCNAME[0]}: start  = '${start}'" >&2
+# 	echo "${FUNCNAME[0]}: end    = '${end}'" >&2
 
-	local output
-	output="$(find_first_file "${file%/*}" "${start}" "${end}" '')"
+	local first_file
+	first_file="$(find_first_file "${album_file%/*}" "${start}" "${end}" '')"
 
-	if [[ ${output} ]]; then
-# 		echo "${FUNCNAME[0]}: Add '${file}'" >&2
-		echo "${file}"
+	if [[ ${first_file} ]]; then
+		if [[ ${verbose} ]]; then
+			echo "${FUNCNAME[0]}: Add '${album_file}'" >&2
+		fi
+		echo "${album_file}"
 	fi
 
-# 	echo "${FUNCNAME[0]}: out = @${output}@" >&2
+# 	echo "${FUNCNAME[0]}: out = @${first_file}@" >&2
 # 	echo "${FUNCNAME[0]}<------------------------" >&2
 }
 
