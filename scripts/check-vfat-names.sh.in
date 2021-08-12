@@ -160,7 +160,7 @@ vfat_dir="$(realpath -e "${vfat_dir}")"
 check_top_dir "${top_dir}"
 top_dir="$(realpath -e "${top_dir}")"
 
-$(print_project_banner) >&2
+print_project_banner >&2
 
 if [[ -d "${vfat_dir}" ]]; then
 	rm -rf "${vfat_dir:?}"
