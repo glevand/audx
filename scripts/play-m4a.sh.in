@@ -74,6 +74,25 @@ process_opts() {
 	done
 }
 
+last_int=0
+on_int() {
+	local now=${SECONDS}
+	local delta=$(( now - last_int ))
+
+	echo >&2
+
+	if [[ ${verbose} ]]; then
+		echo "${FUNCNAME[0]}: ${now} - ${last_int} = ${delta}" >&2
+	fi
+
+	if (( delta < 2 )); then
+		echo "${script_name}: Terminating." >&2
+		trap - EXIT
+		exit 0
+	fi
+	last_int=${now}
+}
+
 #===============================================================================
 export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
 
@@ -87,6 +106,7 @@ SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
 trap 'on_err SIGUSR1 ? 3' SIGUSR1
+trap 'on_int' SIGINT
 
 set -eE
 set -o pipefail
@@ -180,7 +200,7 @@ echo "INFO: Playing ${in_count} input files." >&2
 for (( id = 1; id <= ${in_count}; id++ )); do
 	file="${files_array[$(( id - 1 ))]}"
 	echo "${id}: '${files_prefix}${file}'" >&2
-	"${ffplay}" -loglevel quiet -nodisp -autoexit "${files_prefix}${file}" > /dev/null
+	"${ffplay}" -loglevel quiet -nodisp -autoexit "${files_prefix}${file}" || : > /dev/null
 done
 
 trap "on_exit 'Success'" EXIT
