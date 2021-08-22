@@ -121,7 +121,10 @@ script_name="${0##*/}"
 SECONDS=0
 start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
-SCRIPTS_TOP=${SCRIPTS_TOP:-"$(cd "${BASH_SOURCE%/*}" && pwd)"}
+if [[ ! -d "${SCRIPT_TOP:-}" ]]; then
+	SCRIPT_TOP="$(realpath "${BASH_SOURCE}")"
+	SCRIPT_TOP="${SCRIPT_TOP%/*}"
+fi
 
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
@@ -131,7 +134,7 @@ set -eE
 set -o pipefail
 set -o nounset
 
-source "${SCRIPTS_TOP}/audx-lib.sh"
+source "${SCRIPT_TOP}/audx-lib.sh"
 
 count='6'
 out_file="/tmp/audx-shufflelist-${start_time}.m3u"
