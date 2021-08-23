@@ -16,6 +16,7 @@ usage() {
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution. Default: '${verbose}'."
 		echo "  -g --debug       - Extra verbose execution. Default: '${debug}'."
+		echo "  -d --dry-run     - Dry run, don't run encoder."
 		echo 'Input:'
 		case "${input_type}" in
 		flac_file)
@@ -35,8 +36,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="b:o:ckhvg"
-	local long_opts="bitrate:,output-dir:,clobber,keep-tmp,help,verbose,debug"
+	local short_opts="b:o:ckhvgd"
+	local long_opts="bitrate:,output-dir:,clobber,keep-tmp,help,verbose,debug,dry-run"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -75,6 +76,10 @@ process_opts() {
 			debug=1
 			keep_tmp_dir=1
 			set -x
+			shift
+			;;
+		-d | --dry-run)
+			dry_run=1
 			shift
 			;;
 		--)
@@ -162,7 +167,11 @@ fdkaac_cmd='"${fdkaac}" \
   --track="${tags[tracknumber]}/${tags[tracktotal]}" \
   -o "$(clean_txt "${out_file}")" -'
 
-eval "\${sox_cmd} | \${fdkaac_cmd}"
+if (( ${dry_run:-0} )); then
+	touch "${out_file}"
+else
+	eval "\${sox_cmd} | \${fdkaac_cmd}"
+fi
 EOF
 
 	chmod +x "${p_script}"
@@ -214,6 +223,7 @@ clobber=''
 usage=''
 verbose=''
 debug=''
+dry_run=''
 keep_tmp_dir=''
 arg_1=''
 
@@ -232,7 +242,6 @@ elif [[ -f "${arg_1}" && "${arg_1##*.}" == 'm3u' ]]; then
 elif [[ -f "${arg_1}" && "${arg_1##*.}" == 'flac' ]]; then
 	input_type='flac_file'
 fi
-
 
 if [[ ${usage} ]]; then
 	usage
