@@ -351,84 +351,116 @@ path_to_artist_album_title() {
 	fi
 }
 
+str_clean_common () {
+	local str_in=${1}
+	local str_out="${str_in}"
+
+	str_out="${str_out//[\/\\]/-}"
+	str_out="${str_out//[\"]/}"
+	str_out="${str_out//[èéé]/e}"
+	str_out="${str_out//[àäå]/a}"
+	str_out="${str_out//[Ö]/O}"
+	str_out="${str_out//[₂]/2}"
+
+	echo "${str_out}"
+}
+
+str_trim_space () {
+	local str_in=${1}
+	local str_out="${str_in}"
+
+	str_out="${str_out//    / }"
+	str_out="${str_out//   / }"
+	str_out="${str_out//  / }"
+
+	# trim leading space.
+	str_out="${str_out#"${str_out%%[![:space:]]*}"}"
+
+	# trim trailing space.
+	str_out="${str_out%"${str_out##*[![:space:]]}"}"
+
+	echo "${str_out}"
+}
+
 clean_vfat_name() {
-	local name_in=${1}
-	local name_out
+	local str_in=${1}
+	local str_out="${str_in}"
 
-	# Bruce Springsteen/Born In The U.S.A./01-Born In The U.S.A.
-
-	name_out="${name_in//[:.]/}"
-	#name_out="${name_out//[|\\<\":,]/}"
+	str_out="$(str_clean_common "${str_out}")"
+	str_out="${str_out//[:] / - }"
+	str_out="${str_out//[:]/-}"
+	str_out="${str_out//[|]/-}"
+	str_out="${str_out//[\$\?]/}"
+	str_out="$(str_trim_space "${str_out}")"
 
 	if [[ ${debug} ]]; then
-		echo "${FUNCNAME[0]}: '${name_in}' -> '${name_out}'" >&2
-	elif [[ ${verbose} && "${name_in}" != "${name_out}" ]]; then
-		echo "${FUNCNAME[0]}: '${name_in}' -> '${name_out}'" >&2
+		echo "${FUNCNAME[0]}: '${str_in}' -> '${str_out}'" >&2
+	elif [[ ${verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' -> '${str_out}'" >&2
 	fi
 
-	echo "${name_out}"
+	echo "${str_out}"
 }
 
 clean_tag() {
-	local tag="${1}"
+	local str_in=${1}
+	local str_out="${str_in}"
 
-	tag="${tag//ACDC/AC-DC}"
-	tag="${tag//AC\/DC/AC-DC}"
+	str_out="${str_out//ACDC/AC-DC}"
+	str_out="${str_out//AC\/DC/AC-DC}"
 
-	tag="${tag//U S A /USA}"
-	tag="${tag//W M A /WMA}"
+	str_out="${str_out//U S A /USA}"
+	str_out="${str_out//W M A /WMA}"
 
-	# tag="${tag//The Times They Are A‐Changin/The times They are a Changin}"
-	# tag="${tag//I Dont Want Your Love (Shep Pettibone 7″ mix)/I Dont Want Your Love (Shep Pettibone)}"
+	# str_out="${str_out//The Times They Are A‐Changin/The times They are a Changin}"
+	# str_out="${str_out//I Dont Want Your Love (Shep Pettibone 7″ mix)/I Dont Want Your Love (Shep Pettibone)}"
 
-	tag="${tag//Disk/Disc}"
-	tag="${tag//[Dd]isc 1/- Disc1}"
-	tag="${tag//[Dd]isc 2/- Disc2}"
-	tag="${tag//[Dd]isc 3/- Disc3}"
-	tag="${tag//[Dd]isc 4/- Disc4}"
-	tag="${tag//-- Disc/- Disc}"
-	tag="${tag//- - Disc/- Disc}"
+	str_out="${str_out//Disk/Disc}"
+	str_out="${str_out//[Dd]isc 1/- Disc1}"
+	str_out="${str_out//[Dd]isc 2/- Disc2}"
+	str_out="${str_out//[Dd]isc 3/- Disc3}"
+	str_out="${str_out//[Dd]isc 4/- Disc4}"
+	str_out="${str_out//-- Disc/- Disc}"
+	str_out="${str_out//- - Disc/- Disc}"
 
 	# Album Disc1 -> Album - Disc1
 	local regex="^(.*[^-]) (Disc[[:digit:]])"
-	if [[ "${tag}" =~ ${regex} ]]; then
-		tag="${BASH_REMATCH[1]} - ${BASH_REMATCH[2]}"
+	if [[ "${str_out}" =~ ${regex} ]]; then
+		str_out="${BASH_REMATCH[1]} - ${BASH_REMATCH[2]}"
 	fi
 
 	# x: y -> x - y
 	local regex="^(.*[^ ]): (.*)"
-	if [[ "${tag}" =~ ${regex} ]]; then
-		tag="${BASH_REMATCH[1]} - ${BASH_REMATCH[2]}"
+	if [[ "${str_out}" =~ ${regex} ]]; then
+		str_out="${BASH_REMATCH[1]} - ${BASH_REMATCH[2]}"
 	fi
 
+	str_out="${str_out//[\/\\]/-}"
+	str_out="$(str_clean_common "${str_out}")"
+
 	# x:y -> x-y
-	tag="${tag/:/-}"
+	str_out="${str_out/:/-}"
 
-	tag="${tag//[\/\\]/-}"
-	tag="${tag//_/ }"
-	tag="${tag//;/,}"
-	#tag="${tag//[()]/}"
-	tag="${tag//\[/(}"
-	tag="${tag//\]/)}"
-	tag="${tag//[’\'\’\`\"!?]/}"
-	tag="${tag//[èéé]/e}"
-	tag="${tag//[à]/a}"
-	tag="${tag//[~*<>|‐→]/-}"
+#	str_out="${str_out//_/ }"
+	str_out="${str_out//;/,}"
+#	str_out="${str_out//\[/(}"
+#	str_out="${str_out//\]/)}"
+	str_out="${str_out//[’\'\’\`\"!?]/}"
+	str_out="${str_out//[~*<>|‐→]/-}"
 
-	tag="${tag//[@]/A}"
-	tag="${tag//[+&]/and}"
-	tag="${tag/ And The / and The }"
-	tag="${tag//#/No. }"
-	tag="${tag//  / }"
-	tag="${tag//   / }"
+	str_out="${str_out//[@]/A}"
+	str_out="${str_out//[+&]/and}"
+	str_out="${str_out/ And The / and The }"
+	str_out="${str_out//#/No. }"
 
-	# trim leading space.
-	tag="${tag#"${tag%%[![:space:]]*}"}"
+	str_out="$(str_trim_space "${str_out}")"
 
-	# trim trailing space.
-	tag="${tag%"${tag##*[![:space:]]}"}"
-
-	echo "${tag}"
+	if [[ ${debug} ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' -> '${str_out}'" >&2
+	elif [[ ${verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' -> '${str_out}'" >&2
+	fi
+	echo "${str_out}"
 }
 
 flac_check_file() {
