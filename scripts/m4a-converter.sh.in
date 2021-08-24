@@ -99,11 +99,17 @@ process_opts() {
 	done
 }
 
-clean_txt() {
+escape_txt() {
 	local txt=${1}
+	local txt_in=${txt}
 
 	txt="${txt//$/\\$}"
-	txt="${txt//\'/\'\"\'\"\'}"
+	txt="${txt//[\"]/\\\"}"
+	txt="${txt//[\']/\'\"\'\"\'}"
+
+	if [[ "${txt_in}" != "${txt}" ]]; then
+		echo "escape_txt: @${txt_in}@ => @${txt}@" >&2
+	fi
 
 	echo "${txt}"
 }
@@ -152,20 +158,20 @@ if (( ${verbose:-0} )); then
   echo "${id}: Creating '${out_file}'" >&2
 fi
 
-mkdir -p '$(clean_txt "${out_file%/*}")'
+mkdir -p '$(escape_txt "${out_file%/*}")'
 
-sox_cmd='"${sox}" "$(clean_txt "${in_file}")" -t wav -'
+sox_cmd='"${sox}" "$(escape_txt "${in_file}")" -t wav -'
 
 fdkaac_cmd='"${fdkaac}" \
   --silent \
   --ignorelength \
   --profile 2 \
   --bitrate-mode=0 --bitrate=${bitrate} \
-  --artist="$(clean_txt "${tags[artist]}")" \
-  --album="$(clean_txt "${tags[album]}")" \
-  --title="$(clean_txt "${tags[title]}")" \
+  --artist="$(escape_txt "${tags[artist]}")" \
+  --album="$(escape_txt "${tags[album]}")" \
+  --title="$(escape_txt "${tags[title]}")" \
   --track="${tags[tracknumber]}/${tags[tracktotal]}" \
-  -o "$(clean_txt "${out_file}")" -'
+  -o "$(escape_txt "${out_file}")" -'
 
 if (( ${dry_run:-0} )); then
 	touch "${out_file}"
@@ -327,7 +333,7 @@ for (( id = 1; id <= ${in_count}; id++ )); do
 
 	mkdir -p "${p_script_dir}/${bucket}"
 
-	setup_p_script "${id}" "${files_prefix}/${file}" "${p_script}" loop_counter
+	setup_p_script "${id}" "${files_prefix}${file}" "${p_script}" loop_counter
 
 	if (( (id % bucket_size) == 0 )); then
 		if (( loop_counter == 0 )); then
