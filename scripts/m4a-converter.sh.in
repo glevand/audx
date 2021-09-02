@@ -107,7 +107,7 @@ escape_txt() {
 	txt="${txt//[\"]/\\\"}"
 	txt="${txt//[\']/\'\"\'\"\'}"
 
-	if [[ "${txt_in}" != "${txt}" ]]; then
+	if [[ ${debug} && "${txt_in}" != "${txt}" ]]; then
 		echo "escape_txt: @${txt_in}@ => @${txt}@" >&2
 	fi
 
