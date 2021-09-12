@@ -9,10 +9,11 @@ usage() {
 		echo "Usage: ${script_name} [flags] src-directory [src-directory]..."
 		echo "Option flags:"
 		echo "  -o --output-dir - Output directory. Default: '${output_dir}'."
-		echo "  -c --canonical  - Output full canonical paths to lists."
+		echo "  -f --canonical  - Output full canonical paths to lists."
 		echo "  -m --mtime      - Print file modification time. Default: '${mtime}'."
 		echo "  -t --tracks     - Output an album track list. Default: '${tracks}'."
 		echo "  -T --use-tags   - Use metadata tags to generate lists. Default: '${use_tags}'."
+		echo "  -c --config     - Configuration file. Default: '${config_file}'."
 		echo "  -h --help       - Show this help and exit."
 		echo "  -v --verbose    - Verbose execution."
 		echo "  -g --debug      - Extra verbose execution."
@@ -23,8 +24,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="o:cmtThvg"
-	local long_opts="output-dir:,canonical,mtime,tracks,use-tags,help,verbose,debug"
+	local short_opts="o:fmtTc:hvg"
+	local long_opts="output-dir:,canonical,mtime,tracks,use-tags,config:,help,verbose,debug"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -38,7 +39,7 @@ process_opts() {
 			output_dir="${2}"
 			shift 2
 			;;
-		-c | --canonical)
+		-f | --canonical)
 			canonical=1
 			shift
 			;;
@@ -53,6 +54,10 @@ process_opts() {
 		-T | --use-tags)
 			use_tags=1
 			shift
+			;;
+		-c | --config)
+			config_file="${2}"
+			shift 2
 			;;
 		-h | --help)
 			usage=1
@@ -199,16 +204,22 @@ canonical=''
 mtime=''
 tracks=''
 use_tags=''
+config_file_default="${HOME}/.audx.conf"
+config_file="${config_file_default}"
 usage=''
 verbose=''
 debug=''
 src_dirs=''
 
-if [[ -f "${HOME}/.audx.conf" ]]; then
-	source "${HOME}/.audx.conf"
+process_opts "${@}"
+
+if [[ "${config_file}" != "${config_file_default}" ]]; then
+	check_file '--config file' "${config_file}"
 fi
 
-process_opts "${@}"
+if [[ -f "${config_file}" ]]; then
+	source "${config_file}"
+fi
 
 if [[ ! ${src_dirs} ]]; then
 	src_dirs=( "${collection_top}"/* )
