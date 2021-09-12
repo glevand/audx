@@ -16,10 +16,10 @@ usage() {
 		echo "  --end-threshold   - Silence end threshold. Default: '${end_threshold}'."
 	#	echo "  --split-time      - Split time . Default: '${split_time}'."
 		echo "  -f --force        - Force overwrite if exisitng output file."
-		echo "  -c --config-file  - Configuration file. Default: '${config_file}'."
-		echo "  -h --help        - Show this help and exit."
-		echo "  -v --verbose     - Verbose execution."
-		echo "  -g --debug       - Extra verbose execution."
+		echo "  -c --config       - Configuration file. Default: '${config_file}'."
+		echo "  -h --help         - Show this help and exit."
+		echo "  -v --verbose      - Verbose execution."
+		echo "  -g --debug        - Extra verbose execution."
 		echo "Option steps:"
 		echo "  -1 --rip-sox      - Rip to sox file."
 		echo "  -2 --split-sox    - Split sox file."
@@ -33,7 +33,7 @@ usage() {
 process_opts() {
 	local short_opts="fc:hvg123"
 	local long_opts="base-name:,start-duration:,start-threshold:,\
-end-duration:,end-threshold:,split-time:,force,config-file:,help,verbose,debug,\
+end-duration:,end-threshold:,split-time:,force,config:,help,verbose,debug,\
 rip-sox,split-sox,encode-flac"
 
 	local opts
@@ -72,7 +72,7 @@ rip-sox,split-sox,encode-flac"
 			force=1
 			shift
 			;;
-		-c | --config-file)
+		-c | --config)
 			config_file="${2}"
 			shift 2
 			;;
