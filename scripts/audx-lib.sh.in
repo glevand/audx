@@ -490,7 +490,7 @@ flac_check_file() {
 	local file=${1}
 	local quiet=${2}
 
-	if [[ "$(file "${file}")" != *'FLAC audio'* ]]; then
+	if [[ "$(file -k "${file}")" != *'FLAC audio'* ]]; then
 		if [[ "${quiet}" != 'quiet' ]]; then
 			echo "${FUNCNAME[0]}: Not a flac file: '${file}'" >&2
 		fi
