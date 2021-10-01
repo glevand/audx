@@ -208,10 +208,8 @@ script_name="${0##*/}"
 SECONDS=0
 start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
-if [[ ! -d "${SCRIPT_TOP:-}" ]]; then
-	SCRIPT_TOP="$(realpath "${BASH_SOURCE}")"
-	SCRIPT_TOP="${SCRIPT_TOP%/*}"
-fi
+real_source="$(realpath "${BASH_SOURCE}")"
+SCRIPT_TOP="$(realpath "${SCRIPT_TOP:-${real_source%/*}}")"
 
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
@@ -264,6 +262,15 @@ if [[ ${extra_args} ]]; then
 	exit 1
 fi
 
+if [[ ! ${arg_1} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: No input source provided." >&2
+	usage
+	exit 1
+fi
+
+arg_1="$(realpath -e "${arg_1}")"
+
 fdkaac="${fdkaac:-fdkaac}"
 check_program "fdkaac" "${fdkaac}"
 
@@ -275,8 +282,6 @@ check_program "parallel" "${parallel}"
 
 sox="${sox:-sox}"
 check_program "sox" "${sox}"
-
-arg_1="$(realpath -e "${arg_1}")"
 
 case "${input_type}" in
 flac_file)
