@@ -78,7 +78,7 @@ clean_tags() {
 	flac_fill_tag_set "${file}" tags
 
 	if [[ ${debug} ]]; then
-		flac_print_tag_set "${file}" tags
+		flac_print_tag_set "${FUNCNAME[0]}" "${file}" tags
 	fi
 
 	declare -A new_tags

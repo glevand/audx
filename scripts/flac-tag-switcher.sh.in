@@ -174,11 +174,8 @@ for (( id = 1; id <= ${in_count}; id++ )); do
 	{
 		echo
 # 		echo "  path:   '${path}'"
-		echo "  file:   '${file}'"
-		echo "  track:  '${tags[tracknumber]}'"
-		echo "  artist: '${tags[artist]}'"
-		echo "  album:  '${tags[album]}'"
-		echo "  title:  '${tags[title]}'"
+		flac_print_tag_set "${id}: " ${file} tags
+
 	} >&1
 	fi
 
