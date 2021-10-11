@@ -134,8 +134,10 @@ if [[ -d "${top_dir}" ]]; then
 		|| { echo "${script_name}: ERROR: path_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 		kill -SIGUSR1 $$; } )
 
-	echo "${script_name}: INFO: Processing ${#path_array[@]} files." >&2
-	echo ''
+	{
+		echo "${script_name}: INFO: Processing ${#path_array[@]} files."
+		echo
+	} >&2
 
 	for path in "${path_array[@]}"; do
 		path="${path:2}"
