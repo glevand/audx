@@ -189,9 +189,9 @@ move_file() {
 	fi
 
 	if [[ ${verbose} ]]; then
-		echo "${FUNCNAME[0]}${echo_extra}: '${src}' -> '${dest}'" >&2
+		echo "${FUNCNAME[0]}${echo_extra}: '${src}' -> '${dest}'"
 	else
-		echo "${FUNCNAME[0]}${echo_extra}: -> '${dest}'" >&2
+		echo "${FUNCNAME[0]}${echo_extra}: -> '${dest}'"
 	fi
 
 	if [[ ! ${dry_run:-} ]]; then
@@ -277,17 +277,19 @@ delete_empty_paths() {
 	local dir=${1}
 	local dry_run=${2}
 
-	if [[ ${dry_run} ]]; then
-		echo "${script_name}: INFO: Empty directories:" >&2
-		find "${dir}" -depth -type d -empty
-		echo "${script_name}: INFO: Empty files:" >&2
-		find "${dir}" -depth -type f -empty
-	else
-		echo "${script_name}: INFO: Removing empty directories:" >&2
-		find "${dir}" -depth -type d -empty -print -delete
-		echo "${script_name}: INFO: Removing empty files:" >&2
-		find "${dir}" -depth -type f -empty -print -delete
-	fi
+	{
+		if [[ ${dry_run} ]]; then
+			echo "${script_name}: INFO: Empty directories:"
+			find "${dir}" -depth -type d -empty
+			echo "${script_name}: INFO: Empty files:"
+			find "${dir}" -depth -type f -empty
+		else
+			echo "${script_name}: INFO: Removing empty directories:"
+			find "${dir}" -depth -type d -empty -print -delete
+			echo "${script_name}: INFO: Removing empty files:"
+			find "${dir}" -depth -type f -empty -print -delete
+		fi
+	} >&2
 }
 
 find_first_file() {
@@ -347,8 +349,10 @@ path_to_artist_album() {
 	_path_to_artist_album__pair[album]="${BASH_REMATCH[2]}"
 
 	if [[ ${debug} ]]; then
-		echo "${FUNCNAME[0]}: artist:  '${_path_to_artist_album__pair[artist]}'" >&2
-		echo "${FUNCNAME[0]}: album: '${_path_to_artist_album__pair[album]}'" >&2
+	{
+		echo "${FUNCNAME[0]}: artist:  '${_path_to_artist_album__pair[artist]}'"
+		echo "${FUNCNAME[0]}: album: '${_path_to_artist_album__pair[album]}'"
+	} >&2
 	fi
 }
 
@@ -368,9 +372,11 @@ path_to_artist_album_title() {
 	_path_to_artist_album_title__triple[title]="${BASH_REMATCH[3]}"
 
 	if [[ ${debug} ]]; then
-		echo "${FUNCNAME[0]}: artist:  '${_path_to_artist_album_title__triple[artist]}'" >&2
-		echo "${FUNCNAME[0]}: album: '${_path_to_artist_album_title__triple[album]}'" >&2
-		echo "${FUNCNAME[0]}: title: '${_path_to_artist_album_title__triple[title]}'" >&2
+	{
+		echo "${FUNCNAME[0]}: artist:  '${_path_to_artist_album_title__triple[artist]}'"
+		echo "${FUNCNAME[0]}: album: '${_path_to_artist_album_title__triple[album]}'"
+		echo "${FUNCNAME[0]}: title: '${_path_to_artist_album_title__triple[title]}'"
+	} >&2
 	fi
 }
 
@@ -514,8 +520,10 @@ flac_split_tag() {
 	_flac_split_tag__pair[value]="${BASH_REMATCH[2]}"
 
 	if [[ ${debug} ]]; then
-		echo "${FUNCNAME[0]}: name:  '${_flac_split_tag__pair[name]}'" >&2
-		echo "${FUNCNAME[0]}: value: '${_flac_split_tag__pair[value]}'" >&2
+	{
+		echo "${FUNCNAME[0]}: name:  '${_flac_split_tag__pair[name]}'"
+		echo "${FUNCNAME[0]}: value: '${_flac_split_tag__pair[value]}'"
+	} >&2
 	fi
 
 	return 0
@@ -556,12 +564,12 @@ flac_print_tag_set() {
 	local file="${1}"
 	local -n _flac_print_tag_set__tags="${2}"
 
-	echo "${FUNCNAME[0]}: file: '${file}'" >&2
-	echo "${FUNCNAME[0]}:   artist:      '${_flac_print_tag_set__tags[artist]}'" >&2
-	echo "${FUNCNAME[0]}:   album:       '${_flac_print_tag_set__tags[album]}'" >&2
-	echo "${FUNCNAME[0]}:   title:       '${_flac_print_tag_set__tags[title]}'" >&2
-	echo "${FUNCNAME[0]}:   tracknumber: '${_flac_print_tag_set__tags[tracknumber]}'" >&2
-	echo "${FUNCNAME[0]}:   tracktotal:  '${_flac_print_tag_set__tags[tracktotal]}'" >&2
+	echo "${FUNCNAME[0]}: file: '${file}'"
+	echo "${FUNCNAME[0]}:   artist:      '${_flac_print_tag_set__tags[artist]}'"
+	echo "${FUNCNAME[0]}:   album:       '${_flac_print_tag_set__tags[album]}'"
+	echo "${FUNCNAME[0]}:   title:       '${_flac_print_tag_set__tags[title]}'"
+	echo "${FUNCNAME[0]}:   tracknumber: '${_flac_print_tag_set__tags[tracknumber]}'"
+	echo "${FUNCNAME[0]}:   tracktotal:  '${_flac_print_tag_set__tags[tracktotal]}'"
 }
 
 add_leading_zero() {
@@ -649,8 +657,10 @@ metaflac_retag() {
 		;;
 	esac
 
-	echo "${FUNCNAME[0]}: file: '${file}'" >&2
-	echo "${FUNCNAME[0]}:   ${tag_name}: '${old_tag}' => '${tag_data}'" >&2
+	{
+		echo "${FUNCNAME[0]}: file: '${file}'"
+		echo "${FUNCNAME[0]}:   ${tag_name}: '${old_tag}' => '${tag_data}'"
+	}
 
 	if [[ ! ${dry_run:-} ]]; then
 		${metaflac} --preserve-modtime --remove-tag="${tag_name}" --set-tag="${tag_name}=${tag_data}" "${file}"
