@@ -1,0 +1,282 @@
+#!/usr/bin/env bash
+#
+# @PACKAGE_NAME@ ${script_name}"
+# Version: @PACKAGE_VERSION@"
+# Home: @PACKAGE_URL@"
+#
+
+str_trim_space() {
+	local str_in=${1}
+	local str_out="${str_in}"
+
+	str_out="${str_out//    / }"
+	str_out="${str_out//   / }"
+	str_out="${str_out//  / }"
+
+	# trim leading space.
+	str_out="${str_out#"${str_out%%[![:space:]]*}"}"
+
+	# trim trailing space.
+	str_out="${str_out%"${str_out##*[![:space:]]}"}"
+
+	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
+	fi
+
+	echo "${str_out}"
+}
+
+test_str_trim_space() {
+	local input=(
+		'123 456'
+		'123  456'
+		'123   456'
+		'123  456 '
+		'123  456  '
+		' 123  456 '
+		' 123       456 '
+	)
+
+	audx_str_lib_verbose=1
+
+	local i
+	for i in "${input[@]}"; do
+		str_trim_space "${i}" > /dev/null
+	done
+}
+
+str_clean_colon () {
+	local str_in=${1}
+	local str_out="${str_in}"
+
+	str_out="${str_out// : / - }"
+	str_out="${str_out//: / - }"
+	str_out="${str_out// :/ - }"
+	str_out="${str_out//:/-}"
+
+	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
+	fi
+
+	echo "${str_out}"
+}
+
+test_str_clean_colon() {
+	local input=(
+		'123:456'
+		'123: 456'
+		'123 :456'
+		'123 : 456'
+	)
+
+	audx_str_lib_verbose=1
+
+	local i
+	for i in "${input[@]}"; do
+		str_clean_colon "${i}" > /dev/null
+	done
+}
+
+str_clean_parentheses()
+{
+	local str_in=${1}
+	local str_out="${str_in}"
+
+# 	shopt extglob >&2 || :
+
+	local have_extglob
+	if shopt -q extglob; then
+		have_extglob=1
+	else
+		have_extglob=''
+	fi
+
+	shopt -s extglob
+
+	str_out="${str_out/ (live)/ - Live}"
+	str_out="${str_out/ (Live)/ - Live}"
+	str_out="${str_out//(+([^\)]))/}"
+
+	if [[ ! ${have_extglob} ]]; then
+		shopt -u extglob
+	fi
+
+# 	shopt extglob >&2 || :
+
+# 	local regex='([^(]*)(\([^)]*\))(.*)'
+# 
+# 	if [[ "${str_out}" =~ ${regex} ]]; then
+# 		str_out="${BASH_REMATCH[1]}${BASH_REMATCH[3]}"
+# 	fi
+
+	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
+	fi
+
+	echo "${str_out}"
+}
+
+test_str_clean_parentheses() {
+	local input=(
+		'123 (live)'
+		'123 (Live)'
+		'123 (abcd) 456'
+		'123 (abcd)'
+		'123 (abcd)(efgh) 456 (ijkl)'
+	)
+
+	audx_str_lib_verbose=1
+
+	local i
+	for i in "${input[@]}"; do
+		str_clean_parentheses "${i}" > /dev/null
+	done
+}
+
+str_clean_common() {
+	local str_in=${1}
+	local str_out="${str_in}"
+
+	str_out="${str_out//;/,}"
+	str_out="${str_out//[’\’\`\"]/\'}"
+	str_out="${str_out//[|\/\\]/-}"
+	str_out="${str_out//[èé]/e}"
+	str_out="${str_out//[àäå]/a}"
+	str_out="${str_out//[Ö]/O}"
+	str_out="${str_out//[₂]/2}"
+
+	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
+	fi
+
+	echo "${str_out}"
+}
+
+test_str_clean_common() {
+	local input=(
+		'[;]'
+		'[’]'
+		'[’]'
+		'[`]'
+		'["abc"]'
+		'[|]'
+		'[/]'
+		'[\]'
+		'["]'
+		'[è]'
+		'[é]'
+		'[à]'
+		'[ä]'
+		'[å]'
+		'[Ö]'
+		'[₂]'
+	)
+
+	audx_str_lib_verbose=1
+
+	local i
+	for i in "${input[@]}"; do
+		str_clean_common "${i}" > /dev/null
+	done
+}
+
+str_clean_filename() {
+	local str_in=${1}
+	local str_out="${str_in}"
+
+	str_out="${str_out//[\$\?\']/}"
+	str_out="${str_out//[~*<>‐]/-}"
+	str_out="${str_out//#/No. }"
+	str_out="${str_out//[+&]/ and }"
+
+	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
+	fi
+
+	echo "${str_out}"
+}
+
+test_str_clean_filename() {
+	local input=(
+		'[$]'
+		'[?]'
+		'[~]'
+		'[*]'
+		'[<]'
+		'[>]'
+		'[‐]'
+		'[A+B]'
+		'[A&B]'
+		'[#15]'
+	)
+
+	audx_str_lib_verbose=1
+
+	local i
+	for i in "${input[@]}"; do
+		str_clean_filename "${i}" > /dev/null
+	done
+}
+
+str_clean_phrase() {
+	local str_in=${1}
+	local str_out="${str_in}"
+
+	str_out="${str_out/ And The / and The }"
+	str_out="${str_out/ and the / and The }"
+	str_out="${str_out/ \'n\' / -n- }"
+	
+
+	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
+	fi
+
+	echo "${str_out}"
+}
+
+test_str_clean_phrase() {
+	local input=(
+		'[A And The Bees]'
+		'[A and The Bees]'
+		'[A and the Bees]'
+		"[Rock 'n' Roll]"
+	)
+
+	audx_str_lib_verbose=1
+
+	local i
+	for i in "${input[@]}"; do
+		str_clean_phrase "${i}" > /dev/null
+	done
+}
+
+str_clean_all() {
+	local str_in=${1}
+	local str_out="${str_in}"
+
+	str_out="$(str_clean_parentheses "${str_out}")"
+	str_out="$(str_clean_colon "${str_out}")"
+	str_out="$(str_clean_common "${str_out}")"
+	str_out="$(str_clean_phrase "${str_out}")"
+	str_out="$(str_clean_filename "${str_out}")"
+	str_out="$(str_trim_space "${str_out}")"
+
+	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
+	fi
+
+	echo "${str_out}"
+}
+
+test_str_clean_all() {
+	local input=(
+		'Remember Rock '"'"'n'"'"' Roll Radio?'
+	)
+
+	audx_str_lib_verbose=1
+
+	local i
+	for i in "${input[@]}"; do
+		str_clean_all "${i}" > /dev/null
+	done
+}

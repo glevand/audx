@@ -4,6 +4,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 composed_bin_scripts = \
 	scripts/audx-lib.sh \
+	scripts/audx-str-lib.sh \
 	scripts/check-vfat-names.sh \
 	scripts/flac-add-tracktotal.sh \
 	scripts/flac-clean-tags.sh \
