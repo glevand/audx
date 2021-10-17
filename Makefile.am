@@ -42,9 +42,11 @@ $(composed_bin_scripts): % : Makefile $(srcdir)/%.in
 	chmod +x $@.tmp
 	mv $@.tmp $@
 
+test_files = tests/*
+
 EXTRA_DIST = bootstrap configure.ac COPYING m4 mit-plus-license.txt README.md \
 	version.sh $(addsuffix .in, $(composed_bin_scripts)) \
-	$(nobase_bin_SCRIPTS)
+	$(nobase_bin_SCRIPTS) $(test_files)
 
 CLEANFILES = $(bin_SCRIPTS)
 
