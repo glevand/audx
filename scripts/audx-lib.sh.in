@@ -5,6 +5,8 @@
 # Home: @PACKAGE_URL@"
 #
 
+source "${SCRIPT_TOP}/audx-str-lib.sh"
+
 print_project_banner() {
 	echo "${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
 }
@@ -380,46 +382,13 @@ path_to_artist_album_title() {
 	fi
 }
 
-str_clean_common () {
-	local str_in=${1}
-	local str_out="${str_in}"
-
-	str_out="${str_out//[\/\\]/-}"
-	str_out="${str_out//[\"]/}"
-	str_out="${str_out//[èéé]/e}"
-	str_out="${str_out//[àäå]/a}"
-	str_out="${str_out//[Ö]/O}"
-	str_out="${str_out//[₂]/2}"
-
-	echo "${str_out}"
-}
-
-str_trim_space () {
-	local str_in=${1}
-	local str_out="${str_in}"
-
-	str_out="${str_out//    / }"
-	str_out="${str_out//   / }"
-	str_out="${str_out//  / }"
-
-	# trim leading space.
-	str_out="${str_out#"${str_out%%[![:space:]]*}"}"
-
-	# trim trailing space.
-	str_out="${str_out%"${str_out##*[![:space:]]}"}"
-
-	echo "${str_out}"
-}
-
 clean_vfat_name() {
 	local str_in=${1}
 	local str_out="${str_in}"
 
+	str_out="$(str_clean_parentheses "${str_out}")"
+	str_out="$(str_clean_colon "${str_out}")"
 	str_out="$(str_clean_common "${str_out}")"
-	str_out="${str_out//[:] / - }"
-	str_out="${str_out//[:]/-}"
-	str_out="${str_out//[|]/-}"
-	str_out="${str_out//[\$\?]/}"
 	str_out="$(str_trim_space "${str_out}")"
 
 	if [[ ${debug} ]]; then
@@ -458,17 +427,8 @@ clean_tag() {
 		str_out="${BASH_REMATCH[1]} - ${BASH_REMATCH[2]}"
 	fi
 
-	# x: y -> x - y
-	local regex="^(.*[^ ]): (.*)"
-	if [[ "${str_out}" =~ ${regex} ]]; then
-		str_out="${BASH_REMATCH[1]} - ${BASH_REMATCH[2]}"
-	fi
-
-	str_out="${str_out//[\/\\]/-}"
+	str_out="$(str_clean_colon "${str_out}")"
 	str_out="$(str_clean_common "${str_out}")"
-
-	# x:y -> x-y
-	str_out="${str_out/:/-}"
 
 #	str_out="${str_out//_/ }"
 	str_out="${str_out//;/,}"
