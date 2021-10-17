@@ -58,23 +58,33 @@ build_dir="$(realpath "${build_dir}")"
 cd "${build_dir}"
 
 {
+	echo ''
 	echo '==========================================='
 	echo "${script_name} (AUDX) - ${start_time}"
 	echo '==========================================='
 	echo ''
 }
 
-echo '--- bootstrap ---'
-./bootstrap
+echo '--- show help ---'
+readarray -t files_array < <(find "${build_dir}/install/bin" -type f -name '*.sh' | sort \
+	|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+	kill -SIGUSR1 $$; } )
 
-echo '--- configure ---'
-./configure --prefix="${build_dir}/install"
+{
+	for file in "${files_array[@]}"; do
+		if [[ "${file}" == "${build_dir}/install/bin/audx-lib.sh" ]]; then
+			continue
+		elif [[ "${file}" == "${build_dir}/install/bin/audx-str-lib.sh" ]]; then
+			continue
+		fi
 
-echo '--- make ---'
-make
-
-echo '--- make install ---'
-make install
+		echo '-------------------------'
+		echo "Testing '${file}'"
+		echo '-------------------------'
+		$("${file}" --help)
+	done
+	echo '-------------------------'
+}
 
 echo '--- Done ---'
 
