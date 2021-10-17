@@ -32,7 +32,6 @@ start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
-trap 'on_err SIGUSR1 ? 3' SIGUSR1
 
 set -eE
 set -o pipefail
@@ -57,24 +56,36 @@ fi
 build_dir="$(realpath "${build_dir}")"
 cd "${build_dir}"
 
+test_out_dir="${build_dir}/test-out"
+mkdir -p "${test_out_dir}"
+
 {
+	echo ''
 	echo '==========================================='
 	echo "${script_name} (AUDX) - ${start_time}"
 	echo '==========================================='
 	echo ''
 }
 
-echo '--- bootstrap ---'
-./bootstrap
+echo '--- lib tests ---'
 
-echo '--- configure ---'
-./configure --prefix="${build_dir}/install"
+SCRIPT_TOP="${build_dir}/scripts"
 
-echo '--- make ---'
-make
+source "${build_dir}/scripts/audx-lib.sh"
 
-echo '--- make install ---'
-make install
+test_str_trim_space
+echo '-----------------'
+test_str_clean_colon
+echo '-----------------'
+test_str_clean_parentheses
+echo '-----------------'
+test_str_clean_common
+echo '-----------------'
+test_str_clean_filename
+echo '-----------------'
+test_str_clean_phrase
+echo '-----------------'
+test_str_clean_all
 
 echo '--- Done ---'
 
