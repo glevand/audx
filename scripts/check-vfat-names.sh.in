@@ -173,7 +173,6 @@ readarray -t file_array < <( find "${top_dir}" -type f -name '*.flac' | sort \
 	|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 	kill -SIGUSR1 $$; } )
 
-
 echo "${script_name}: INFO: Processing ${#file_array[@]} files." >&2
 
 for (( i = 0; i < ${#file_array[@]}; i++ )); do
