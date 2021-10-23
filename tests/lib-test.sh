@@ -85,6 +85,8 @@ test_str_clean_filename
 echo '-----------------'
 test_str_clean_phrase
 echo '-----------------'
+test_str_clean_disc
+echo '-----------------'
 test_str_clean_all
 
 echo '--- Done ---'
