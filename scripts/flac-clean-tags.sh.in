@@ -69,23 +69,20 @@ process_opts() {
 clean_tags() {
 	local file="${1}"
 
-	if ! flac_check_file "${file}" 'quiet'; then
+	if ! flac_check_file "${file}" ''; then
 		return
 	fi
 
 	declare -A tags
+	declare -A new_tags
 
 	flac_fill_tag_set "${file}" tags
 
-	if [[ ${debug} ]]; then
-		flac_print_tag_set "${FUNCNAME[0]}" "${file}" tags
-	fi
-
-	declare -A new_tags
-
-	new_tags[artist]="$(clean_tag "${tags[artist]}")"
-	new_tags[album]="$(clean_tag "${tags[album]}")"
-	new_tags[title]="$(clean_tag "${tags[title]}")"
+	new_tags[artist]="$(flac_clean_tag "${tags[artist]}")"
+	new_tags[album]="$(flac_clean_tag "${tags[album]}")"
+	new_tags[title]="$(flac_clean_tag "${tags[title]}")"
+	new_tags[tracknumber]="${tags[tracknumber]}"
+	new_tags[tracktotal]="${tags[tracktotal]}"
 
 	local need_write=''
 
@@ -116,10 +113,15 @@ clean_tags() {
 		fi
 	fi
 
+	if [[ ${debug} ]]; then
+		flac_print_tag_set "${FUNCNAME[0]}: IN:  " "${file}" tags
+		if [[ ${need_write} ]]; then
+			flac_print_tag_set "${FUNCNAME[0]}: OUT: " "${file}" new_tags
+		fi
+	fi
+
 	if [[ ${need_write} && ! ${dry_run} ]]; then
-		metaflac_retag "${file}" "Artist"  "${new_tags[artist]}" 'update'
-		metaflac_retag "${file}" "Album"  "${new_tags[album]}" 'update'
-		metaflac_retag "${file}" "Title"  "${new_tags[title]}" 'update'
+		flac_write_tag_set "${file}" new_tags
 
 		if [[ ${verbose} ]]; then
 			echo -e "${FUNCNAME[0]}: Wrote '${file}'" >&2
@@ -176,19 +178,17 @@ check_top_dir "${top_dir}"
 top_dir="$(realpath -e "${top_dir}")"
 
 metaflac="${metaflac:-metaflac}"
-
 check_program "metaflac" "${metaflac}"
 
-readarray -t path_array < <(( cd "${top_dir}" && find . -type f) | sort \
-	|| { echo "${script_name}: ERROR: path_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+readarray -t file_array < <( find "${top_dir}" -type f -name '*.flac' | sort \
+	|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 	kill -SIGUSR1 $$; } )
 
-echo "${script_name}: INFO: Processing ${#path_array[@]} files." >&2
+echo "${script_name}: INFO: Processing ${#file_array[@]} files." >&2
 
-for path in "${path_array[@]}"; do
-	path="${path:2}"
-
-	clean_tags "${top_dir}/${path}"
+for (( i = 0; i < ${#file_array[@]}; i++ )); do
+# 	echo "process: '${file_array[i]}'"
+	clean_tags "${file_array[i]}"
 done
 
 trap "on_exit 'Success'" EXIT

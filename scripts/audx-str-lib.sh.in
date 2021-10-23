@@ -5,6 +5,8 @@
 # Home: @PACKAGE_URL@"
 #
 
+audx_str_lib_verbose=''
+
 str_trim_space() {
 	local str_in=${1}
 	local str_out="${str_in}"
@@ -138,12 +140,15 @@ str_clean_common() {
 	local str_out="${str_in}"
 
 	str_out="${str_out//;/,}"
-	str_out="${str_out//[’\’\`\"]/\'}"
+	str_out="${str_out//[‘’\’\`\"]/\'}"
 	str_out="${str_out//[|\/\\]/-}"
 	str_out="${str_out//[èé]/e}"
 	str_out="${str_out//[àäå]/a}"
 	str_out="${str_out//[Ö]/O}"
+	str_out="${str_out//[ö]/o}"
 	str_out="${str_out//[₂]/2}"
+	str_out="${str_out//…/...}"
+	str_out="${str_out//[‐→]/-}"
 
 	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
 		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
@@ -170,6 +175,7 @@ test_str_clean_common() {
 		'[å]'
 		'[Ö]'
 		'[₂]'
+		'[…]'
 	)
 
 	audx_str_lib_verbose=1
@@ -188,6 +194,7 @@ str_clean_filename() {
 	str_out="${str_out//[~*<>‐]/-}"
 	str_out="${str_out//#/No. }"
 	str_out="${str_out//[+&]/ and }"
+	str_out="${str_out//@/ at }"
 
 	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
 		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
@@ -225,7 +232,6 @@ str_clean_phrase() {
 	str_out="${str_out/ And The / and The }"
 	str_out="${str_out/ and the / and The }"
 	str_out="${str_out/ \'n\' / -n- }"
-	
 
 	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
 		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
@@ -250,6 +256,50 @@ test_str_clean_phrase() {
 	done
 }
 
+str_clean_disc() {
+	local str_in=${1}
+	local str_out="${str_in}"
+
+	str_out="${str_out//[Dd]isk/Disc}"
+	str_out="${str_out//[Dd]isc 1/- Disc1}"
+	str_out="${str_out//[Dd]isc 2/- Disc2}"
+	str_out="${str_out//[Dd]isc 3/- Disc3}"
+	str_out="${str_out//[Dd]isc 4/- Disc4}"
+	str_out="${str_out//-- Disc/- Disc}"
+	str_out="${str_out//- - Disc/- Disc}"
+
+	# Album Disc1 -> Album - Disc1
+	local regex="^(.*[^-]) (Disc[[:digit:]])"
+	if [[ "${str_out}" =~ ${regex} ]]; then
+		str_out="${BASH_REMATCH[1]} - ${BASH_REMATCH[2]}"
+	fi
+
+	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
+	fi
+
+	echo "${str_out}"
+}
+
+test_str_clean_disc() {
+	local input=(
+		'[aaa disk 1]'
+		'[aaa Disk 1]'
+		'[aaa - disk 1]'
+		'[aaa - disc 1]'
+		'[aaa - Disc 1]'
+		'[aaa - Disk 1]'
+		'[aaa - Disk1]'
+	)
+
+	audx_str_lib_verbose=1
+
+	local i
+	for i in "${input[@]}"; do
+		str_clean_disc "${i}" > /dev/null
+	done
+}
+
 str_clean_all() {
 	local str_in=${1}
 	local str_out="${str_in}"
@@ -258,6 +308,7 @@ str_clean_all() {
 	str_out="$(str_clean_colon "${str_out}")"
 	str_out="$(str_clean_common "${str_out}")"
 	str_out="$(str_clean_phrase "${str_out}")"
+	str_out="$(str_clean_disc "${str_out}")"
 	str_out="$(str_clean_filename "${str_out}")"
 	str_out="$(str_trim_space "${str_out}")"
 
