@@ -78,13 +78,13 @@ touch_file() {
 	path_to_artist_album_title "${in_file}" triple
 
 	if [[ ${clean_names} ]]; then
-		triple[artist]="$(clean_vfat_name "${triple[artist]}")"
-		triple[album]="$(clean_vfat_name "${triple[album]}")"
-		triple[title]="$(clean_vfat_name "${triple[title]}")"
+		triple[ARTIST]="$(clean_vfat_name "${triple[ARTIST]}")"
+		triple[ALBUM]="$(clean_vfat_name "${triple[ALBUM]}")"
+		triple[TITLE]="$(clean_vfat_name "${triple[TITLE]}")"
 	fi
 
 	local out_file
-	out_file="${vfat_dir}/${triple[artist]}/${triple[album]}/${triple[title]}.m4a"
+	out_file="${vfat_dir}/${triple[ARTIST]}/${triple[ALBUM]}/${triple[TITLE]}.m4a"
 
 	if [[ ${verbose} ]]; then
 		echo "out_file: '${out_file}'" >&2

@@ -78,38 +78,38 @@ clean_tags() {
 
 	flac_fill_tag_set "${file}" tags
 
-	new_tags[artist]="$(flac_clean_tag "${tags[artist]}")"
-	new_tags[album]="$(flac_clean_tag "${tags[album]}")"
-	new_tags[title]="$(flac_clean_tag "${tags[title]}")"
-	new_tags[tracknumber]="${tags[tracknumber]}"
-	new_tags[tracktotal]="${tags[tracktotal]}"
+	new_tags[ARTIST]="$(flac_clean_tag "${tags[ARTIST]}" "${clean_and_the}")"
+	new_tags[ALBUM]="$(flac_clean_tag "${tags[ALBUM]}" "${clean_and_the}")"
+	new_tags[TITLE]="$(flac_clean_tag "${tags[TITLE]}" "${clean_and_the}")"
+	new_tags[TRACKNUMBER]="${tags[TRACKNUMBER]}"
+	new_tags[TRACKTOTAL]="${tags[TRACKTOTAL]}"
 
 	local need_write=''
 
-	if [[ "${tags[artist]}" != "${new_tags[artist]}" ]]; then
+	if [[ "${tags[ARTIST]}" != "${new_tags[ARTIST]}" ]]; then
 		need_write=1
 		if [[ ${verbose} ]]; then
-			echo -e "clean artist: '${file}': '${tags[artist]}' -> '${new_tags[artist]}'" >&2
+			echo -e "clean artist: '${file}': '${tags[ARTIST]}' -> '${new_tags[ARTIST]}'" >&2
 		else
-			echo -e "clean artist: '${tags[artist]}' -> '${new_tags[artist]}'" >&2
+			echo -e "clean artist: '${tags[ARTIST]}' -> '${new_tags[ARTIST]}'" >&2
 		fi
 	fi
 
-	if [[ "${tags[album]}" != "${new_tags[album]}" ]]; then
+	if [[ "${tags[ALBUM]}" != "${new_tags[ALBUM]}" ]]; then
 		need_write=1
 		if [[ ${verbose} ]]; then
-			echo -e "clean album: '${file}': '${tags[album]}' -> '${new_tags[album]}'" >&2
+			echo -e "clean album: '${file}': '${tags[ALBUM]}' -> '${new_tags[ALBUM]}'" >&2
 		else
-			echo -e "clean album: '${tags[album]}' -> '${new_tags[album]}'" >&2
+			echo -e "clean album: '${tags[ALBUM]}' -> '${new_tags[ALBUM]}'" >&2
 		fi
 	fi
 
-	if [[ "${tags[title]}" != "${new_tags[title]}" ]]; then
+	if [[ "${tags[TITLE]}" != "${new_tags[TITLE]}" ]]; then
 		need_write=1
 		if [[ ${verbose} ]]; then
-			echo -e "clean title: '${file}': '${tags[title]}' -> '${new_tags[title]}'" >&2
+			echo -e "clean title: '${file}': '${tags[TITLE]}' -> '${new_tags[TITLE]}'" >&2
 		else
-			echo -e "clean title: '${tags[title]}' -> '${new_tags[title]}'" >&2
+			echo -e "clean title: '${tags[TITLE]}' -> '${new_tags[TITLE]}'" >&2
 		fi
 	fi
 

@@ -138,24 +138,24 @@ for file in "${files_array[@]}"; do
 
 	path_to_artist_album_title "${file}" triple
 
-	triple[artist]="$(clean_rip_tag ${triple[artist]})"
-	triple[album]="$(clean_rip_tag ${triple[album]})"
+	triple[ARTIST]="$(clean_rip_tag ${triple[ARTIST]})"
+	triple[ALBUM]="$(clean_rip_tag ${triple[ALBUM]})"
 
-	triple[title]="${triple[title]%.flac}"
-	triple[title]="$(clean_rip_tag ${triple[title]})"
-	triple[title]="${triple[title]// Side / - Side }"
-	triple[title]="${triple[title]// WXRT UnConcert/}"
+	triple[TITLE]="${triple[TITLE]%.flac}"
+	triple[TITLE]="$(clean_rip_tag ${triple[TITLE]})"
+	triple[TITLE]="${triple[TITLE]// Side / - Side }"
+	triple[TITLE]="${triple[TITLE]// WXRT UnConcert/}"
 
-	track="${triple[title]##*Side }"
+	track="${triple[TITLE]##*Side }"
 
 	echo "'${file}'"
-	echo "'${triple[artist]}' || '${triple[album]}' || '${triple[title]}' || '${track}'"
+	echo "'${triple[ARTIST]}' || '${triple[ALBUM]}' || '${triple[TITLE]}' || '${track}'"
 
 	"${metaflac}" --preserve-modtime --remove-tag="Comment" "${file}"
 
-	"${metaflac}" --preserve-modtime --remove-tag="ARTIST"      --set-tag="ARTIST=${triple[artist]}" "${file}"
-	"${metaflac}" --preserve-modtime --remove-tag="ALBUM"       --set-tag="ALBUM=${triple[album]}" "${file}"
-	"${metaflac}" --preserve-modtime --remove-tag="TITLE"       --set-tag="TITLE=${triple[title]}" "${file}"
+	"${metaflac}" --preserve-modtime --remove-tag="ARTIST"      --set-tag="ARTIST=${triple[ARTIST]}" "${file}"
+	"${metaflac}" --preserve-modtime --remove-tag="ALBUM"       --set-tag="ALBUM=${triple[ALBUM]}" "${file}"
+	"${metaflac}" --preserve-modtime --remove-tag="TITLE"       --set-tag="TITLE=${triple[TITLE]}" "${file}"
 	"${metaflac}" --preserve-modtime --remove-tag="TRACKNUMBER" --set-tag="TRACKNUMBER=${track}" "${file}"
 	
 	"${metaflac}" --list --block-type=VORBIS_COMMENT "${file}"
