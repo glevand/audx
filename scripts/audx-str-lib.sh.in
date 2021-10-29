@@ -139,16 +139,17 @@ str_clean_common() {
 	local str_in=${1}
 	local str_out="${str_in}"
 
-	str_out="${str_out//;/,}"
-	str_out="${str_out//[‘’\’\`\"]/\'}"
-	str_out="${str_out//[|\/\\]/-}"
+	str_out="${str_out//;‚/,}"
+	str_out="${str_out//[‵′‛‘’“”„″‶‟‴‷\`\"]/\'}"
+	str_out="${str_out//[—‒―–‐→|\/\\]/-}"
 	str_out="${str_out//[èé]/e}"
 	str_out="${str_out//[àäå]/a}"
 	str_out="${str_out//[Ö]/O}"
 	str_out="${str_out//[ö]/o}"
 	str_out="${str_out//[₂]/2}"
 	str_out="${str_out//…/...}"
-	str_out="${str_out//[‐→]/-}"
+	str_out="${str_out//[]/-}"
+	
 
 	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
 		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
@@ -212,12 +213,39 @@ test_str_clean_filename() {
 	done
 }
 
-str_clean_phrase() {
+str_clean_and_the() {
 	local str_in=${1}
 	local str_out="${str_in}"
 
 	str_out="${str_out/ And The / and The }"
 	str_out="${str_out/ and the / and The }"
+
+	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
+	fi
+
+	echo "${str_out}"
+}
+
+test_str_clean_and_the() {
+	local input=(
+		'[A And The Bees]'
+		'[A and The Bees]'
+		'[A and the Bees]'
+	)
+
+	audx_str_lib_verbose=1
+
+	local i
+	for i in "${input[@]}"; do
+		str_clean_and_the "${i}" > /dev/null
+	done
+}
+
+str_clean_phrase() {
+	local str_in=${1}
+	local str_out="${str_in}"
+
 	str_out="${str_out/ \'n\' / -n- }"
 
 	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
@@ -229,9 +257,6 @@ str_clean_phrase() {
 
 test_str_clean_phrase() {
 	local input=(
-		'[A And The Bees]'
-		'[A and The Bees]'
-		'[A and the Bees]'
 		"[Rock 'n' Roll]"
 	)
 

@@ -400,7 +400,9 @@ clean_vfat_name() {
 }
 
 flac_clean_tag() {
+	# known opts = and_the, filename.
 	local str_in=${1}
+	local -n _flac_clean_tag__opts="${2}"
 	local str_out="${str_in}"
 
 	str_out="${str_out//ACDC/AC-DC}"
@@ -417,11 +419,20 @@ flac_clean_tag() {
 	str_out="$(str_clean_disc "${str_out}")"
 	str_out="$(str_clean_common "${str_out}")"
 	str_out="$(str_clean_phrase "${str_out}")"
+
+	if [[ ${_flac_clean_tag__opts[and_the]:-} ]]; then
+		str_out="$(str_clean_and_the "${str_out}")"
+	fi
+
+	if [[ ${_flac_clean_tag__opts[filename]:-} ]]; then
+		str_out="$(str_clean_filename "${str_out}")"
+	fi
+
 	str_out="$(str_trim_space "${str_out}")"
 
-	if [[ ${debug} && "${str_in}" != "${str_out}" ]]; then
-		echo "${FUNCNAME[0]}: '${str_in}' -> '${str_out}'" >&2
-	fi
+# 	if [[ ${verbose} && "${str_in}" != "${str_out}" ]]; then
+# 		echo "'${str_in}' -> '${str_out}'" >&2
+# 	fi
 
 	echo "${str_out}"
 }
