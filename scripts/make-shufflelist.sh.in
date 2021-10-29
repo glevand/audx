@@ -263,7 +263,7 @@ for (( i = 0; i < ${count}; i++ )); do
 	declare -A triple
 	path_to_artist_album_title "${album_file}" triple
 
-	echo "$(( i + 1 )): ${triple[artist]} -- ${triple[album]}" >&2
+	echo "$(( i + 1 )): ${triple[ARTIST]} -- ${triple[ALBUM]}" >&2
 
 	readarray -t track_array < "${album_file}"
 

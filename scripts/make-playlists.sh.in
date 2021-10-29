@@ -143,6 +143,9 @@ if [[ ${extra_args} ]]; then
 	exit 1
 fi
 
+metaflac="${metaflac:-metaflac}"
+check_program "metaflac" "${metaflac}"
+
 check_top_dir "${top_dir}"
 top_dir="$(realpath -e "${top_dir}")"
 
@@ -167,11 +170,6 @@ for dir in "${dir_array[@]}"; do
 			continue
 		fi
 	fi
-
-# 	TODO: Need an empty check with header.
-# 	declare -A pair
-# 	path_to_artist_album "${dir}" pair
-# 	write_m3u_header "${out_file}" '@PACKAGE_NAME@ playlist' "${pair[artist]}" "${pair[album]}"
 
 	for type in ${file_types}; do
 		write_m3u_playlist "${out_file}" "${dir}" "${type}" "${canonical}"

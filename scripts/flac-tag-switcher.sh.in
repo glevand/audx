@@ -180,15 +180,15 @@ for (( id = 1; id <= ${in_count}; id++ )); do
 	fi
 
 	if [[ ${rename} ]]; then
-		dest="${output_dir}/${tags[tracknumber]}-${tags[title]} - ${tags[artist]}.flac"
+		dest="${output_dir}/${tags[TRACKNUMBER]}-${tags[TITLE]} - ${tags[ARTIST]}.flac"
 	else
 		dest="${output_dir}/${file}"
 	fi
 
 	cp -a "${path}" "${dest}"
 
-	flac-write-tags.sh "${dest}" --tag="'ARTIST=${tags[title]}'"
-	flac-write-tags.sh "${dest}" --tag="'TITLE=${tags[artist]}'"
+	flac-write-tags.sh "${dest}" --tag="'ARTIST=${tags[TITLE]}'"
+	flac-write-tags.sh "${dest}" --tag="'TITLE=${tags[ARTIST]}'"
 done
 
 echo

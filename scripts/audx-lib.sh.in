@@ -346,13 +346,13 @@ path_to_artist_album() {
 		exit 1
 	fi
 
-	_path_to_artist_album__pair[artist]="${BASH_REMATCH[1]}"
-	_path_to_artist_album__pair[album]="${BASH_REMATCH[2]}"
+	_path_to_artist_album__pair[ARTIST]="${BASH_REMATCH[1]}"
+	_path_to_artist_album__pair[ALBUM]="${BASH_REMATCH[2]}"
 
 	if [[ ${debug} ]]; then
 	{
-		echo "${FUNCNAME[0]}: ARTIST:  '${_path_to_artist_album__pair[artist]}'"
-		echo "${FUNCNAME[0]}: ALBUM: '${_path_to_artist_album__pair[album]}'"
+		echo "${FUNCNAME[0]}: ARTIST:  '${_path_to_artist_album__pair[ARTIST]}'"
+		echo "${FUNCNAME[0]}: ALBUM: '${_path_to_artist_album__pair[ALBUM]}'"
 	} >&2
 	fi
 }
@@ -368,15 +368,15 @@ path_to_artist_album_title() {
 		exit 1
 	fi
 
-	_path_to_artist_album_title__triple[artist]="${BASH_REMATCH[1]}"
-	_path_to_artist_album_title__triple[album]="${BASH_REMATCH[2]}"
-	_path_to_artist_album_title__triple[title]="${BASH_REMATCH[3]}"
+	_path_to_artist_album_title__triple[ARTIST]="${BASH_REMATCH[1]}"
+	_path_to_artist_album_title__triple[ALBUM]="${BASH_REMATCH[2]}"
+	_path_to_artist_album_title__triple[TITLE]="${BASH_REMATCH[3]}"
 
 	if [[ ${debug} ]]; then
 	{
-		echo "${FUNCNAME[0]}: ARTIST:  '${_path_to_artist_album_title__triple[artist]}'"
-		echo "${FUNCNAME[0]}: ALBUM: '${_path_to_artist_album_title__triple[album]}'"
-		echo "${FUNCNAME[0]}: TITLE: '${_path_to_artist_album_title__triple[title]}'"
+		echo "${FUNCNAME[0]}: ARTIST:  '${_path_to_artist_album_title__triple[ARTIST]}'"
+		echo "${FUNCNAME[0]}: ALBUM: '${_path_to_artist_album_title__triple[ALBUM]}'"
+		echo "${FUNCNAME[0]}: TITLE: '${_path_to_artist_album_title__triple[TITLE]}'"
 	} >&2
 	fi
 }
@@ -500,11 +500,12 @@ flac_print_tag_set() {
 	local -n _flac_print_tag_set__tags="${3}"
 
 	echo "${msg}file: '${file}'"
-	echo "${msg}  ARTIST:      '${_flac_print_tag_set__tags[artist]}'"
-	echo "${msg}  ALBUM:       '${_flac_print_tag_set__tags[album]}'"
-	echo "${msg}  TITLE:       '${_flac_print_tag_set__tags[title]}'"
-	echo "${msg}  TRACKNUMBER: '${_flac_print_tag_set__tags[tracknumber]}'"
-	echo "${msg}  TRACKTOTAL:  '${_flac_print_tag_set__tags[tracktotal]}'"
+	echo "${msg}  ARTIST:      '${_flac_print_tag_set__tags[ARTIST]}'"
+	echo "${msg}  ALBUM:       '${_flac_print_tag_set__tags[ALBUM]}'"
+	echo "${msg}  TITLE:       '${_flac_print_tag_set__tags[TITLE]}'"
+	echo "${msg}  TRACKNUMBER: '${_flac_print_tag_set__tags[TRACKNUMBER]}'"
+	echo "${msg}  TRACKTOTAL:  '${_flac_print_tag_set__tags[TRACKTOTAL]}'"
+	echo "${msg}  CDDB:        '${_flac_print_tag_set__tags[CDDB]}'"
 }
 
 add_leading_zero() {
@@ -529,13 +530,14 @@ flac_fill_tag_set() {
 		return
 	fi
 
-	_flac_fill_tag_set__tags[artist]="$(flac_get_tag 'ARTIST' "${file}" 'required')"
-	_flac_fill_tag_set__tags[album]="$(flac_get_tag 'ALBUM' "${file}" 'required')"
-	_flac_fill_tag_set__tags[title]="$(flac_get_tag 'TITLE' "${file}" 'required')"
-	_flac_fill_tag_set__tags[tracknumber]="$(flac_get_tag "TRACKNUMBER" "${file}" 'required')"
-	_flac_fill_tag_set__tags[tracktotal]="$(flac_get_tag "TRACKTOTAL" "${file}" 'optional')"
+	_flac_fill_tag_set__tags[ARTIST]="$(flac_get_tag 'ARTIST' "${file}" 'required')"
+	_flac_fill_tag_set__tags[ALBUM]="$(flac_get_tag 'ALBUM' "${file}" 'required')"
+	_flac_fill_tag_set__tags[TITLE]="$(flac_get_tag 'TITLE' "${file}" 'required')"
+	_flac_fill_tag_set__tags[TRACKNUMBER]="$(flac_get_tag "TRACKNUMBER" "${file}" 'required')"
+	_flac_fill_tag_set__tags[TRACKTOTAL]="$(flac_get_tag "TRACKTOTAL" "${file}" 'optional')"
+	_flac_fill_tag_set__tags[CDDB]="$(flac_get_tag "CDDB" "${file}" 'optional')"
 
-	_flac_fill_tag_set__tags[tracknumber]="${_flac_fill_tag_set__tags[tracknumber]#0}"
+	_flac_fill_tag_set__tags[TRACKNUMBER]="${_flac_fill_tag_set__tags[TRACKNUMBER]#0}"
 
 	if [[ ${debug} ]]; then
 		flac_print_tag_set "${FUNCNAME[0]}" "${file}" _flac_fill_tag_set__tags
@@ -550,11 +552,15 @@ flac_write_tag_set() {
 		return
 	fi
 
-	"${metaflac}" --preserve-modtime --remove-tag='ARTIST' --set-tag="ARTIST=${_flac_write_tag_set__tags[artist]}" "${file}"
-	"${metaflac}" --preserve-modtime --remove-tag='ALBUM' --set-tag="ALBUM=${_flac_write_tag_set__tags[album]}" "${file}"
-	"${metaflac}" --preserve-modtime --remove-tag='TITLE' --set-tag="TITLE=${_flac_write_tag_set__tags[title]}" "${file}"
-	"${metaflac}" --preserve-modtime --remove-tag='TRACKNUMBER' --set-tag="TRACKNUMBER=${_flac_write_tag_set__tags[tracknumber]}" "${file}"
-	"${metaflac}" --preserve-modtime --remove-tag='TRACKTOTAL' --set-tag="TRACKTOTAL=${_flac_write_tag_set__tags[tracktotal]}" "${file}"
+	"${metaflac}" --preserve-modtime --remove-tag='ARTIST' --set-tag="ARTIST=${_flac_write_tag_set__tags[ARTIST]}" "${file}"
+	"${metaflac}" --preserve-modtime --remove-tag='ALBUM' --set-tag="ALBUM=${_flac_write_tag_set__tags[ALBUM]}" "${file}"
+	"${metaflac}" --preserve-modtime --remove-tag='TITLE' --set-tag="TITLE=${_flac_write_tag_set__tags[TITLE]}" "${file}"
+	"${metaflac}" --preserve-modtime --remove-tag='TRACKNUMBER' --set-tag="TRACKNUMBER=${_flac_write_tag_set__tags[TRACKNUMBER]}" "${file}"
+	"${metaflac}" --preserve-modtime --remove-tag='TRACKTOTAL' --set-tag="TRACKTOTAL=${_flac_write_tag_set__tags[TRACKTOTAL]}" "${file}"
+
+	if [[ ${_flac_write_tag_set__tags[CDDB]} ]]; then
+		"${metaflac}" --preserve-modtime --remove-tag='CDDB' --set-tag="CDDB=${_flac_write_tag_set__tags[CDDB]}" "${file}"
+	fi
 
 	if [[ ${debug} ]]; then
 		flac_print_tag_set "${FUNCNAME[0]}" "${file}" _flac_write_tag_set__tags
@@ -637,16 +643,16 @@ flac_meta_path() {
 		flac_print_tag_set "${FUNCNAME[0]}" "${src}" tags
 	fi
 
-	add_leading_zero tags[tracknumber]
+	add_leading_zero tags[TRACKNUMBER]
 
 	local dest
 
 	case "${type}" in
 	artist)
-		dest="${tags[artist]}/${tags[album]}/${tags[tracknumber]}-${tags[title]}.flac"
+		dest="${tags[ARTIST]}/${tags[ALBUM]}/${tags[TRACKNUMBER]}-${tags[TITLE]}.flac"
 		;;
 	various)
-		dest="Various Artists/${tags[album]}/${tags[tracknumber]}-${tags[artist]} - ${tags[title]}.flac"
+		dest="Various Artists/${tags[ALBUM]}/${tags[TRACKNUMBER]}-${tags[ARTIST]} - ${tags[TITLE]}.flac"
 		;;
 	*)
 		echo "${script_name}: ERROR: Internal: Bad type '${type}'" >&2
@@ -677,7 +683,7 @@ write_m3u_playlist() {
 	local canonical=${4}
 
 	local files_array
-	readarray files_array < <( find "${dir}" -maxdepth 1 -type f -name "*.${type}" | sort -n \
+	readarray -t files_array < <( find "${dir}" -maxdepth 1 -type f -name "*.${type}" | sort -n \
 		|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 		kill -SIGUSR1 $$; } )
 
@@ -688,6 +694,22 @@ write_m3u_playlist() {
 		return
 	fi
 
+	local cddbid
+	cddbid="$(flac_get_tag "CDDB" "${files_array[0]}" 'optional')"
+
+	if [[ ! ${cddbid} ]]; then
+		echo "${script_name}: WARNING: No CDDB tag found: '${files_array[0]}'" >&2
+	fi
+
+# 	TODO: Need an empty check with header.
+# 	declare -A pair
+# 	path_to_artist_album "${dir}" pair
+# 	write_m3u_header "${out_file}" '@PACKAGE_NAME@ playlist' "${pair[ARTIST]}" "${pair[ALBUM]}"
+
+	echo '#EXTM3U' > "${out_file}"
+	echo "#CDDB=${cddbid}" >> "${out_file}"
+	echo '' >> "${out_file}"
+
 	if [[ ! ${canonical} ]]; then
 		local i
 		for (( i = 0; i < ${#files_array[@]}; i++ )); do
@@ -695,6 +717,6 @@ write_m3u_playlist() {
 		done
 	fi
 
-	printf "%s" "${files_array[@]}" > "${out_file}"
+	printf "%s\n" "${files_array[@]}" >> "${out_file}"
 	echo "${script_name}: Wrote ${#files_array[@]} ${type} entries: '${out_file}'" >&2
 }
