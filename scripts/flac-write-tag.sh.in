@@ -154,7 +154,6 @@ if [[ ! -d "${top_dir}" && ! -f "${top_dir}" ]]; then
 fi
 
 metaflac="${metaflac:-metaflac}"
-
 check_program "metaflac" "${metaflac}"
 
 if [[ ${tag_full} ]]; then

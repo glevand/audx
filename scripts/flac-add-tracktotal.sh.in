@@ -143,7 +143,6 @@ check_top_dir "${top_dir}"
 top_dir="$(realpath -e "${top_dir}")"
 
 metaflac="${metaflac:-metaflac}"
-
 check_program "metaflac" "${metaflac}"
 
 flac_add_tracktotal "${top_dir}"

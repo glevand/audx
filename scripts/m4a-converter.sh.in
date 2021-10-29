@@ -123,12 +123,12 @@ setup_p_script() {
 	declare -A triple
 	path_to_artist_album_title "${in_file}" triple
 
-	triple[artist]="$(clean_vfat_name "${triple[artist]}")"
-	triple[album]="$(clean_vfat_name "${triple[album]}")"
-	triple[title]="$(clean_vfat_name "${triple[title]%.flac}")"
+	triple[ARTIST]="$(clean_vfat_name "${triple[ARTIST]}")"
+	triple[ALBUM]="$(clean_vfat_name "${triple[ALBUM]}")"
+	triple[TITLE]="$(clean_vfat_name "${triple[TITLE]%.flac}")"
 
 	local out_file
-	out_file="${output_dir}/${triple[artist]}/${triple[album]}/${triple[title]}.m4a"
+	out_file="${output_dir}/${triple[ARTIST]}/${triple[ALBUM]}/${triple[TITLE]}.m4a"
 
 	if [[ ! ${clobber} && -e "${out_file}" ]]; then
 # 		if [[ ${debug} ]]; then
@@ -167,10 +167,10 @@ fdkaac_cmd='"${fdkaac}" \
   --ignorelength \
   --profile 2 \
   --bitrate-mode=0 --bitrate=${bitrate} \
-  --artist="$(escape_txt "${tags[artist]}")" \
-  --album="$(escape_txt "${tags[album]}")" \
-  --title="$(escape_txt "${tags[title]}")" \
-  --track="${tags[tracknumber]}/${tags[tracktotal]}" \
+  --artist="$(escape_txt "${tags[ARTIST]}")" \
+  --album="$(escape_txt "${tags[ALBUM]}")" \
+  --title="$(escape_txt "${tags[TITLE]}")" \
+  --track="${tags[TRACKNUMBER]}/${tags[TRACKTOTAL]}" \
   -o "$(escape_txt "${out_file}")" -'
 
 if (( ${dry_run:-0} )); then
