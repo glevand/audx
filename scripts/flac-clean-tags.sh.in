@@ -9,10 +9,12 @@ usage() {
 		echo "${script_name} - Clean FLAC metadata tags using standard rules."
 		echo "Usage: ${script_name} [flags] top-dir"
 		echo "Option flags:"
-		echo "  -h --help        - Show this help and exit."
-		echo "  -v --verbose     - Verbose execution."
-		echo "  -g --debug       - Extra verbose execution."
-		echo "  -d --dry-run     - Dry run, don't modify files."
+		echo "  -a --and     - Apply 'and The' conversions."
+		echo "  -f --file    - Apply 'filename' conversions."
+		echo "  -h --help    - Show this help and exit."
+		echo "  -v --verbose - Verbose execution."
+		echo "  -g --debug   - Extra verbose execution."
+		echo "  -d --dry-run - Dry run, don't modify files."
 		echo "Info:"
 		print_project_info
 	} >&2
@@ -20,8 +22,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="hvgd"
-	local long_opts="help,verbose,debug,dry-run"
+	local short_opts="afhvgd"
+	local long_opts="and,file,help,verbose,debug,dry-run"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -31,6 +33,14 @@ process_opts() {
 	while true ; do
 		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
+		-a | --and)
+			clean_and_the=1
+			shift
+			;;
+		-f | --file)
+			clean_filename=1
+			shift
+			;;
 		-h | --help)
 			usage=1
 			shift
@@ -78,11 +88,12 @@ clean_tags() {
 
 	flac_fill_tag_set "${file}" tags
 
-	new_tags[ARTIST]="$(flac_clean_tag "${tags[ARTIST]}" "${clean_and_the}")"
-	new_tags[ALBUM]="$(flac_clean_tag "${tags[ALBUM]}" "${clean_and_the}")"
-	new_tags[TITLE]="$(flac_clean_tag "${tags[TITLE]}" "${clean_and_the}")"
+	new_tags[ARTIST]="$(flac_clean_tag "${tags[ARTIST]}" flac_clean_tag_opts)"
+	new_tags[ALBUM]="$(flac_clean_tag "${tags[ALBUM]}" flac_clean_tag_opts)"
+	new_tags[TITLE]="$(flac_clean_tag "${tags[TITLE]}" flac_clean_tag_opts)"
 	new_tags[TRACKNUMBER]="${tags[TRACKNUMBER]}"
 	new_tags[TRACKTOTAL]="${tags[TRACKTOTAL]}"
+	new_tags[CDDB]="${tags[CDDB]}"
 
 	local need_write=''
 
@@ -150,6 +161,8 @@ set -o nounset
 
 source "${SCRIPT_TOP}/audx-lib.sh"
 
+clean_and_the=''
+clean_filename=''
 usage=''
 verbose=''
 debug=''
@@ -179,6 +192,16 @@ top_dir="$(realpath -e "${top_dir}")"
 
 metaflac="${metaflac:-metaflac}"
 check_program "metaflac" "${metaflac}"
+
+declare -A flac_clean_tag_opts=()
+
+if [[ ${clean_and_the} ]]; then
+	flac_clean_tag_opts[and_the]='1'
+fi
+
+if [[ ${clean_filename} ]]; then
+	flac_clean_tag_opts[filename]='1'
+fi
 
 readarray -t file_array < <( find "${top_dir}" -type f -name '*.flac' | sort \
 	|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
