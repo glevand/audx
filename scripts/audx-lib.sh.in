@@ -517,6 +517,9 @@ flac_print_tag_set() {
 	echo "${msg}  TRACKNUMBER: '${_flac_print_tag_set__tags[TRACKNUMBER]}'"
 	echo "${msg}  TRACKTOTAL:  '${_flac_print_tag_set__tags[TRACKTOTAL]}'"
 	echo "${msg}  CDDB:        '${_flac_print_tag_set__tags[CDDB]}'"
+	if [[ ${_flac_print_tag_set__tags[DISCID]} ]]; then
+		echo "${msg}  DISCID:      '${_flac_print_tag_set__tags[DISCID]}'"
+	fi
 }
 
 add_leading_zero() {
@@ -541,12 +544,14 @@ flac_fill_tag_set() {
 		return
 	fi
 
+	_flac_fill_tag_set__tags[file]="${file}"
 	_flac_fill_tag_set__tags[ARTIST]="$(flac_get_tag 'ARTIST' "${file}" 'required')"
 	_flac_fill_tag_set__tags[ALBUM]="$(flac_get_tag 'ALBUM' "${file}" 'required')"
 	_flac_fill_tag_set__tags[TITLE]="$(flac_get_tag 'TITLE' "${file}" 'required')"
 	_flac_fill_tag_set__tags[TRACKNUMBER]="$(flac_get_tag "TRACKNUMBER" "${file}" 'required')"
 	_flac_fill_tag_set__tags[TRACKTOTAL]="$(flac_get_tag "TRACKTOTAL" "${file}" 'optional')"
 	_flac_fill_tag_set__tags[CDDB]="$(flac_get_tag "CDDB" "${file}" 'optional')"
+	_flac_fill_tag_set__tags[DISCID]="$(flac_get_tag "DISCID" "${file}" 'optional')"
 
 	_flac_fill_tag_set__tags[TRACKNUMBER]="${_flac_fill_tag_set__tags[TRACKNUMBER]#0}"
 
@@ -571,6 +576,8 @@ flac_write_tag_set() {
 
 	if [[ ${_flac_write_tag_set__tags[CDDB]} ]]; then
 		"${metaflac}" --preserve-modtime --remove-tag='CDDB' --set-tag="CDDB=${_flac_write_tag_set__tags[CDDB]}" "${file}"
+	elif [[ ${_flac_write_tag_set__tags[DISCID]} ]]; then
+		"${metaflac}" --preserve-modtime --set-tag="CDDB=${_flac_write_tag_set__tags[DISCID]}" "${file}"
 	fi
 
 	if [[ ${debug} ]]; then
