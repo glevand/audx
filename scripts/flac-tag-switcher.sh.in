@@ -9,12 +9,15 @@ usage() {
 		echo "${script_name} - Swap FLAC title/artist tags."
 		echo "Usage: ${script_name} [flags] <top-dir|file>"
 		echo "Option flags:"
-		echo "  -o --output-dir - Output directory. Default: '${output_dir}'."
-		echo "  -c --clobber    - Overwrite existing files. Default: '${clobber}'."
-		echo '  -r --rename     - Rename output files ${track}-${artist} - ${title}.'
-		echo "  -h --help       - Show this help and exit."
-		echo "  -v --verbose    - Verbose execution."
-		echo "  -g --debug      - Extra verbose execution."
+		echo "  -t --title-artist - Swap the TITLE and ARTIST tags. Default: '${opt_swap_title_artist}'."
+		echo "  -i --cddb         - Change DISCID to CDDB. Default: '${opt_discid_to_cddb}'."
+		echo '  -r --rename       - Rename output files ${track}-${artist} - ${title}.'
+		echo "  -o --output-dir   - Output directory. Default: '${output_dir}'."
+		echo "  -c --clobber      - Overwrite existing files. Default: '${clobber}'."
+		echo "  -h --help         - Show this help and exit."
+		echo "  -v --verbose      - Verbose execution."
+		echo "  -g --debug        - Extra verbose execution."
+		echo "  -d --dry-run      - Dry run, don't create/modify files."
 		echo "Info:"
 		print_project_info
 	} >&2
@@ -22,8 +25,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="o:crhvg"
-	local long_opts="output-dir:,clobber,rename,help,verbose,debug"
+	local short_opts="tiro:chvgd"
+	local long_opts="title-artist,cddb,rename,output-dir:,clobber,help,verbose,debug,dry-run"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -33,16 +36,24 @@ process_opts() {
 	while true ; do
 		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
+		-t | --title-artist)
+			opt_swap_title_artist=1
+			shift
+			;;
+		-i | --cddb)
+			opt_discid_to_cddb=1
+			shift
+			;;
+		-r | --rename)
+			rename=1
+			shift
+			;;
 		-o | --output-dir)
 			output_dir="${2}"
 			shift 2
 			;;
 		-c | --clobber)
 			clobber=1
-			shift
-			;;
-		-r | --rename)
-			rename=1
 			shift
 			;;
 		-h | --help)
@@ -57,6 +68,10 @@ process_opts() {
 			verbose=1
 			debug=1
 			set -x
+			shift
+			;;
+		-d | --dry-run)
+			dry_run=1
 			shift
 			;;
 		--)
@@ -75,6 +90,38 @@ process_opts() {
 		esac
 	done
 }
+
+swap_title_artist() {
+	local -n _discid_to_cddb__tags="${1}"
+
+	local tmp="${_discid_to_cddb__tags[TITLE]}"
+	_discid_to_cddb__tags[TITLE]="${_discid_to_cddb__tags[ARTIST]}"
+	_discid_to_cddb__tags[ARTIST]="${tmp}"
+}
+
+discid_to_cddb() {
+	local -n _discid_to_cddb__tags="${1}"
+
+	if [[ ${_discid_to_cddb__tags[CDDB]} ]]; then
+		if [[ ${verbose} ]]; then
+			echo "${script_name}: INFO: Have CDDB=${_discid_to_cddb__tags[CDDB]}" >&2
+		fi
+		return 1
+	fi
+
+	if [[ ! ${_discid_to_cddb__tags[DISCID]} ]]; then
+		echo "${script_name}: INFO: No CDDB nor DISCID: '${_discid_to_cddb__tags[file]}'." >&2
+		return 1
+	fi
+
+	if [[ ${verbose} ]]; then
+		echo "${script_name}: Setting CDDB to DISCID ${_discid_to_cddb__tags[DISCID]}: '${_discid_to_cddb__tags[file]}'." >&2
+	fi
+
+	_discid_to_cddb__tags[CDDB]="${_discid_to_cddb__tags[DISCID]}"
+	return 0
+}
+
 
 #===============================================================================
 export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
@@ -97,12 +144,15 @@ set -o nounset
 
 source "${SCRIPT_TOP}/audx-lib.sh"
 
+opt_swap_title_artist=''
+opt_discid_to_cddb=''
+rename=''
 output_dir="/tmp/audx-switcher-${start_time}"
 clobber=''
-rename=''
 usage=''
 verbose=''
 debug=''
+dry_run=''
 arg_1=''
 
 process_opts "${@}"
@@ -123,6 +173,12 @@ fi
 if [[ ${extra_args} ]]; then
 	set +o xtrace
 	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
+fi
+
+if [[ "${opt_swap_title_artist}-${opt_discid_to_cddb}" == '-' ]]; then
+	echo "${script_name}: ERROR: No operation flag given." >&2
 	usage
 	exit 1
 fi
@@ -161,34 +217,51 @@ echo "${script_name}: INFO: Processing ${in_count} input files." >&2
 
 mkdir -p "${output_dir}"
 
-# 01-Whats Love Got to Do with It - Tina Turner.flac
-
-for (( id = 1; id <= ${in_count}; id++ )); do
-	path="${files_array[$(( id - 1 ))]}"
+for (( id = 0; id < ${in_count}; id++ )); do
+	path="${files_array[$(( id ))]}"
 	file="${path##*/}"
+	dest="${output_dir}/${file}"
+	result=''
 
 	declare -A tags
 	flac_fill_tag_set "${path}" tags
 
 	if [[ ${verbose} ]]; then
-	{
-		echo
-# 		echo "  path:   '${path}'"
-		flac_print_tag_set "${id}: " ${file} tags
-
-	} >&1
+		{
+			echo
+			flac_print_tag_set "IN-${id}: " "${file}" tags
+			echo
+		} >&1
 	fi
 
-	if [[ ${rename} ]]; then
-		dest="${output_dir}/${tags[TRACKNUMBER]}-${tags[TITLE]} - ${tags[ARTIST]}.flac"
-	else
-		dest="${output_dir}/${file}"
+	if [[ ${opt_swap_title_artist} ]]; then
+		result='1'
+		swap_title_artist tags
+
+		if [[ ${rename} ]]; then
+			# 01-Whats Love Got to Do with It - Tina Turner.flac
+			dest="${output_dir}/${tags[TRACKNUMBER]}-${tags[ARTIST]} - ${tags[TITLE]}.flac"
+		fi
 	fi
 
-	cp -a "${path}" "${dest}"
+	if [[ ${opt_discid_to_cddb} ]]; then
+		if discid_to_cddb tags; then
+			result='1'
+		fi
+	fi
 
-	flac-write-tags.sh "${dest}" --tag="'ARTIST=${tags[TITLE]}'"
-	flac-write-tags.sh "${dest}" --tag="'TITLE=${tags[ARTIST]}'"
+	if [[ ${verbose} ]]; then
+		{
+			echo
+			flac_print_tag_set "OUT-${id}: " "${file}" tags
+
+		} >&1
+	fi
+
+	if [[ ${result} && ! ${dry_run} ]]; then
+		cp -a "${path}" "${dest}"
+		flac_write_tag_set "${dest}" tags
+	fi
 done
 
 echo
