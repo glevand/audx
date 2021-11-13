@@ -91,6 +91,7 @@ clean_tags() {
 	new_tags[ARTIST]="$(flac_clean_tag "${tags[ARTIST]}" flac_clean_tag_opts)"
 	new_tags[ALBUM]="$(flac_clean_tag "${tags[ALBUM]}" flac_clean_tag_opts)"
 	new_tags[TITLE]="$(flac_clean_tag "${tags[TITLE]}" flac_clean_tag_opts)"
+	new_tags[GENRE]="$(flac_clean_genre "${tags[GENRE]}" flac_clean_tag_opts)"
 	new_tags[TRACKNUMBER]="${tags[TRACKNUMBER]}"
 	new_tags[TRACKTOTAL]="${tags[TRACKTOTAL]}"
 	new_tags[CDDB]="${tags[CDDB]}"
@@ -100,27 +101,36 @@ clean_tags() {
 	if [[ "${tags[ARTIST]}" != "${new_tags[ARTIST]}" ]]; then
 		need_write=1
 		if [[ ${verbose} ]]; then
-			echo -e "clean artist: '${file}': '${tags[ARTIST]}' -> '${new_tags[ARTIST]}'" >&2
+			echo -e "clean ARTIST: '${file}': '${tags[ARTIST]}' -> '${new_tags[ARTIST]}'" >&2
 		else
-			echo -e "clean artist: '${tags[ARTIST]}' -> '${new_tags[ARTIST]}'" >&2
+			echo -e "clean ARTIST: '${tags[ARTIST]}' -> '${new_tags[ARTIST]}'" >&2
 		fi
 	fi
 
 	if [[ "${tags[ALBUM]}" != "${new_tags[ALBUM]}" ]]; then
 		need_write=1
 		if [[ ${verbose} ]]; then
-			echo -e "clean album: '${file}': '${tags[ALBUM]}' -> '${new_tags[ALBUM]}'" >&2
+			echo -e "clean ALBUM: '${file}': '${tags[ALBUM]}' -> '${new_tags[ALBUM]}'" >&2
 		else
-			echo -e "clean album: '${tags[ALBUM]}' -> '${new_tags[ALBUM]}'" >&2
+			echo -e "clean ALBUM: '${tags[ALBUM]}' -> '${new_tags[ALBUM]}'" >&2
 		fi
 	fi
 
 	if [[ "${tags[TITLE]}" != "${new_tags[TITLE]}" ]]; then
 		need_write=1
 		if [[ ${verbose} ]]; then
-			echo -e "clean title: '${file}': '${tags[TITLE]}' -> '${new_tags[TITLE]}'" >&2
+			echo -e "clean TITLE: '${file}': '${tags[TITLE]}' -> '${new_tags[TITLE]}'" >&2
 		else
-			echo -e "clean title: '${tags[TITLE]}' -> '${new_tags[TITLE]}'" >&2
+			echo -e "clean TITLE: '${tags[TITLE]}' -> '${new_tags[TITLE]}'" >&2
+		fi
+	fi
+
+	if [[ "${tags[GENRE]}" != "${new_tags[GENRE]}" ]]; then
+		need_write=1
+		if [[ ${verbose} ]]; then
+			echo -e "clean GENRE: '${file}': '${tags[GENRE]}' -> '${new_tags[GENRE]}'" >&2
+		else
+			echo -e "clean GENRE: '${tags[GENRE]}' -> '${new_tags[GENRE]}'" >&2
 		fi
 	fi
 
