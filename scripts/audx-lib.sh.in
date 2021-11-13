@@ -437,6 +437,116 @@ flac_clean_tag() {
 	echo "${str_out}"
 }
 
+flac_clean_genre() {
+	local str_in=${1}
+	local str_out="${str_in}"
+
+	str_out="${str_out^^}"
+
+	str_out="${str_out//=/}"
+
+	str_out="${str_out//*FOLK*/FOLK}"
+
+	str_out="${str_out//*COUNTRY*/COUNTRY}"
+	str_out="${str_out//BLUEGRASS/COUNTRY}"
+
+	str_out="${str_out//*ROCK*/ROCK}"
+	str_out="${str_out//*PUNK*/ROCK}"
+	str_out="${str_out//*METAL*/ROCK}"
+
+	str_out="${str_out//*BLUES*/BLUES}"
+	str_out="${str_out//*R&B*/BLUES}"
+
+	str_out="${str_out//SWING/JAZZ}"
+	str_out="${str_out//*JAZZ*/JAZZ}"
+
+	str_out="${str_out//NEW WAVE/POP}"
+	str_out="${str_out//*RAP*/POP}"
+	str_out="${str_out//TRANCE/POP}"
+	str_out="${str_out//DISCO/POP}"
+	str_out="${str_out//EASY LISTENING/POP}"
+	str_out="${str_out//*POP*/POP}"
+
+	str_out="${str_out//*CLASSICAL*/CLASSICAL}"
+
+	str_out="${str_out//UNKNOWN/}"
+
+	if [[ ${audx_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
+	fi
+
+	echo "${str_out}"
+}
+
+test_flac_clean_genre() {
+	local input=(
+		'[jazz][Jazz]'
+		'[Pop/Rock]'
+		'[=]'
+		'[Acoustic]'
+		'[Acoustic Pop]'
+		'[Adult Alternative]'
+		'[AOR]'
+		'[Bluegrass]'
+		'[Blues-Rock]'
+		'[Blues/Rock]'
+		'[Contemporary Country]'
+		'[Crossover Jazz]'
+		'[Dream Pop, Indie Pop/Rock]'
+		'[Experimental]'
+		'[FolkPop]'
+		'[=Folk-Rock]'
+		'[FOLK ROCK]'
+		'[Funk]'
+		'[Funk, Urban]'
+		'[=General Alternative]'
+		'[General Blues]'
+		'[General Classical]'
+		'[=General Country]'
+		'[General Metal]'
+		'[General R&B]'
+		'[General Reggae]'
+		'[Hip-Hop]'
+		'[Israeli]'
+		'[Jam Rock]'
+		'[Jazz Fusion]'
+		'[Jazz Vocals]'
+		'[J ポップ]'
+		'[Lo-Fi]'
+		'[Metal]'
+		'[misc]'
+		'[MOTOWN]'
+		'[NuMetal]'
+		'[Nu Metal]'
+		'[Oldies]'
+		'[Pop/Hair Metal]'
+		'[Pop&Jazz]'
+		'[Pop Vocals]'
+		'[Progressive Metal]'
+		'[=Progressive Rock]'
+		'[Psychedelic Rock]'
+		'[Punkedelic]'
+		'[Raprock]'
+		'[R&B, Soul]'
+		'[Rock ]'
+		'[Rockabilly]'
+		'[Rock/Pop]'
+		'[=Rock & Roll]'
+		'[Salsa]'
+		'[Singer/Songwriter]'
+		'[Techno, Trance]'
+		'[Traditional Folk]'
+		'[Trance]'
+	)
+
+	audx_lib_verbose=1
+
+	local i
+	for i in "${input[@]}"; do
+		flac_clean_genre "${i}" > /dev/null
+	done
+}
+
 flac_check_file() {
 	local file=${1}
 	local quiet=${2}
@@ -514,6 +624,7 @@ flac_print_tag_set() {
 	echo "${msg}  ARTIST:      '${_flac_print_tag_set__tags[ARTIST]}'"
 	echo "${msg}  ALBUM:       '${_flac_print_tag_set__tags[ALBUM]}'"
 	echo "${msg}  TITLE:       '${_flac_print_tag_set__tags[TITLE]}'"
+	echo "${msg}  GENRE:       '${_flac_print_tag_set__tags[GENRE]}'"
 	echo "${msg}  TRACKNUMBER: '${_flac_print_tag_set__tags[TRACKNUMBER]}'"
 	echo "${msg}  TRACKTOTAL:  '${_flac_print_tag_set__tags[TRACKTOTAL]}'"
 	echo "${msg}  CDDB:        '${_flac_print_tag_set__tags[CDDB]}'"
@@ -548,6 +659,7 @@ flac_fill_tag_set() {
 	_flac_fill_tag_set__tags[ARTIST]="$(flac_get_tag 'ARTIST' "${file}" 'required')"
 	_flac_fill_tag_set__tags[ALBUM]="$(flac_get_tag 'ALBUM' "${file}" 'required')"
 	_flac_fill_tag_set__tags[TITLE]="$(flac_get_tag 'TITLE' "${file}" 'required')"
+	_flac_fill_tag_set__tags[GENRE]="$(flac_get_tag 'GENRE' "${file}" 'optional')"
 	_flac_fill_tag_set__tags[TRACKNUMBER]="$(flac_get_tag "TRACKNUMBER" "${file}" 'required')"
 	_flac_fill_tag_set__tags[TRACKTOTAL]="$(flac_get_tag "TRACKTOTAL" "${file}" 'optional')"
 	_flac_fill_tag_set__tags[CDDB]="$(flac_get_tag "CDDB" "${file}" 'optional')"
@@ -571,6 +683,7 @@ flac_write_tag_set() {
 	"${metaflac}" --preserve-modtime --remove-tag='ARTIST' --set-tag="ARTIST=${_flac_write_tag_set__tags[ARTIST]}" "${file}"
 	"${metaflac}" --preserve-modtime --remove-tag='ALBUM' --set-tag="ALBUM=${_flac_write_tag_set__tags[ALBUM]}" "${file}"
 	"${metaflac}" --preserve-modtime --remove-tag='TITLE' --set-tag="TITLE=${_flac_write_tag_set__tags[TITLE]}" "${file}"
+	"${metaflac}" --preserve-modtime --remove-tag='GENRE' --set-tag="GENRE=${_flac_write_tag_set__tags[GENRE]}" "${file}"
 	"${metaflac}" --preserve-modtime --remove-tag='TRACKNUMBER' --set-tag="TRACKNUMBER=${_flac_write_tag_set__tags[TRACKNUMBER]}" "${file}"
 	"${metaflac}" --preserve-modtime --remove-tag='TRACKTOTAL' --set-tag="TRACKTOTAL=${_flac_write_tag_set__tags[TRACKTOTAL]}" "${file}"
 

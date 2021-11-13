@@ -170,6 +170,7 @@ fdkaac_cmd='"${fdkaac}" \
   --artist="$(escape_txt "${tags[ARTIST]}")" \
   --album="$(escape_txt "${tags[ALBUM]}")" \
   --title="$(escape_txt "${tags[TITLE]}")" \
+  --genre="$(escape_txt "${tags[GENRE]}")" \
   --track="${tags[TRACKNUMBER]}/${tags[TRACKTOTAL]}" \
   -o "$(escape_txt "${out_file}")" -'
 
