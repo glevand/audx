@@ -148,7 +148,7 @@ if [[ -f "${HOME}/.audx.conf" ]]; then
 	source "${HOME}/.audx.conf"
 fi
 
-top_dir="${top_dir:-${favorites_top:-}}"
+top_dir="${top_dir:-${collection_top:-}}"
 
 process_opts "${@}"
 
