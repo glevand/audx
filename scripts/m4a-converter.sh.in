@@ -147,6 +147,10 @@ setup_p_script() {
 	declare -A tags
 	flac_fill_tag_set "${in_file}" tags
 
+	tags[ARTIST]="$(str_clean_quotes "${tags[ARTIST]}")"
+	tags[ALBUM]="$(str_clean_quotes "${tags[ALBUM]}")"
+	tags[TITLE]="$(str_clean_quotes "${tags[TITLE]}")"
+
 	cat << EOF > "${p_script}"
 #!/usr/bin/env bash
 
