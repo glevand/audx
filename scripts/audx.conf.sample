@@ -3,4 +3,3 @@
 #
 
 collection_top="${collection_top:-${HOME}/music-collection}"
-favorites_top="${favorites_top:-${HOME}/music-collection/favorites}"
