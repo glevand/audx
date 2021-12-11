@@ -167,7 +167,7 @@ fi
 
 top_dir="$(realpath --canonicalize-existing "${top_dir}")"
 
-echo "@PACKAGE_NAME@ ${script_name} - ${start_time}" >&2
+print_project_banner >&2
 
 parallel="${parallel:-parallel}"
 check_program "parallel" "${parallel}"
