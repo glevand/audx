@@ -5,6 +5,8 @@
 # Home: @PACKAGE_URL@"
 #
 
+audx_lib_verbose="${audx_lib_verbose:-}"
+
 source "${SCRIPT_TOP}/audx-str-lib.sh"
 
 print_project_banner() {
@@ -392,9 +394,7 @@ clean_vfat_name() {
 	str_out="$(str_clean_common "${str_out}")"
 	str_out="$(str_trim_space "${str_out}")"
 
-	if [[ ${debug} ]]; then
-		echo "${FUNCNAME[0]}: '${str_in}' -> '${str_out}'" >&2
-	elif [[ ${verbose} && "${str_in}" != "${str_out}" ]]; then
+	if [[ ${audx_lib_verbose} || ${debug} && "${str_in}" != "${str_out}" ]]; then
 		echo "${FUNCNAME[0]}: '${str_in}' -> '${str_out}'" >&2
 	fi
 
