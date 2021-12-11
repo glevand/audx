@@ -104,6 +104,8 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
+print_project_banner >&2
+
 if [[ ${extra_args} ]]; then
 	set +o xtrace
 	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
