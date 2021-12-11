@@ -350,6 +350,168 @@ test_str_clean_disc() {
 	done
 }
 
+str_clean_genre() {
+	local str_in=${1}
+	local str_out="${str_in}"
+
+	str_out="${str_out^^}"
+
+	str_out="${str_out//=/}"
+
+	str_out="${str_out//*FOLK*/FOLK}"
+
+	str_out="${str_out//*COUNTRY*/COUNTRY}"
+	str_out="${str_out//BLUEGRASS/COUNTRY}"
+
+	str_out="${str_out//*ROCK*/ROCK}"
+	str_out="${str_out//*PUNK*/ROCK}"
+	str_out="${str_out//*METAL*/ROCK}"
+
+	str_out="${str_out//*BLUES*/BLUES}"
+	str_out="${str_out//*R&B*/BLUES}"
+
+	str_out="${str_out//SWING/JAZZ}"
+	str_out="${str_out//*JAZZ*/JAZZ}"
+
+	str_out="${str_out//NEW WAVE/POP}"
+	str_out="${str_out//*RAP*/POP}"
+	str_out="${str_out//TRANCE/POP}"
+	str_out="${str_out//DISCO/POP}"
+	str_out="${str_out//EASY LISTENING/POP}"
+	str_out="${str_out//*POP*/POP}"
+
+	str_out="${str_out//*CLASSICAL*/CLASSICAL}"
+
+	str_out="${str_out//UNKNOWN/}"
+
+	if [[ ${audx_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
+	fi
+
+	echo "${str_out}"
+}
+
+test_str_clean_genre() {
+	local input=(
+		'[jazz][Jazz]'
+		'[Pop/Rock]'
+		'[=]'
+		'[Acoustic]'
+		'[Acoustic Pop]'
+		'[Adult Alternative]'
+		'[AOR]'
+		'[Bluegrass]'
+		'[Blues-Rock]'
+		'[Blues/Rock]'
+		'[Contemporary Country]'
+		'[Crossover Jazz]'
+		'[Dream Pop, Indie Pop/Rock]'
+		'[Experimental]'
+		'[FolkPop]'
+		'[=Folk-Rock]'
+		'[FOLK ROCK]'
+		'[Funk]'
+		'[Funk, Urban]'
+		'[=General Alternative]'
+		'[General Blues]'
+		'[General Classical]'
+		'[=General Country]'
+		'[General Metal]'
+		'[General R&B]'
+		'[General Reggae]'
+		'[Hip-Hop]'
+		'[Israeli]'
+		'[Jam Rock]'
+		'[Jazz Fusion]'
+		'[Jazz Vocals]'
+		'[J ポップ]'
+		'[Lo-Fi]'
+		'[Metal]'
+		'[misc]'
+		'[MOTOWN]'
+		'[NuMetal]'
+		'[Nu Metal]'
+		'[Oldies]'
+		'[Pop/Hair Metal]'
+		'[Pop&Jazz]'
+		'[Pop Vocals]'
+		'[Progressive Metal]'
+		'[=Progressive Rock]'
+		'[Psychedelic Rock]'
+		'[Punkedelic]'
+		'[Raprock]'
+		'[R&B, Soul]'
+		'[Rock ]'
+		'[Rockabilly]'
+		'[Rock/Pop]'
+		'[=Rock & Roll]'
+		'[Salsa]'
+		'[Singer/Songwriter]'
+		'[Techno, Trance]'
+		'[Traditional Folk]'
+		'[Trance]'
+	)
+
+	audx_lib_verbose=1
+
+	local i
+	for i in "${input[@]}"; do
+		str_clean_genre "${i}" > /dev/null
+	done
+}
+
+str_clean_tag() {
+	# known opts = and_the, filename.
+	local str_in=${1}
+	local -n _str_clean_tag__opts="${2}"
+	local str_out="${str_in}"
+
+	str_out="${str_out//ACDC/AC-DC}"
+	str_out="${str_out//AC\/DC/AC-DC}"
+
+	str_out="${str_out//U S A /USA}"
+	str_out="${str_out//W M A /WMA}"
+
+	# str_out="${str_out//The Times They Are A‐Changin/The times They are a Changin}"
+	# str_out="${str_out//I Dont Want Your Love (Shep Pettibone 7″ mix)/I Dont Want Your Love (Shep Pettibone)}"
+
+	str_out="$(str_clean_parentheses "${str_out}")"
+	str_out="$(str_clean_colon "${str_out}")"
+	str_out="$(str_clean_disc "${str_out}")"
+	str_out="$(str_clean_common "${str_out}")"
+	str_out="$(str_clean_phrase "${str_out}")"
+
+	if [[ ${_str_clean_tag__opts[and_the]:-} ]]; then
+		str_out="$(str_clean_and_the "${str_out}")"
+	fi
+
+	if [[ ${_str_clean_tag__opts[filename]:-} ]]; then
+		str_out="$(str_clean_filename "${str_out}")"
+	fi
+
+	str_out="$(str_trim_space "${str_out}")"
+
+# 	if [[ ${verbose} && "${str_in}" != "${str_out}" ]]; then
+# 		echo "'${str_in}' -> '${str_out}'" >&2
+# 	fi
+
+	echo "${str_out}"
+}
+
+test_str_clean_tag() {
+	local input=(
+		'[ACDC]'
+		'[AC\/DC]'
+	)
+
+	audx_lib_verbose=1
+
+	local i
+	for i in "${input[@]}"; do
+		str_clean_tag "${i}" > /dev/null
+	done
+}
+
 str_clean_all() {
 	local str_in=${1}
 	local str_out="${str_in}"
