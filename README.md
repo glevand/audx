@@ -216,6 +216,10 @@ Info:
   Home: https://github.com/glevand/audx
 ```
 
+Typical CPU usage when running the m4a-converter script.
+
+![m4a-converter CPU Usage](images/m4a-converter-cpu-usage.png)
+
 ### play-m4a - Play m4a AAC encoded files.
 
 ```
