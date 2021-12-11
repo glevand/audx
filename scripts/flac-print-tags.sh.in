@@ -9,7 +9,7 @@ usage() {
 		echo "${script_name} - Recursively print FLAC metadata tags."
 		echo "Usage: ${script_name} [flags] <top-dir|file>"
 		echo "Option flags:"
-		echo "  -a --all     - Print the VORBIS_COMMENT block."
+		echo "  -b --vorbis  - Print the VORBIS_COMMENT block."
 		echo "  -h --help    - Show this help and exit."
 		echo "  -v --verbose - Verbose execution."
 		echo "  -g --debug   - Extra verbose execution."
@@ -20,8 +20,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="ahvg"
-	local long_opts="all,help,verbose,debug"
+	local short_opts="bhvg"
+	local long_opts="vorbis,help,verbose,debug"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -31,8 +31,8 @@ process_opts() {
 	while true ; do
 		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
-		-a | --vorbis)
-			vorbis_comment=1
+		-b | --vorbis)
+			all_tags=1
 			shift
 			;;
 		-h | --help)
@@ -87,7 +87,7 @@ set -o nounset
 
 source "${SCRIPT_TOP}/audx-lib.sh"
 
-vorbis_comment=''
+all_tags=''
 usage=''
 verbose=''
 debug=''
@@ -125,6 +125,9 @@ if [[ ! -d "${top_dir}" && ! -f "${top_dir}" ]]; then
 	exit 1
 fi
 
+exiftool="${exiftool:-exiftool}"
+check_program "exiftool" "${exiftool}"
+
 metaflac="${metaflac:-metaflac}"
 check_program "metaflac" "${metaflac}"
 
@@ -141,15 +144,15 @@ if [[ -d "${top_dir}" ]]; then
 	for path in "${path_array[@]}"; do
 		path="${path:2}"
 
-		if [[ ${vorbis_comment} ]]; then
-			flac_print_vorbis_comment "${top_dir}/${path}"
+		if [[ ${all_tags} ]]; then
+			flac_print_all_tags "${top_dir}/${path}"
 		else
 			flac_print_tags "${top_dir}/${path}"
 		fi
 	done
 else
-	if [[ ${vorbis_comment} ]]; then
-		flac_print_vorbis_comment "${top_dir}"
+	if [[ ${all_tags} ]]; then
+		flac_print_all_tags "${top_dir}"
 	else
 		flac_print_tags "${top_dir}"
 	fi
