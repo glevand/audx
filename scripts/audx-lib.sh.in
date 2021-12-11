@@ -10,7 +10,7 @@ audx_lib_verbose="${audx_lib_verbose:-}"
 source "${SCRIPT_TOP}/audx-str-lib.sh"
 
 print_project_banner() {
-	echo "${script_name} (@PACKAGE_NAME@) version @PACKAGE_VERSION@"
+	echo "${script_name} (@PACKAGE_NAME@) - ${start_time}"
 }
 
 print_project_info() {
