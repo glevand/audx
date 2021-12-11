@@ -401,157 +401,135 @@ clean_vfat_name() {
 	echo "${str_out}"
 }
 
-flac_clean_tag() {
-	# known opts = and_the, filename.
-	local str_in=${1}
-	local -n _flac_clean_tag__opts="${2}"
-	local str_out="${str_in}"
+m4a_check_file() {
+	local file=${1}
+	local quiet=${2}
 
-	str_out="${str_out//ACDC/AC-DC}"
-	str_out="${str_out//AC\/DC/AC-DC}"
+	# ISO Media, Apple iTunes ALAC/AAC-LC (.M4A) Audio\012- data
 
-	str_out="${str_out//U S A /USA}"
-	str_out="${str_out//W M A /WMA}"
-
-	# str_out="${str_out//The Times They Are A‐Changin/The times They are a Changin}"
-	# str_out="${str_out//I Dont Want Your Love (Shep Pettibone 7″ mix)/I Dont Want Your Love (Shep Pettibone)}"
-
-	str_out="$(str_clean_parentheses "${str_out}")"
-	str_out="$(str_clean_colon "${str_out}")"
-	str_out="$(str_clean_disc "${str_out}")"
-	str_out="$(str_clean_common "${str_out}")"
-	str_out="$(str_clean_phrase "${str_out}")"
-
-	if [[ ${_flac_clean_tag__opts[and_the]:-} ]]; then
-		str_out="$(str_clean_and_the "${str_out}")"
+	if [[ "$(file -k "${file}")" != *'Apple iTunes'* ]]; then
+		if [[ "${quiet}" != 'quiet' ]]; then
+			echo "${FUNCNAME[0]}: Not an M4A file: '${file}'" >&2
+		fi
+		return 1
 	fi
-
-	if [[ ${_flac_clean_tag__opts[filename]:-} ]]; then
-		str_out="$(str_clean_filename "${str_out}")"
-	fi
-
-	str_out="$(str_trim_space "${str_out}")"
-
-# 	if [[ ${verbose} && "${str_in}" != "${str_out}" ]]; then
-# 		echo "'${str_in}' -> '${str_out}'" >&2
-# 	fi
-
-	echo "${str_out}"
+	return 0
 }
 
-flac_clean_genre() {
-	local str_in=${1}
-	local str_out="${str_in}"
+m4a_get_tag() {
+	local t_name=${1}
+	local file=${2}
+	local optional=${3}
 
-	str_out="${str_out^^}"
-
-	str_out="${str_out//=/}"
-
-	str_out="${str_out//*FOLK*/FOLK}"
-
-	str_out="${str_out//*COUNTRY*/COUNTRY}"
-	str_out="${str_out//BLUEGRASS/COUNTRY}"
-
-	str_out="${str_out//*ROCK*/ROCK}"
-	str_out="${str_out//*PUNK*/ROCK}"
-	str_out="${str_out//*METAL*/ROCK}"
-
-	str_out="${str_out//*BLUES*/BLUES}"
-	str_out="${str_out//*R&B*/BLUES}"
-
-	str_out="${str_out//SWING/JAZZ}"
-	str_out="${str_out//*JAZZ*/JAZZ}"
-
-	str_out="${str_out//NEW WAVE/POP}"
-	str_out="${str_out//*RAP*/POP}"
-	str_out="${str_out//TRANCE/POP}"
-	str_out="${str_out//DISCO/POP}"
-	str_out="${str_out//EASY LISTENING/POP}"
-	str_out="${str_out//*POP*/POP}"
-
-	str_out="${str_out//*CLASSICAL*/CLASSICAL}"
-
-	str_out="${str_out//UNKNOWN/}"
-
-	if [[ ${audx_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
-		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
+	if [[ "${optional}" != 'optional' && "${optional}" != 'required' ]]; then
+		echo "${FUNCNAME[0]}: ERROR: Bad optional '${optional}'" >&2
+		exit 1
 	fi
 
-	echo "${str_out}"
+	local t_type
+	local regex_tag
+
+	case ${t_name} in
+	'ARTIST')
+		t_type='-artist'
+		regex_tag='([[:print:]]+)'
+		;;
+	'ALBUM')
+		t_type='-album'
+		regex_tag='([[:print:]]+)'
+		;;
+	'TITLE')
+		t_type='-title'
+		regex_tag='([[:print:]]+)'
+		;;
+	'GENRE')
+		t_type='-genre'
+		regex_tag='([[:print:]]+)'
+		;;
+	'TRACKNUMBER')
+		t_type='-tracknumber'
+		regex_tag='([[:digit:]]+) of [[:digit:]]+'
+		;;
+	'TRACKTOTAL')
+		t_type='-tracknumber'
+		regex_tag='[[:digit:]]+ of ([[:digit:]]+)'
+		;;
+	'CDDB')
+		t_type='-comment'
+		regex_tag='CDDB=([^=]+)'
+		;;
+	'DISCID')
+		t_type='-comment'
+		regex_tag='DISCID=([^=]+)'
+		;;
+	*)
+		echo "${FUNCNAME[0]}: ERROR: Unknown t_name '${t_name}'" >&2
+		exit 1
+		;;
+	esac
+
+	local tag
+	tag="$("${exiftool}" -T "${t_type}" "${file}")"
+
+	if [[ ! "${tag}" =~ ${regex_tag} ]]; then
+		if [[ ${optional} == 'optional' ]]; then
+			return
+		fi
+		echo "${FUNCNAME[0]}: ERROR: Required tag '${t_name}' not found in '${tag}' file '${file}'." >&2
+		exit 1
+	fi
+
+	if [[ ${debug} ]]; then
+		echo "${FUNCNAME[0]}: INFO: '${tag}' => '${BASH_REMATCH[1]}'." >&2
+	fi
+
+	echo "${BASH_REMATCH[1]}"
 }
 
-test_flac_clean_genre() {
-	local input=(
-		'[jazz][Jazz]'
-		'[Pop/Rock]'
-		'[=]'
-		'[Acoustic]'
-		'[Acoustic Pop]'
-		'[Adult Alternative]'
-		'[AOR]'
-		'[Bluegrass]'
-		'[Blues-Rock]'
-		'[Blues/Rock]'
-		'[Contemporary Country]'
-		'[Crossover Jazz]'
-		'[Dream Pop, Indie Pop/Rock]'
-		'[Experimental]'
-		'[FolkPop]'
-		'[=Folk-Rock]'
-		'[FOLK ROCK]'
-		'[Funk]'
-		'[Funk, Urban]'
-		'[=General Alternative]'
-		'[General Blues]'
-		'[General Classical]'
-		'[=General Country]'
-		'[General Metal]'
-		'[General R&B]'
-		'[General Reggae]'
-		'[Hip-Hop]'
-		'[Israeli]'
-		'[Jam Rock]'
-		'[Jazz Fusion]'
-		'[Jazz Vocals]'
-		'[J ポップ]'
-		'[Lo-Fi]'
-		'[Metal]'
-		'[misc]'
-		'[MOTOWN]'
-		'[NuMetal]'
-		'[Nu Metal]'
-		'[Oldies]'
-		'[Pop/Hair Metal]'
-		'[Pop&Jazz]'
-		'[Pop Vocals]'
-		'[Progressive Metal]'
-		'[=Progressive Rock]'
-		'[Psychedelic Rock]'
-		'[Punkedelic]'
-		'[Raprock]'
-		'[R&B, Soul]'
-		'[Rock ]'
-		'[Rockabilly]'
-		'[Rock/Pop]'
-		'[=Rock & Roll]'
-		'[Salsa]'
-		'[Singer/Songwriter]'
-		'[Techno, Trance]'
-		'[Traditional Folk]'
-		'[Trance]'
-	)
+m4a_fill_tag_set() {
+	local file="${1}"
+	local -n _m4a_fill_tag_set__tags="${2}"
 
-	audx_lib_verbose=1
+	if ! m4a_check_file "${file}" 'quiet'; then
+		return
+	fi
 
-	local i
-	for i in "${input[@]}"; do
-		flac_clean_genre "${i}" > /dev/null
-	done
+	_m4a_fill_tag_set__tags[file]="${file}"
+	_m4a_fill_tag_set__tags[ARTIST]="$(m4a_get_tag 'ARTIST' "${file}" 'required')"
+	_m4a_fill_tag_set__tags[ALBUM]="$(m4a_get_tag 'ALBUM' "${file}" 'required')"
+	_m4a_fill_tag_set__tags[TITLE]="$(m4a_get_tag 'TITLE' "${file}" 'required')"
+	_m4a_fill_tag_set__tags[GENRE]="$(m4a_get_tag 'GENRE' "${file}" 'optional')"
+	_m4a_fill_tag_set__tags[TRACKNUMBER]="$(m4a_get_tag "TRACKNUMBER" "${file}" 'required')"
+	_m4a_fill_tag_set__tags[TRACKTOTAL]="$(m4a_get_tag "TRACKTOTAL" "${file}" 'optional')"
+	_m4a_fill_tag_set__tags[CDDB]="$(m4a_get_tag "CDDB" "${file}" 'optional')"
+	_m4a_fill_tag_set__tags[DISCID]="$(m4a_get_tag "DISCID" "${file}" 'optional')"
+
+	_m4a_fill_tag_set__tags[TRACKNUMBER]="${_m4a_fill_tag_set__tags[TRACKNUMBER]#0}"
+
+	if [[ ${debug} ]]; then
+		print_tag_set "${FUNCNAME[0]}" "${file}" _m4a_fill_tag_set__tags
+	fi
 }
+
+m4a_print_tags() {
+	local file=${1}
+
+	if ! m4a_check_file "${file}" 'quiet'; then
+		return
+	fi
+
+	declare -A tags
+
+	m4a_fill_tag_set "${file}" tags
+	print_tag_set '' "${file}" tags
+}
+
 
 flac_check_file() {
 	local file=${1}
 	local quiet=${2}
+
+	# FLAC audio bitstream data
 
 	if [[ "$(file -k "${file}")" != *'FLAC audio'* ]]; then
 		if [[ "${quiet}" != 'quiet' ]]; then
@@ -566,7 +544,7 @@ flac_split_tag() {
 	local tag=${1}
 	local -n _flac_split_tag__pair="${2}"
 
-	local regex_tag="([^=]+)=([^=]+)"
+	local regex_tag='([^=]+)=([^=]+)'
 
 	if [[ ! "${tag}" =~ ${regex_tag} ]]; then
 		echo "${FUNCNAME[0]}: ERROR: No match '${tag}'" >&2
@@ -600,7 +578,7 @@ flac_get_tag() {
 
 	tag="$("${metaflac}" --show-tag="${t_name}" "${file}")"
 
-	local regex_tag="[^=]+=([^=]+)"
+	local regex_tag='[^=]+=([^=]+)'
 
 	if [[ ! "${tag}" =~ ${regex_tag} ]]; then
 		if [[ ${optional} == 'optional' ]]; then
@@ -617,21 +595,21 @@ flac_get_tag() {
 	echo "${BASH_REMATCH[1]}"
 }
 
-flac_print_tag_set() {
+print_tag_set() {
 	local msg="${1}"
 	local file="${2}"
-	local -n _flac_print_tag_set__tags="${3}"
+	local -n _print_tag_set__tags="${3}"
 
 	echo "${msg}file: '${file}'"
-	echo "${msg}  ARTIST:      '${_flac_print_tag_set__tags[ARTIST]}'"
-	echo "${msg}  ALBUM:       '${_flac_print_tag_set__tags[ALBUM]}'"
-	echo "${msg}  TITLE:       '${_flac_print_tag_set__tags[TITLE]}'"
-	echo "${msg}  GENRE:       '${_flac_print_tag_set__tags[GENRE]}'"
-	echo "${msg}  TRACKNUMBER: '${_flac_print_tag_set__tags[TRACKNUMBER]}'"
-	echo "${msg}  TRACKTOTAL:  '${_flac_print_tag_set__tags[TRACKTOTAL]}'"
-	echo "${msg}  CDDB:        '${_flac_print_tag_set__tags[CDDB]}'"
-	if [[ ${_flac_print_tag_set__tags[DISCID]} ]]; then
-		echo "${msg}  DISCID:      '${_flac_print_tag_set__tags[DISCID]}'"
+	echo "${msg}  ARTIST:      '${_print_tag_set__tags[ARTIST]}'"
+	echo "${msg}  ALBUM:       '${_print_tag_set__tags[ALBUM]}'"
+	echo "${msg}  TITLE:       '${_print_tag_set__tags[TITLE]}'"
+	echo "${msg}  GENRE:       '${_print_tag_set__tags[GENRE]}'"
+	echo "${msg}  TRACKNUMBER: '${_print_tag_set__tags[TRACKNUMBER]}'"
+	echo "${msg}  TRACKTOTAL:  '${_print_tag_set__tags[TRACKTOTAL]}'"
+	echo "${msg}  CDDB:        '${_print_tag_set__tags[CDDB]}'"
+	if [[ ${_print_tag_set__tags[DISCID]} ]]; then
+		echo "${msg}  DISCID:      '${_print_tag_set__tags[DISCID]}'"
 	fi
 }
 
@@ -670,7 +648,7 @@ flac_fill_tag_set() {
 	_flac_fill_tag_set__tags[TRACKNUMBER]="${_flac_fill_tag_set__tags[TRACKNUMBER]#0}"
 
 	if [[ ${debug} ]]; then
-		flac_print_tag_set "${FUNCNAME[0]}" "${file}" _flac_fill_tag_set__tags
+		print_tag_set "${FUNCNAME[0]}" "${file}" _flac_fill_tag_set__tags
 	fi
 }
 
@@ -696,7 +674,7 @@ flac_write_tag_set() {
 	fi
 
 	if [[ ${debug} ]]; then
-		flac_print_tag_set "${FUNCNAME[0]}" "${file}" _flac_write_tag_set__tags
+		print_tag_set "${FUNCNAME[0]}" "${file}" _flac_write_tag_set__tags
 	fi
 }
 
@@ -722,7 +700,7 @@ flac_print_tags() {
 	declare -A tags
 
 	flac_fill_tag_set "${file}" tags
-	flac_print_tag_set '' "${file}" tags
+	print_tag_set '' "${file}" tags
 }
 
 metaflac_retag() {
@@ -773,7 +751,7 @@ flac_meta_path() {
 	flac_fill_tag_set "${src}" tags
 
 	if [[ ${debug} ]]; then
-		flac_print_tag_set "${FUNCNAME[0]}" "${src}" tags
+		print_tag_set "${FUNCNAME[0]}" "${src}" tags
 	fi
 
 	add_leading_zero tags[TRACKNUMBER]
@@ -796,17 +774,50 @@ flac_meta_path() {
 	echo "${dest}"
 }
 
-write_m3u_header() {
-	local out_file=${1}
-	local info=${2}
-	local artist=${3}
-	local album=${4}
+make_m3u_header() {
+	local info=${1:-}
+	local artist=${2:-}
+	local album=${3:-}
+	local genre=${4:-}
+	local cddb=${5:-}
 
-	echo '#EXTM3U' >> "${out_file}"
-	echo "#PLAYLIST: ${info}" >> "${out_file}"
-	echo "#EXTART: ${artist}" >> "${out_file}"
-	echo "#EXTALB: ${album}" >> "${out_file}"
-	echo '' >> "${out_file}"
+	{
+		echo '#EXTM3U'
+		if [[ "${info}" ]]; then
+			echo "#PLAYLIST: ${info}"
+		fi
+		if [[ "${artist}" ]]; then
+			echo "#EXTART: ${artist}"
+		fi
+		if [[ "${album}" ]]; then
+			echo "#EXTALB: ${album}"
+		fi
+		if [[ "${genre}" ]]; then
+			echo "#EXTGENRE: ${genre}"
+		fi
+		if [[ "${cddb}" ]]; then
+			echo "#CDDB: ${cddb}"
+		fi
+		echo
+	}
+}
+
+test_make_m3u_header() {
+	local info="M3U header test - ${start_time}"
+	local artist='Buddy Guy'
+	local album='Born to Play Guitar'
+	local genre='BLUES'
+	local cddb='c10de60e'
+
+	echo "--- ${FUNCNAME[0]} test-1 ---"
+	make_m3u_header "${info}" "${artist}" "${album}" "${genre}" "${cddb}"
+
+	echo "--- ${FUNCNAME[0]} test-2 ---"
+	make_m3u_header "${info}" '' '' "${genre}" "${cddb}"
+
+	echo "--- ${FUNCNAME[0]} test-3 ---"
+	make_m3u_header "${info}" "${artist}"
+	echo '--------------'
 }
 
 write_m3u_playlist() {
@@ -822,26 +833,36 @@ write_m3u_playlist() {
 
 	if (( ${#files_array[@]} == 0 )); then
 		if [[ ${verbose} ]]; then
-			echo "${script_name}: No ${type} found: '${dir}'" >&2
+			echo "${script_name}: No ${type} files found in '${dir}'" >&2
 		fi
 		return
 	fi
 
-	local cddbid
-	cddbid="$(flac_get_tag "CDDB" "${files_array[0]}" 'optional')"
+	declare -A tags
 
-	if [[ ! ${cddbid} ]]; then
-		echo "${script_name}: WARNING: No CDDB tag found: '${files_array[0]}'" >&2
+	case "${type}" in
+	'flac')
+		flac_fill_tag_set "${files_array[0]}" tags
+		;;
+	'm4a')
+		m4a_fill_tag_set "${files_array[0]}" tags
+		;;
+	*)
+		:
+		;;
+	esac
+
+	if [[ ${audx_lib_verbose} ]]; then
+		{
+			echo
+			print_tag_set "tags: " "${files_array[0]}" tags
+			echo
+		} >&2
 	fi
 
-# 	TODO: Need an empty check with header.
-# 	declare -A pair
-# 	path_to_artist_album "${dir}" pair
-# 	write_m3u_header "${out_file}" '@PACKAGE_NAME@ playlist' "${pair[ARTIST]}" "${pair[ALBUM]}"
-
-	echo '#EXTM3U' > "${out_file}"
-	echo "#CDDB=${cddbid}" >> "${out_file}"
-	echo '' >> "${out_file}"
+	if [[ ! ${tags[CDDB]} ]]; then
+		echo "${script_name}: No CDDB tag found in '${files_array[0]}'" >&2
+	fi
 
 	if [[ ! ${canonical} ]]; then
 		local i
@@ -850,6 +871,11 @@ write_m3u_playlist() {
 		done
 	fi
 
-	printf "%s\n" "${files_array[@]}" >> "${out_file}"
+	{
+		make_m3u_header "AUDX ${type^^} playlist" "${tags[ARTIST]}" \
+			"${tags[ALBUM]}" "${tags[GENRE]}" "${tags[CDDB]}"
+		printf "%s\n" "${files_array[@]}"
+	} > "${out_file}"
+
 	echo "${script_name}: Wrote ${#files_array[@]} ${type} entries: '${out_file}'" >&2
 }
