@@ -6,7 +6,7 @@ usage() {
 	set +o xtrace
 
 	{
-		echo "${script_name} - Create an m3u playlist of random albums."
+		echo "${script_name} - Create an M3U playlist of random albums."
 		echo "Usage: ${script_name} [flags] top-dir"
 		echo 'Option flags:'
 		echo "  -c --count       - Number of albums in playlist. Default: '${count}'."
@@ -167,6 +167,8 @@ fi
 
 top_dir="$(realpath --canonicalize-existing "${top_dir}")"
 
+test_make_m3u_header
+
 print_project_banner >&2
 
 parallel="${parallel:-parallel}"
@@ -249,12 +251,7 @@ if (( ${good_count} < ${count} )); then
 	exit 1
 fi
 
-{
-	echo '#EXTM3U'
-	echo "#PLAYLIST: audx shuffle list - ${start_time}"
-	echo
-} > "${out_file}"
-
+make_m3u_header "AUDX Shuffle List - ${start_time}" 'Various' '' '' '' > "${out_file}"
 
 for (( i = 0; i < ${count}; i++ )); do
 	for (( j = 0; ; j++ )); do
