@@ -1,0 +1,216 @@
+#!/usr/bin/env bash
+
+usage() {
+	local old_xtrace
+	old_xtrace="$(shopt -po xtrace || :)"
+	set +o xtrace
+
+	{
+		echo "${script_name} - Sort FLAC files base on GENRE metadata tag."
+		echo "Usage: ${script_name} [flags] <top-dir>"
+		echo "Option flags:"
+		echo "  -o --output-dir - Output directory. Default: '${output_dir}'."
+# 		echo "  -1 --opt_1   - opt_1. Default='${opt_1}'."
+# 		echo "  -2 --opt_2   - opt_2. Default='${opt_2}'."
+# 		echo "  -3 --opt_3   - opt_3. Default='${opt_3}'."
+		echo "  -h --help    - Show this help and exit."
+		echo "  -v --verbose - Verbose execution."
+		echo "  -g --debug   - Extra verbose execution."
+		echo "  -d --dry-run - Dry run, don't modify files."
+		echo "Info:"
+		print_project_info
+	} >&2
+	eval "${old_xtrace}"
+}
+
+process_opts() {
+	local short_opts="o:1:2:3:hvgd"
+	local long_opts="output-dir:,opt_1:,opt_2:,opt_3:,help,verbose,debug,dry-run"
+
+	local opts
+	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
+
+	eval set -- "${opts}"
+
+	while true ; do
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
+		case "${1}" in
+		-o | --output-dir)
+			output_dir="${2}"
+			shift 2
+			;;
+		-1 | --opt_1)
+			opt_1="${2}"
+			shift 2
+			;;
+		-2 | --opt_2)
+			opt_2="${2}"
+			shift 2
+			;;
+		-3 | --opt_3)
+			opt_3="${2}"
+			shift 2
+			;;
+		-h | --help)
+			usage=1
+			shift
+			;;
+		-v | --verbose)
+			verbose=1
+			shift
+			;;
+		-g | --debug)
+			verbose=1
+			debug=1
+			set -x
+			shift
+			;;
+		-d | --dry-run)
+			dry_run=1
+			shift
+			;;
+		--)
+			shift
+			top_dir="${1:-}"
+			if [[ ${top_dir} ]]; then
+				shift
+			fi
+			extra_args="${*}"
+			break
+			;;
+		*)
+			echo "${script_name}: ERROR: Internal opts: '${*}'" >&2
+			exit 1
+			;;
+		esac
+	done
+}
+
+#===============================================================================
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
+script_name="${0##*/}"
+
+SECONDS=0
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+
+real_source="$(realpath "${BASH_SOURCE}")"
+SCRIPT_TOP="$(realpath "${SCRIPT_TOP:-${real_source%/*}}")"
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+
+set -eE
+set -o pipefail
+set -o nounset
+
+source "${SCRIPT_TOP}/audx-lib.sh"
+
+output_dir="/tmp/audx-sort-${start_time}"
+opt_1=''
+opt_2=''
+opt_3=''
+usage=''
+verbose=''
+debug=''
+dry_run=''
+
+process_opts "${@}"
+
+if [[ -f "${HOME}/.audx.conf" ]]; then
+	source "${HOME}/.audx.conf"
+fi
+
+if [[ ${usage} ]]; then
+	usage
+	trap - EXIT
+	exit 0
+fi
+
+print_project_banner >&2
+
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
+fi
+
+if [[ ! ${top_dir} ]]; then
+	echo "${script_name}: ERROR: No source directory given." >&2
+	usage
+	exit 1
+fi
+
+top_dir="$(realpath -e "${top_dir}")"
+
+if [[ ! -d "${top_dir}" && ! -f "${top_dir}" ]]; then
+	echo "${script_name}: ERROR: Bad top-dir: '${top_dir}'" >&2
+	usage
+	exit 1
+fi
+
+metaflac="${metaflac:-metaflac}"
+check_program "metaflac" "${metaflac}"
+
+readarray -t files_array < <(find "${top_dir}" -type f -name '01-*.flac' | sort \
+	|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+	kill -SIGUSR1 $$; } )
+
+if [[ ${dry_run} ]]; then
+	echo "${script_name}: INFO: Processing ${#files_array[@]} files (DRY RUN)."
+else
+	echo "${script_name}: INFO: Processing ${#files_array[@]} files."
+fi
+
+output_dir="$(realpath --canonicalize-missing "${output_dir}")"
+copy_file="${output_dir}/genre-copy.sh"
+
+genre_types='rock country jazz blues classical folk pop reggae soul'
+
+mkdir -p "${output_dir}"
+
+{
+	echo '#!/usr/bin/env bash'
+	echo
+	echo "output_dir='${output_dir}'"
+	echo "op='cp -av'"
+	echo
+} > "${copy_file}"
+
+for file in "${files_array[@]}"; do
+	dir=${file%/*}
+
+	if [[ ${verbose} ]]; then
+		echo "${script_name}: INFO: Processing '${dir}'."
+	fi
+
+	if ! flac_check_file "${file}" 'verbose'; then
+		continue
+	fi
+
+	tag="$(flac_get_tag 'GENRE' "${file}" 'optional')"
+	tag="${tag,,}"
+
+	if [[ ! "${tag}" ]]; then
+		echo "${script_name}: INFO: No GENRE tag: '${file}'."
+		continue
+	fi
+
+	rel_path="${dir#"${top_dir}"}"
+	rel_path="${rel_path%/*}"
+
+	for genre in ${genre_types}; do
+		if [[ "${tag}" == *"${genre}"* ]]; then
+			{
+				echo "mkdir -p \"\${output_dir}/${genre}${rel_path}\""
+				echo "\${op} '${dir}' \"\${output_dir}/${genre}${rel_path}\"/"
+			} >> "${copy_file}"
+		fi
+	done
+done
+
+echo "${script_name}: Copy script output to '${copy_file}'."  >&2
+trap "on_exit 'Success'" EXIT
+exit 0
