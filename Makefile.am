@@ -12,6 +12,7 @@ composed_bin_scripts = \
 	scripts/flac-print-tags.sh \
 	scripts/flac-tag-switcher.sh \
 	scripts/flac-write-tag.sh \
+	scripts/genre-sort.sh \
 	scripts/m4a-converter.sh \
 	scripts/make-age-list.sh \
 	scripts/make-inventory.sh \
