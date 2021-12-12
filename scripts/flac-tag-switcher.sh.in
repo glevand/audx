@@ -229,7 +229,7 @@ for (( id = 0; id < ${in_count}; id++ )); do
 	if [[ ${verbose} ]]; then
 		{
 			echo
-			flac_print_tag_set "IN-${id}: " "${file}" tags
+			print_tag_set "IN-${id}: " "${file}" tags
 			echo
 		} >&1
 	fi
@@ -253,7 +253,7 @@ for (( id = 0; id < ${in_count}; id++ )); do
 	if [[ ${verbose} ]]; then
 		{
 			echo
-			flac_print_tag_set "OUT-${id}: " "${file}" tags
+			print_tag_set "OUT-${id}: " "${file}" tags
 
 		} >&1
 	fi

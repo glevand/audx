@@ -7,7 +7,7 @@ usage() {
 
 	{
 		echo "${script_name} - Play m4a AAC encoded files."
-		echo "Usage: ${script_name} [flags] <top-dir | m3u playlist | m4a file>"
+		echo "Usage: ${script_name} [flags] <top-dir | M3U playlist | m4a file>"
 		echo "Option flags:"
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution. Default: '${verbose}'."

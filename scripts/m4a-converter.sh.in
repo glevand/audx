@@ -7,7 +7,7 @@ usage() {
 
 	{
 		echo "${script_name} - Convert FLAC files to m4a AAC encoded files suitable for download to Walkman type devices."
-		echo "Usage: ${script_name} [flags] <top-dir | m3u playlist | flac file>"
+		echo "Usage: ${script_name} [flags] <top-dir | M3U playlist | flac file>"
 		echo "Option flags:"
 		echo "  -b --bitrate     - Encoding bitrate. Default: '${bitrate}'."
 		echo "  -o --output-dir  - Output directory. Default: '${output_dir}'."
@@ -175,6 +175,7 @@ fdkaac_cmd='"${fdkaac}" \
   --album="$(escape_txt "${tags[ALBUM]}")" \
   --title="$(escape_txt "${tags[TITLE]}")" \
   --genre="$(escape_txt "${tags[GENRE]}")" \
+  --comment="CDDB=${tags[CDDB]}" \
   --track="${tags[TRACKNUMBER]}/${tags[TRACKTOTAL]}" \
   -o "$(escape_txt "${out_file}")" -'
 

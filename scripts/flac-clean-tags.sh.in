@@ -88,10 +88,10 @@ clean_tags() {
 
 	flac_fill_tag_set "${file}" tags
 
-	new_tags[ARTIST]="$(flac_clean_tag "${tags[ARTIST]}" flac_clean_tag_opts)"
-	new_tags[ALBUM]="$(flac_clean_tag "${tags[ALBUM]}" flac_clean_tag_opts)"
-	new_tags[TITLE]="$(flac_clean_tag "${tags[TITLE]}" flac_clean_tag_opts)"
-	new_tags[GENRE]="$(flac_clean_genre "${tags[GENRE]}" flac_clean_tag_opts)"
+	new_tags[ARTIST]="$(str_clean_tag "${tags[ARTIST]}" str_clean_tag_opts)"
+	new_tags[ALBUM]="$(str_clean_tag "${tags[ALBUM]}" str_clean_tag_opts)"
+	new_tags[TITLE]="$(str_clean_tag "${tags[TITLE]}" str_clean_tag_opts)"
+	new_tags[GENRE]="$(str_clean_genre "${tags[GENRE]}" str_clean_tag_opts)"
 	new_tags[TRACKNUMBER]="${tags[TRACKNUMBER]}"
 	new_tags[TRACKTOTAL]="${tags[TRACKTOTAL]}"
 	new_tags[CDDB]="${tags[CDDB]}"
@@ -135,9 +135,9 @@ clean_tags() {
 	fi
 
 	if [[ ${debug} ]]; then
-		flac_print_tag_set "${FUNCNAME[0]}: IN:  " "${file}" tags
+		print_tag_set "${FUNCNAME[0]}: IN:  " "${file}" tags
 		if [[ ${need_write} ]]; then
-			flac_print_tag_set "${FUNCNAME[0]}: OUT: " "${file}" new_tags
+			print_tag_set "${FUNCNAME[0]}: OUT: " "${file}" new_tags
 		fi
 	fi
 
@@ -203,14 +203,14 @@ top_dir="$(realpath -e "${top_dir}")"
 metaflac="${metaflac:-metaflac}"
 check_program "metaflac" "${metaflac}"
 
-declare -A flac_clean_tag_opts=()
+declare -A str_clean_tag_opts=()
 
 if [[ ${clean_and_the} ]]; then
-	flac_clean_tag_opts[and_the]='1'
+	str_clean_tag_opts[and_the]='1'
 fi
 
 if [[ ${clean_filename} ]]; then
-	flac_clean_tag_opts[filename]='1'
+	str_clean_tag_opts[filename]='1'
 fi
 
 readarray -t file_array < <( find "${top_dir}" -type f -name '*.flac' | sort \
