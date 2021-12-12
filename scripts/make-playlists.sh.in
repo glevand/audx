@@ -6,7 +6,7 @@ usage() {
 	set +o xtrace
 
 	{
-		echo "${script_name} - Recursively create m3u album playlists."
+		echo "${script_name} - Recursively create M3U album playlists."
 		echo "Usage: ${script_name} [flags] top-dir"
 		echo "Option flags:"
 		echo "  -n --canonical   - Output full canonical paths to playlist."
@@ -142,6 +142,9 @@ if [[ ${extra_args} ]]; then
 	usage
 	exit 1
 fi
+
+exiftool="${exiftool:-exiftool}"
+check_program "exiftool" "${exiftool}"
 
 metaflac="${metaflac:-metaflac}"
 check_program "metaflac" "${metaflac}"
