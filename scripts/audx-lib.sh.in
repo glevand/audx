@@ -524,7 +524,6 @@ m4a_print_tags() {
 	print_tag_set '' "${file}" tags
 }
 
-
 flac_check_file() {
 	local file=${1}
 	local quiet=${2}

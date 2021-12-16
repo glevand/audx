@@ -10,7 +10,7 @@ usage() {
 		echo "Usage: ${script_name} [flags] top-dir"
 		echo 'Option flags:'
 		echo "  -c --count       - Number of albums in playlist. Default: '${count}'."
-		echo "  -o --output-file - Playlist output file. Default: '${out_file}'."
+		echo "  -o --output-file - Shuffle list output file. Default: '${out_file}'."
 		echo "  -s --start-date  - Starting date. Default: '${start_date}'."
 		echo "  -e --end-date    - Ending date. Default: '${end_date}'."
 		echo "  -h --help        - Show this help and exit."
@@ -166,8 +166,6 @@ if [[ ${extra_args} ]]; then
 fi
 
 top_dir="$(realpath --canonicalize-existing "${top_dir}")"
-
-test_make_m3u_header
 
 print_project_banner >&2
 

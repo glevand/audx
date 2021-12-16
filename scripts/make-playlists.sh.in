@@ -12,8 +12,9 @@ usage() {
 		echo "  -n --canonical   - Output full canonical paths to playlist."
 		echo "  -t --file-types  - File extension types {${known_file_types}}. Default: '${file_types}'."
 		echo "  -c --clobber     - Overwrite existing files. Default: '${clobber}'."
-	#	echo "  -A --option-A    - option-A. Default: '${option_A}'."
-	#	echo "  -B --option-B    - option-B. Default: '${option_B}'."
+#		echo "  -o --output-file - Playlist output file. Default: '${out_file}'."
+#		echo "  -A --option-A    - option-A. Default: '${option_A}'."
+#		echo "  -B --option-B    - option-B. Default: '${option_B}'."
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution."
 		echo "  -g --debug       - Extra verbose execution."
@@ -26,17 +27,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="nt:cA:B:hvg"
-	local long_opts="canonical,file-types:,clobber,option-A:,option-B:,help,verbose,debug"
-
-	canonical=''
-	file_types=''
-	clobber=''
-	option_A=''
-	option_B=''
-	usage=''
-	verbose=''
-	debug=''
+	local short_opts="nt:co:A:B:hvg"
+	local long_opts="canonical,file-types:,clobber,output-file:,option-A:,option-B:,help,verbose,debug"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -57,6 +49,10 @@ process_opts() {
 		-c | --clobber)
 			clobber=1
 			shift
+			;;
+		-o | --output-file)
+			out_file="${2}"
+			shift 2
 			;;
 		-A | --option-A)
 			option_A="${2}"
@@ -117,6 +113,16 @@ set -o pipefail
 set -o nounset
 
 source "${SCRIPT_TOP}/audx-lib.sh"
+
+canonical=''
+file_types=''
+clobber=''
+out_file=''
+option_A=''
+option_B=''
+usage=''
+verbose=''
+debug=''
 
 process_opts "${@}"
 
