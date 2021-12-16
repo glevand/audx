@@ -147,14 +147,14 @@ if [[ -d "${top_dir}" ]]; then
 		path="${path:2}"
 
 		if [[ ${all_tags} ]]; then
-			flac_print_all_tags "${top_dir}/${path}"
+			flac_print_vorbis_comment "${top_dir}/${path}"
 		else
 			flac_print_tags "${top_dir}/${path}"
 		fi
 	done
 else
 	if [[ ${all_tags} ]]; then
-		flac_print_all_tags "${top_dir}"
+		flac_print_vorbis_comment "${top_dir}"
 	else
 		flac_print_tags "${top_dir}"
 	fi
