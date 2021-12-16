@@ -6,8 +6,8 @@ usage() {
 	set +o xtrace
 
 	{
-		echo "${script_name} - Play m4a AAC encoded files."
-		echo "Usage: ${script_name} [flags] <top-dir | M3U playlist | m4a file>"
+		echo "${script_name} - Play AAC encoded M4A files."
+		echo "Usage: ${script_name} [flags] <top-dir | M3U playlist | M4A file>"
 		echo "Option flags:"
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution. Default: '${verbose}'."
@@ -32,7 +32,7 @@ usage() {
 
 process_opts() {
 	local short_opts="hvg"
-	local long_opts="help,verbose,debug"
+	local long_opts="help,verbose,debug,recurse-count:"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -57,6 +57,10 @@ process_opts() {
 			set -x
 			shift
 			;;
+		--recurse-count)
+			recurse_count="${2}"
+			shift 2
+			;;
 		--)
 			shift
 			arg_1="${1:-}"
@@ -75,13 +79,13 @@ process_opts() {
 }
 
 last_int=0
-on_int() {
-	local now=${SECONDS}
-	local delta=$(( now - last_int ))
+on_sigint() {
+	local now="$(( SECONDS + 1 ))"
+	local delta="$(( now - last_int ))"
 
-	echo >&2
+	echo
 
-	if [[ ${verbose} ]]; then
+	if [[ ${debug} ]]; then
 		echo "${FUNCNAME[0]}: ${now} - ${last_int} = ${delta}" >&2
 	fi
 
@@ -90,7 +94,131 @@ on_int() {
 		trap - EXIT
 		exit 0
 	fi
-	last_int=${now}
+	last_int="${now}"
+}
+
+play_tracks() {
+	local -n _play_tracks__tracks_array="${1}"
+	local files_prefix="${2}"
+
+	local in_count="${#_play_tracks__tracks_array[@]}"
+
+	if [[ ! ${_play_tracks__tracks_array[@]} ]]; then
+		echo "${script_name}: INFO: No input files found." >&2
+		return
+	fi
+
+	echo "${script_name}: INFO: Playing ${in_count} input files."
+
+	local id
+	local file
+
+	for (( id = 1; id <= ${in_count}; id++ )); do
+		file="${_play_tracks__tracks_array[$(( id - 1 ))]}"
+		echo "${id}/${in_count}: '${files_prefix}${file}'"
+		"${ffplay}" -loglevel quiet -nodisp -autoexit "${files_prefix}${file}" > /dev/null || :
+	done
+}
+
+play_m4a() {
+	local m4a_file="${1}"
+
+	if [[ ${verbose} ]]; then
+		echo "${script_name}: INFO: Using m4a file '${m4a_file}'."
+	fi
+
+	check_file 'm4a file' "${m4a_file}"
+
+	local -a tracks_array=("${m4a_file}")
+
+	play_tracks tracks_array ''
+}
+
+play_playlist() {
+	local playlist_file="${1}"
+
+	if [[ ${verbose} ]]; then
+		echo "${script_name}: INFO: Using playlist '${playlist_file}'."
+	fi
+
+	check_file 'playlist' "${playlist_file}"
+
+	local -a lines_array
+	local -a tracks_array=()
+
+	readarray -t lines_array < "${playlist_file}"
+
+	local line_count="${#lines_array[@]}"
+
+	for (( id = 1; id <= ${line_count}; id++ )); do
+		line="${lines_array[$(( id - 1 ))]}"
+
+		if [[ "${line::1}" = '#' ]]; then
+			if [[ ${verbose} ]]; then
+				echo "${id}: (comment) = '${line}'" >&2
+			fi
+			continue
+		fi
+
+		if [[ ! "${line}" ]]; then
+			if [[ ${verbose} ]]; then
+				echo "${id}: (blank) = '${line}'" >&2
+			fi
+			continue
+		fi
+
+		if [[ "${line: -4:4}" = '.m4a' ]]; then
+			if [[ ${verbose} ]]; then
+				echo "${id}: (track) = '${line}'" >&2
+			fi
+
+			tracks_array=("${tracks_array[@]}" "${line}")
+			continue
+		fi
+
+		if [[ "${line: -4:4}" = '.m3u' ]]; then
+			if [[ ${verbose} ]]; then
+				echo "${id}: (playlist) = '${line}'" >&2
+			fi
+
+			"${SCRIPT_TOP}/${script_name}" ${verbose:+--verbose} ${debug:+--debug} --recurse-count="$(( recurse_count + 1 ))" "${line}"
+			continue
+		fi
+
+		echo "${script_name}: ERROR: ${id}: Unknown line type: '${line}'." >&2
+	done
+
+	if [[ ! "${tracks_array[@]}" ]]; then
+		return
+	fi
+
+	if [[ -f "${tracks_array[0]}" ]]; then
+		files_prefix=''
+	elif [[ -f "${playlist_file%/*}/${tracks_array[0]}" ]]; then
+		files_prefix="${playlist_file%/*}/"
+	else
+		echo "${script_name}: ERROR: Unknown files_prefix: playlist = '${playlist_file}', track = '${tracks_array[0]}'" >&2
+	fi
+
+	play_tracks tracks_array "${files_prefix}"
+}
+
+play_top_dir() {
+	local top_dir="${1}"
+
+	if [[ ${verbose} ]]; then
+		echo "${script_name}: INFO: Using top-dir '${top_dir}'."
+	fi
+
+	check_top_dir "${top_dir}"
+
+	local -a tracks_array
+
+	readarray -t tracks_array < <(find "${top_dir}" -type f -name '*.m4a' | sort \
+		|| { echo "${script_name}: ERROR: tracks_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+		kill -SIGUSR1 $$; } )
+
+	play_tracks tracks_array ''
 }
 
 #===============================================================================
@@ -107,7 +235,7 @@ SCRIPT_TOP="$(realpath "${SCRIPT_TOP:-${real_source%/*}}")"
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
 trap 'on_err SIGUSR1 ? 3' SIGUSR1
-trap 'on_int' SIGINT
+trap 'on_sigint' SIGINT
 
 set -eE
 set -o pipefail
@@ -118,6 +246,7 @@ source "${SCRIPT_TOP}/audx-lib.sh"
 usage=''
 verbose=''
 debug=''
+recurse_count=''
 arg_1=''
 
 process_opts "${@}"
@@ -142,12 +271,21 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
-print_project_banner >&2
+print_project_banner
 
 if [[ ${extra_args} ]]; then
 	set +o xtrace
 	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
 	usage
+	exit 1
+fi
+
+if [[ ${verbose} ]]; then
+	echo "${script_name}: INFO: Recurse count = '${recurse_count}'"
+fi
+
+if (( recurse_count > 5 )); then
+	echo "${script_name}: ERROR: Hit recurse_count: '${recurse_count}'" >&2
 	exit 1
 fi
 
@@ -158,34 +296,14 @@ arg_1="$(realpath -e "${arg_1}")"
 
 case "${input_type}" in
 m4a_file)
-	if [[ ${verbose} ]]; then echo "INFO: Using m4a_file '${arg_1}'." >&2; fi
-	check_file 'm4a_file' "${arg_1}"
-	files_array=("${arg_1}")
-	files_prefix=''
+	play_m4a "${arg_1}"
 	;;
 playlist)
-	if [[ ${verbose} ]]; then echo "INFO: Using playlist '${arg_1}'." >&2; fi
-	check_file 'playlist' "${arg_1}"
-	readarray -t files_array < "${arg_1}"
+	play_playlist "${arg_1}"
 
-# 	echo "INFO: track1 = '${files_array[0]}'." >&2
-
-	if [[ -f "${files_array[0]}" ]]; then
-		files_prefix=''
-	elif [[ -f "${arg_1%/*}/${files_array[0]}" ]]; then
-		files_prefix="${arg_1%/*}/"
-	else
-		echo "${script_name}: ERROR: Unknown files_prefix: playlist = '${arg_1}', track = '${files_array[0]}'" >&2
-	fi
 	;;
 top_dir)
-	if [[ ${verbose} ]]; then echo "INFO: Using top-dir '${arg_1}'." >&2; fi
-	check_top_dir "${arg_1}"
-
-	readarray -t files_array < <(find "${arg_1}" -type f -name '*.m4a' | sort \
-		|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
-		kill -SIGUSR1 $$; } )
-	files_prefix=''
+	play_top_dir "${arg_1}"
 	;;
 *)
 	echo "${script_name}: ERROR: Unknown input type: '${arg_1}'" >&2
@@ -193,16 +311,6 @@ top_dir)
 	exit 1
 	;;
 esac
-
-in_count="${#files_array[@]}"
-
-echo "INFO: Playing ${in_count} input files." >&2
-
-for (( id = 1; id <= ${in_count}; id++ )); do
-	file="${files_array[$(( id - 1 ))]}"
-	echo "${id}: '${files_prefix}${file}'" >&2
-	"${ffplay}" -loglevel quiet -nodisp -autoexit "${files_prefix}${file}" || : > /dev/null
-done
 
 trap "on_exit 'Success'" EXIT
 exit 0
