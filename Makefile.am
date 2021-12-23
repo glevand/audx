@@ -18,7 +18,7 @@ composed_bin_scripts = \
 	scripts/make-inventory.sh \
 	scripts/make-playlists.sh \
 	scripts/make-shufflelist.sh \
-	scripts/play-m4a.sh \
+	scripts/m4a-play.sh \
 	scripts/rip-c.sh \
 	scripts/rip-c-flac-tags.sh \
 	scripts/rip-c-to-flac.sh
