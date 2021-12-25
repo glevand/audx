@@ -220,20 +220,19 @@ Typical CPU usage when running the m4a-converter script.
 
 ![m4a-converter CPU Usage](images/m4a-converter-cpu-usage.png)
 
-### play-m4a - Play m4a AAC encoded files.
+### m4a-play - Play AAC encoded M4A files.
 
 ```
-play-m4a.sh - Play m4a AAC encoded files.
-Usage: play-m4a.sh [flags] <top-dir | m3u playlist | m4a file>
+m4a-play.sh.in - Play AAC encoded M4A files.
+Usage: m4a-play.sh.in [flags] <top-dir | M3U playlist | M4A file>
 Option flags:
   -h --help        - Show this help and exit.
   -v --verbose     - Verbose execution. Default: ''.
   -g --debug       - Extra verbose execution. Default: ''.
 Input:
-  top-dir          - '/home/music-collection'
 Info:
-  AUDX play-m4a.sh
-  Home: https://github.com/glevand/audx
+  AUDX m4a-play.sh
+  Project Home: https://github.com/glevand/audx
 ```
 
 ### make-inventory - Make inventory lists of an album collection.
@@ -243,16 +242,16 @@ make-inventory.sh - Make inventory lists of an album collection.
 Usage: make-inventory.sh [flags] src-directory [src-directory]...
 Option flags:
   -o --output-dir - Output directory. Default: '/tmp/audx-inventory'.
-  -c --canonical  - Output full canonical paths to lists.
-  -m --mtime      - Print file modification time. Default: ''.
-  -t --tracks     - Output an album track list. Default: ''.
-  -T --use-tags   - Use metadata tags to generate lists. Default: ''.
+  -a --age-sort   - Sort list by age. Default: ''.
+  -t --tracks     - Output album tracks. Default: ''.
+  -n --canonical  - Output full canonical paths to lists. Default: ''.
+  -c --config     - Configuration file. Default: ''.
   -h --help       - Show this help and exit.
   -v --verbose    - Verbose execution.
   -g --debug      - Extra verbose execution.
 Info:
   AUDX make-inventory.sh
-  Home: https://github.com/glevand/audx
+  Project Home: https://github.com/glevand/audx
 ```
 
 ### make-playlists - Recursively search for audio files and create m3u playlists.
