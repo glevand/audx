@@ -837,7 +837,7 @@ write_m3u_playlist() {
 		return
 	fi
 
-	declare -A tags
+	local -A tags
 
 	case "${type}" in
 	'flac')
