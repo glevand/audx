@@ -97,18 +97,36 @@ on_sigint() {
 	last_int="${now}"
 }
 
+print_playing() {
+	local artist=${1}
+	local album=${2}
+	local fall_back=${3}
+
+	if [[ ${artist} && ${album} ]]; then
+		echo "${script_name}: Playing: ${artist}, ${album}"
+	elif [[ ${artist} ]]; then
+		echo "${script_name}: Playing: ${artist}"
+	elif [[ ${album} ]]; then
+		echo "${script_name}: Playing: ${album}"
+	else
+		echo "${script_name}: Playing: ${fall_back}"
+	fi
+}
+
 play_tracks() {
 	local -n _play_tracks__tracks_array="${1}"
 	local files_prefix="${2}"
 
 	local in_count="${#_play_tracks__tracks_array[@]}"
 
-	if [[ ! ${_play_tracks__tracks_array[@]} ]]; then
+	if [[ ${#_play_tracks__tracks_array[@]} == 0 ]]; then
 		echo "${script_name}: INFO: No input files found." >&2
 		return
 	fi
 
-	echo "${script_name}: INFO: Playing ${in_count} input files."
+	if [[ ${verbose} ]]; then
+		echo "${script_name}: Playing ${in_count} input files."
+	fi
 
 	local id
 	local file
@@ -123,19 +141,19 @@ play_tracks() {
 play_m4a() {
 	local m4a_file="${1}"
 
-	echo "${script_name}: INFO: Play '${m4a_file}'."
-
 	check_file 'm4a file' "${m4a_file}"
 
 	local -a tracks_array=("${m4a_file}")
 
+	local -A tags
+	m4a_fill_tag_set "${m4a_file}" tags
+
+	print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "'${m4a_file}'"
 	play_tracks tracks_array ''
 }
 
 play_playlist() {
 	local playlist_file="${1}"
-
-	echo "${script_name}: INFO: Play '${playlist_file}'."
 
 	check_file 'playlist' "${playlist_file}"
 
@@ -145,6 +163,8 @@ play_playlist() {
 	readarray -t lines_array < "${playlist_file}"
 
 	local line_count="${#lines_array[@]}"
+	local artist=''
+	local album=''
 
 	for (( id = 1; id <= ${line_count}; id++ )); do
 		line="${lines_array[$(( id - 1 ))]}"
@@ -152,6 +172,12 @@ play_playlist() {
 		if [[ "${line::1}" = '#' ]]; then
 			if [[ ${verbose} ]]; then
 				echo "${id}: (comment) = '${line}'" >&2
+			fi
+			if [[ "${line::8}" = '#EXTART:' ]]; then
+				artist="${line:9}"
+			fi
+			if [[ "${line::8}" = '#EXTALB:' ]]; then
+				album="${line:9}"
 			fi
 			continue
 		fi
@@ -196,13 +222,12 @@ play_playlist() {
 		echo "${script_name}: ERROR: Unknown files_prefix: playlist = '${playlist_file}', track = '${tracks_array[0]}'" >&2
 	fi
 
+	print_playing "${artist}" "${album}" "'${playlist_file}'"
 	play_tracks tracks_array "${files_prefix}"
 }
 
 play_top_dir() {
 	local top_dir="${1}"
-
-	echo "${script_name}: INFO: Play '${top_dir}'."
 
 	check_top_dir "${top_dir}"
 
@@ -211,6 +236,13 @@ play_top_dir() {
 	readarray -t tracks_array < <(find "${top_dir}" -type f -name '*.m4a' | sort \
 		|| { echo "${script_name}: ERROR: tracks_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 		kill -SIGUSR1 $$; } )
+
+	local -A tags
+
+	if [[ ${#tracks_array[@]} != 0 ]]; then
+		m4a_fill_tag_set "${tracks_array[0]}" tags
+		print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "'${top_dir}'"
+	fi
 
 	play_tracks tracks_array ''
 }
@@ -282,6 +314,9 @@ if (( recurse_count > 5 )); then
 	echo "${script_name}: ERROR: Hit recurse_count: '${recurse_count}'" >&2
 	exit 1
 fi
+
+exiftool="${exiftool:-exiftool}"
+check_program "exiftool" "${exiftool}"
 
 ffplay="${ffplay:-ffplay}"
 check_program "ffplay" "${ffplay}"
