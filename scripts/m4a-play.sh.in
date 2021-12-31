@@ -123,9 +123,7 @@ play_tracks() {
 play_m4a() {
 	local m4a_file="${1}"
 
-	if [[ ${verbose} ]]; then
-		echo "${script_name}: INFO: Using m4a file '${m4a_file}'."
-	fi
+	echo "${script_name}: INFO: Play '${m4a_file}'."
 
 	check_file 'm4a file' "${m4a_file}"
 
@@ -137,9 +135,7 @@ play_m4a() {
 play_playlist() {
 	local playlist_file="${1}"
 
-	if [[ ${verbose} ]]; then
-		echo "${script_name}: INFO: Using playlist '${playlist_file}'."
-	fi
+	echo "${script_name}: INFO: Play '${playlist_file}'."
 
 	check_file 'playlist' "${playlist_file}"
 
@@ -206,9 +202,7 @@ play_playlist() {
 play_top_dir() {
 	local top_dir="${1}"
 
-	if [[ ${verbose} ]]; then
-		echo "${script_name}: INFO: Using top-dir '${top_dir}'."
-	fi
+	echo "${script_name}: INFO: Play '${top_dir}'."
 
 	check_top_dir "${top_dir}"
 
@@ -275,13 +269,13 @@ print_project_banner
 
 if [[ ${extra_args} ]]; then
 	set +o xtrace
-	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'." >&2
 	usage
 	exit 1
 fi
 
 if [[ ${verbose} ]]; then
-	echo "${script_name}: INFO: Recurse count = '${recurse_count}'"
+	echo "${script_name}: INFO: Recurse count = '${recurse_count}'."
 fi
 
 if (( recurse_count > 5 )); then
@@ -291,6 +285,13 @@ fi
 
 ffplay="${ffplay:-ffplay}"
 check_program "ffplay" "${ffplay}"
+
+if [[ ! ${arg_1} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: No input files." >&2
+	usage
+	exit 1
+fi
 
 arg_1="$(realpath -e "${arg_1}")"
 
