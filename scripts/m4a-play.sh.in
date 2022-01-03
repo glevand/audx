@@ -130,11 +130,21 @@ play_tracks() {
 
 	local id
 	local file
+	local ext
 
 	for (( id = 1; id <= ${in_count}; id++ )); do
 		file="${_play_tracks__tracks_array[$(( id - 1 ))]}"
-		echo "${id}/${in_count}: '${files_prefix}${file}'"
-		"${ffplay}" -loglevel quiet -nodisp -autoexit "${files_prefix}${file}" > /dev/null || :
+		ext="${file##*.}"
+
+		if [[ "${ext}" = 'm4a' ]]; then
+			echo "${id}/${in_count}: '${files_prefix}${file}'"
+			${ffplay} -loglevel quiet -nodisp -autoexit "${files_prefix}${file}" > /dev/null || :
+		elif [[  "${ext}" = 'flac' ]]; then
+			echo "${id}/${in_count}: '${files_prefix}${file}'"
+			${sox_play} --no-show-progress "${files_prefix}${file}"
+		else
+			echo "${id}/${in_count}: Unknown file type '${files_prefix}${file}'." >&2
+		fi
 	done
 }
 
@@ -191,7 +201,16 @@ play_playlist() {
 
 		if [[ "${line: -4:4}" = '.m4a' ]]; then
 			if [[ ${verbose} ]]; then
-				echo "${id}: (track) = '${line}'" >&2
+				echo "${id}: (m4a track) = '${line}'" >&2
+			fi
+
+			tracks_array=("${tracks_array[@]}" "${line}")
+			continue
+		fi
+
+		if [[ "${line: -5:5}" = '.flac' ]]; then
+			if [[ ${verbose} ]]; then
+				echo "${id}: (flac track) = '${line}'" >&2
 			fi
 
 			tracks_array=("${tracks_array[@]}" "${line}")
@@ -320,6 +339,9 @@ check_program "exiftool" "${exiftool}"
 
 ffplay="${ffplay:-ffplay}"
 check_program "ffplay" "${ffplay}"
+
+sox_play="${sox_play:-play}"
+check_program "sox_play" "${sox_play}"
 
 if [[ ! ${arg_1} ]]; then
 	set +o xtrace
