@@ -182,6 +182,8 @@ verbose=''
 debug=''
 src_dirs=''
 
+collection_top=''
+
 process_opts "${@}"
 
 if [[ "${config_file}" != "${config_file_default}" ]]; then
@@ -192,15 +194,27 @@ if [[ -f "${config_file}" ]]; then
 	source "${config_file}"
 fi
 
-if [[ ! ${src_dirs} ]]; then
-	src_dirs=( "${collection_top}"/* )
-	echo "${script_name}: INFO: No source directories given. Using '${src_dirs[@]}'" >&2
-fi
-
 if [[ ${usage} ]]; then
 	usage
 	trap - EXIT
 	exit 0
+fi
+
+if [[ ! ${src_dirs} ]]; then
+	if [[ ! ${collection_top} ]]; then
+		echo "${script_name}: ERROR: No source directories given and no collection_top defined."
+		usage
+		exit 1
+	fi
+
+	src_dirs=( "${collection_top}"/* )
+	{
+		echo "${script_name}: INFO: No source directories given.  Using:"
+		for dir in "${src_dirs[@]}"; do
+			echo "  ${dir}"
+		done
+		echo
+	} >&2
 fi
 
 output_dir="$(realpath --canonicalize-missing "${output_dir}")"
