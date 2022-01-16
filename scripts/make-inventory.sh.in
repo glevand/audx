@@ -9,10 +9,11 @@ usage() {
 		echo "Usage: ${script_name} [flags] src-directory [src-directory]..."
 		echo "Option flags:"
 		echo "  -o --output-dir - Output directory. Default: '${output_dir}'."
-		echo "  -f --canonical  - Output full canonical paths to lists."
-		echo "  -m --mtime      - Print file modification time. Default: '${mtime}'."
-		echo "  -t --tracks     - Output an album track list. Default: '${tracks}'."
-		echo "  -T --use-tags   - Use metadata tags to generate lists. Default: '${use_tags}'."
+#		echo "  -m --mtime      - Print file modification time. Default: '${mtime}'."
+		echo "  -a --age-sort   - Sort list by age. Default: '${age_sort}'."
+		echo "  -t --tracks     - Output album tracks. Default: '${tracks}'."
+#		echo "  -T --use-tags   - Use metadata tags to generate lists. Default: '${use_tags}'."
+		echo "  -n --canonical  - Output full canonical paths to lists. Default: '${canonical}'."
 		echo "  -c --config     - Configuration file. Default: '${config_file}'."
 		echo "  -h --help       - Show this help and exit."
 		echo "  -v --verbose    - Verbose execution."
@@ -24,8 +25,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="o:fmtTc:hvg"
-	local long_opts="output-dir:,canonical,mtime,tracks,use-tags,config:,help,verbose,debug"
+	local short_opts="o:matTnc:hvg"
+	local long_opts="output-dir:,mtime,age-sort,tracks,use-tags,canonical,config:,help,verbose,debug"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -39,12 +40,12 @@ process_opts() {
 			output_dir="${2}"
 			shift 2
 			;;
-		-f | --canonical)
-			canonical=1
-			shift
-			;;
 		-m | --mtime)
 			mtime=1
+			shift
+			;;
+		-a | --age-sort)
+			age_sort=1
 			shift
 			;;
 		-t | --tracks)
@@ -53,6 +54,10 @@ process_opts() {
 			;;
 		-T | --use-tags)
 			use_tags=1
+			shift
+			;;
+		-n | --canonical)
+			canonical=1
 			shift
 			;;
 		-c | --config)
@@ -94,6 +99,8 @@ generate_inventory_list() {
 	local src_dir
 	local output_file
 	local src_path
+	local album_path
+
 	for src_dir in "${src_dirs[@]}"; do
 		src_dir="${src_dir%/}"
 		output_file="${output_dir}/${src_dir##*/}-${list_type}.lst"
@@ -114,43 +121,103 @@ generate_inventory_list() {
 			|| { echo "${script_name}: ERROR: album_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 			kill -SIGUSR1 $$; } )
 
-		{
-			echo "# ${script_name} (@PACKAGE_NAME@) - ${start_time}"
-			echo "# ${src_dir}: ${#album_array[@]} albums."
-			echo ''
-		} > "${output_file}"
-
-		local album_path
-		local album
-		local artist_path
-		local artist
-		local item
-		local ftime
+		local -a artist_array
 
 		for (( i = 0; i < ${#album_array[@]}; i++ )); do
+			local album
+			local artist_path
+			local artist
+
 			album_path="${album_array[i]%/album.m3u}"
 			album="${album_path##*/}"
 			artist_path="${album_path%/*}"
 			artist="${artist_path##*/}"
 
-			if [[ ${canonical} ]]; then
-				item="'${album_path}'"
-			else
-				if [[ ! ${artist} || ! ${album} ]]; then
-					echo "${script_name}: WARNING: No path, use --canonical" >&2
+			if [[ ! ${artist} ]]; then
+				echo "${script_name}: WARNING: No artist: '${album_array[i]}'" >&2
+			fi
+
+			if [[ ! ${album} ]]; then
+				echo "${script_name}: WARNING: No album: '${album_array[i]}'" >&2
+			fi
+
+			local ftime=''
+
+			if [[ ${age_sort} ]]; then
+				local first
+				local ftime_regex='^([[:digit:]]{4})-([[:digit:]]{2})-([[:digit:]]{2})'
+
+				first="$(find "${album_path}" -type f \( -name '*.flac' -o -name '*.m4a' \) -print -quit)"
+
+				if [[ ! -f "${first}" ]]; then
+					echo "${script_name}: WARNING: No files: '${album_path}'" >&2
 				fi
-				item="'${artist}/${album}'"
+
+				ftime="$(stat --format='%y' "$(realpath "${first}")")"
+
+				if [[ ! "${ftime}" =~ ${ftime_regex} ]]; then
+					echo "${FUNCNAME[0]}: ERROR: No ftime_regex match '${ftime}'" >&2
+					exit 1
+				fi
+				ftime="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
 			fi
 
-			if [[ ${mtime} ]]; then
-				ftime=" $(ls -l --time-style='+%Y.%m.%d' "$(realpath "${src_dir}/${album}/01-"*)" | grep -E --only-matching '[[:digit:]]{4}(\.[[:digit:]]{2}){2}')"
+			artist_array+=("${ftime}@@@${artist}/${album}@@@${album_path}")
+		done
+
+		local -a sorted_array
+
+		IFS=$'\n'
+		sorted_array=($(sort <<<"${artist_array[*]}"))
+		unset IFS
+
+		{
+			echo "# ${script_name} (@PACKAGE_NAME@) - ${start_time}"
+			echo "# ${src_dir}: ${#sorted_array[@]} albums."
+			echo ''
+		} > "${output_file}"
+
+		for (( i = 0; i < ${#sorted_array[@]}; i++ )); do
+			local data_regex='^(.*)@@@(.*)@@@(.*)$'
+
+			if [[ ! "${sorted_array[i]}" =~ ${data_regex} ]]; then
+				echo "${FUNCNAME[0]}: ERROR: No regex match '${sorted_array[i]}'" >&2
+				exit 1
+			fi
+
+			local artist_album
+
+			ftime="${BASH_REMATCH[1]}"
+			artist_album="${BASH_REMATCH[2]}"
+			album_path="${BASH_REMATCH[3]}"
+
+# 			{
+# 				echo "[$(( i + 1 ))] in    = @${sorted_array[i]}@"
+# 				echo "[$(( i + 1 ))] ftime = @${ftime}@"
+# 				echo "[$(( i + 1 ))] a-a   = @${artist_album}@"
+# 				echo "[$(( i + 1 ))] path  = @${album_path}@"
+# 				echo
+# 			} >&2
+
+			local display
+
+			if [[ ${canonical} ]]; then
+				display="${album_path}"
 			else
-				ftime=''
+				display="${artist_album}"
 			fi
 
-			echo "[$(( i + 1 ))]${ftime} ${item}" >> "${output_file}"
+			if [[ ${age_sort} ]]; then
+				echo "[$(( i + 1 ))] ${ftime} '${display}'" >> "${output_file}"
+			else
+				echo "[$(( i + 1 ))] '${display}'" >> "${output_file}"
+			fi
 
-			if [[ "${list_type}" == 'tracks' ]]; then
+			if [[ "${list_type}" == 'tracks'* ]]; then
+				local track_array
+				local track
+				local j
+
 				readarray -t track_array < <( \
 					find "${album_path}" -type f -name '*.flac' -o -name '*.m4a' | sort \
 					|| { echo "${script_name}: ERROR: track_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
@@ -159,19 +226,17 @@ generate_inventory_list() {
 				for (( j = 0; j < ${#track_array[@]}; j++ )); do
 					track="${track_array[j]##*/}"
 					track="${track%.*}"
-					#echo "  [$(( i + 1 )).$(( j + 1 ))] ${track}" >> "${output_file}"
 					echo "  '${track}'" >> "${output_file}"
 				done
 			fi
-
 		done
-
-		if [[ ${verbose} ]]; then
-			echo "# ${output_file}"
-			cat "${output_file}"
-			echo ''
-		fi
 	done
+
+	if [[ ${verbose} ]]; then
+		echo "# ${output_file}"
+		cat "${output_file}"
+		echo ''
+	fi
 }
 
 #===============================================================================
@@ -202,12 +267,15 @@ canonical=''
 mtime=''
 tracks=''
 use_tags=''
+age_sort=''
 config_file_default="${HOME}/.audx.conf"
 config_file="${config_file_default}"
 usage=''
 verbose=''
 debug=''
 src_dirs=''
+
+collection_top=''
 
 process_opts "${@}"
 
@@ -217,11 +285,6 @@ fi
 
 if [[ -f "${config_file}" ]]; then
 	source "${config_file}"
-fi
-
-if [[ ! ${src_dirs} ]]; then
-	src_dirs=( "${collection_top}"/* )
-	echo "${script_name}: INFO: No source directories given. Using '${src_dirs[@]}'" >&2
 fi
 
 if [[ ${use_tags} ]]; then
@@ -236,18 +299,48 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
+if [[ ! ${src_dirs} ]]; then
+	if [[ ! ${collection_top} ]]; then
+		echo "${script_name}: ERROR: No source directories given and no collection_top defined."
+		usage
+		exit 1
+	fi
+
+	src_dirs=( "${collection_top}"/* )
+	{
+		echo "${script_name}: INFO: No source directories given. Using:"
+		for dir in "${src_dirs[@]}"; do
+			echo "  ${dir}"
+		done
+		echo
+	} >&2
+fi
+
 output_dir="$(realpath --canonicalize-missing "${output_dir}")"
 
 check_src_dirs "${src_dirs[@]}"
 
 mkdir -p "${output_dir}"
 
-generate_inventory_list 'albums'
-
-if [[ ${tracks} ]]; then
+case "${tracks}-${age_sort}" in
+'-')
+	generate_inventory_list 'albums'
+	;;
+'-1')
+	generate_inventory_list 'albums-age'
+	;;
+'1-')
 	generate_inventory_list 'tracks'
-fi
+	;;
+'1-1')
+	generate_inventory_list 'tracks-age'
+	;;
+*)
+	echo "${script_name}: ERROR: Internal opts: '${tracks}-${age_sort}'" >&2
+	exit 1
+	;;
+esac
 
-echo "${script_name}: Album lists generated in '${output_dir}'."  >&2
+echo "${script_name}: Lists generated in '${output_dir}'."  >&2
 trap $'on_exit "Success"' EXIT
 exit 0
