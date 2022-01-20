@@ -543,7 +543,7 @@ flac_split_tag() {
 	local tag=${1}
 	local -n _flac_split_tag__pair="${2}"
 
-	local regex_tag='([^=]+)=([^=]+)'
+	local regex_tag='^([^=]+)=([^=]*)$'
 
 	if [[ ! "${tag}" =~ ${regex_tag} ]]; then
 		echo "${FUNCNAME[0]}: ERROR: No match '${tag}'" >&2
@@ -705,7 +705,7 @@ flac_print_tags() {
 metaflac_retag() {
 	local file=${1}
 	local tag_name=${2}
-	local tag_data=${3}
+	local tag_value=${3}
 	local op=${4}
 
 	if ! flac_check_file "${file}" 'verbose'; then
@@ -715,7 +715,7 @@ metaflac_retag() {
 	local old_tag
 
 	case "${op}" in
-	'add')
+	'add' | 'remove')
 		old_tag="$(flac_get_tag "${tag_name}" "${file}" 'optional')"
 		;;
 	'update')
@@ -729,11 +729,15 @@ metaflac_retag() {
 
 	{
 		echo "${FUNCNAME[0]}: file: '${file}'"
-		echo "${FUNCNAME[0]}:   ${tag_name}: '${old_tag}' => '${tag_data}'"
+		echo "${FUNCNAME[0]}:   ${tag_name}: '${old_tag}' => '${tag_value}'"
 	}
 
 	if [[ ! ${dry_run:-} ]]; then
-		${metaflac} --preserve-modtime --remove-tag="${tag_name}" --set-tag="${tag_name}=${tag_data}" "${file}"
+		if [[ ${tag_value} ]]; then
+			${metaflac} --preserve-modtime --remove-tag="${tag_name}" --set-tag="${tag_name}=${tag_value}" "${file}"
+		else
+			${metaflac} --preserve-modtime --remove-tag="${tag_name}" "${file}"
+		fi
 	fi
 }
 
