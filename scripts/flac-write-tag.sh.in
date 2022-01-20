@@ -6,17 +6,15 @@ usage() {
 	set +o xtrace
 
 	{
-		echo "${script_name} - Write new FLAC metadata tags using --tag, or --tag-name and --tag-value."
+		echo "${script_name} - Write FLAC metadata tags."
 		echo "Usage: ${script_name} [flags] <top-dir|file>"
 		echo "Option flags:"
-		echo "  -t --tag         - Full tag 'NAME=VALUE'. Default='${tag_full}'."
-		echo "  -n --tag-name    - Tag name. Default='${tag_name}'."
-		echo "  -l --tag-value   - Tag value. Default='${tag_value}'.'"
+		echo "  -t --tag         - Full tag 'NAME=VALUE'. An empty VALUE will delete tag.  Default='${tag_full}'."
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution."
 		echo "  -g --debug       - Extra verbose execution."
 		echo "  -d --dry-run     - Dry run, don't modify files."
-		echo "Common TAGs:"
+		echo "Common tags:"
 		echo "  ARTIST"
 		echo "  ALBUM"
 		echo "  TITLE"
@@ -25,8 +23,9 @@ usage() {
 		echo "  TRACKNUMBER"
 		echo "  TRACKTOTAL"
 		echo "Examples:"
-		echo "  ${script_name} \"\${collection}/Phil Collins/No Jacket Required\" --tag='ALBUM=No Jacket Required'"
-		echo "  ${script_name} \"\${collection}/Ultravox\" --tag-name='ARTIST' --tag-value='Ultravox'"
+		echo "  ${script_name}  --tag='ALBUM=No Jacket Required' \"\${collection}/Phil Collins/No Jacket Required\""
+		echo "  ${script_name}  --tag='ARTIST=Ultravox' \"\${collection}/Ultravox\""
+		echo "  ${script_name}  --tag='COMMENT=' \"\${collection}/Bruce Cockburn/Stealing Fire\""
 		echo "Info:"
 		print_project_info
 	} >&2
@@ -35,7 +34,7 @@ usage() {
 
 process_opts() {
 	local short_opts="t:n:l:hvgd"
-	local long_opts="tag:,tag-name:,tag-value:,help,verbose,debug,dry-run"
+	local long_opts="tag:,help,verbose,debug,dry-run"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -47,14 +46,6 @@ process_opts() {
 		case "${1}" in
 		-t | --tag)
 			tag_full="${2}"
-			shift 2
-			;;
-		-n | --tag-name)
-			tag_name="${2}"
-			shift 2
-			;;
-		-l | --tag-value)
-			tag_value="${2}"
 			shift 2
 			;;
 		-h | --help)
@@ -114,8 +105,6 @@ set -o nounset
 source "${SCRIPT_TOP}/audx-lib.sh"
 
 tag_full=''
-tag_name=''
-tag_value=''
 usage=''
 verbose=''
 debug=''
@@ -157,29 +146,11 @@ fi
 metaflac="${metaflac:-metaflac}"
 check_program "metaflac" "${metaflac}"
 
-if [[ ${tag_full} ]]; then
-	if [[ ${tag_name} ]]; then
-		echo "${script_name}: ERROR: Use --tag-full OR --tag-name option." >&2
-		usage
-		exit 1
-	fi
-	if [[ ${tag_value} ]]; then
-		echo "${script_name}: ERROR: Use --tag-full OR --tag-value option." >&2
-		usage
-		exit 1
-	fi
-	check_opt '--tag' "${tag_full}"
-	
-	declare -A pair
+check_opt '--tag' "${tag_full}"
 
-	flac_split_tag "${tag_full}" pair
-	
-	tag_name="${pair[name]}"
-	tag_value="${pair[value]}"
-else
-	check_opt '--tag OR --tag-name' "${tag_name}"
-	check_opt '--tag OR --tag-data' "${tag_data}"
-fi
+declare -A tag_pair
+
+flac_split_tag "${tag_full}" tag_pair
 
 if [[ -d "${top_dir}" ]]; then
 	readarray -t path_array < <((cd "${top_dir}" && find . -type f) | sort \
@@ -198,7 +169,7 @@ if [[ -d "${top_dir}" ]]; then
 		if ! flac_check_file "${top_dir}/${path}" 'quiet'; then
 			continue
 		fi
-		metaflac_retag "${top_dir}/${path}" "${tag_name}" "${tag_value}" 'add'
+		metaflac_retag "${top_dir}/${path}" "${tag_pair[name]}" "${tag_pair[value]}" 'add'
 	done
 
 	if [[ ${dry_run} ]]; then
@@ -208,7 +179,7 @@ if [[ -d "${top_dir}" ]]; then
 	fi
 else
 	flac_check_file "${top_dir}" 'verbose'
-	metaflac_retag "${top_dir}" "${tag_name}" "${tag_value}" 'add'
+	metaflac_retag "${top_dir}" "${tag_pair[name]}" "${tag_pair[value]}" 'add'
 
 	if [[ ${dry_run} ]]; then
 		echo "${script_name}: INFO: Processed 1 file (dry-run)." >&2
