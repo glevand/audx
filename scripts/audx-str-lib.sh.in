@@ -220,7 +220,7 @@ str_clean_filename() {
 	local str_in=${1}
 	local str_out="${str_in}"
 
-	str_out="${str_out//[\$\?\']/}"
+	str_out="${str_out//[\$\?\'!,]/}"
 	str_out="${str_out//[~*<>‐]/-}"
 	str_out="${str_out//#/No. }"
 	str_out="${str_out//[+&]/ and }"
