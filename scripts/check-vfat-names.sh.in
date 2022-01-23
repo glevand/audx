@@ -11,6 +11,7 @@ usage() {
 		echo "Option flags:"
 		echo "  -d --vfat-dir    - vfat test directory. Default: '${vfat_dir}'."
 		echo "  -c --clean-names - Clean file names using standard rules. Default: '${clean_names}'."
+		echo "  -k --keep-going  - Do not exit on file error. Default: '${keep_going}'."
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution."
 		echo "  -g --debug       - Extra verbose execution."
@@ -21,8 +22,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="d:chvg"
-	local long_opts="vfat-dir:,clean-names,help,verbose,debug"
+	local short_opts="d:ckhvg"
+	local long_opts="vfat-dir:,clean-names,keep-going,help,verbose,debug"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -38,6 +39,10 @@ process_opts() {
 			;;
 		-c | --clean-names)
 			clean_names=1
+			shift
+			;;
+		-k | --keep-going)
+			keep_going=1
 			shift
 			;;
 		-h | --help)
@@ -96,7 +101,9 @@ touch_file() {
 			echo "${script_name}: ERROR: mkdir '${out_file%/*}'"
 			echo "${script_name}: Test file: '${in_file}'"
 		} >&2
-		exit 1
+		if [[ ! ${keep_going} ]]; then
+			exit 1
+		fi
 	fi
 
 	if ! touch "${out_file}"; then
@@ -104,7 +111,9 @@ touch_file() {
 			echo "${script_name}: ERROR: touch '${out_file}'"
 			echo "${script_name}: Test file: '${in_file}'"
 		} >&2
-		exit 1
+		if [[ ! ${keep_going} ]]; then
+			exit 1
+		fi
 	fi
 }
 
@@ -131,6 +140,7 @@ source "${SCRIPT_TOP}/audx-lib.sh"
 
 vfat_dir=''
 clean_names=''
+keep_going=''
 usage=''
 verbose=''
 debug=''
@@ -164,12 +174,12 @@ top_dir="$(realpath -e "${top_dir}")"
 print_project_banner >&2
 
 if [[ -d "${vfat_dir}" ]]; then
-	rm -rf "${vfat_dir:?}"
+	rm -rf "${vfat_dir:?}/"*
 fi
 
 mkdir -p "${vfat_dir}"
 
-readarray -t file_array < <( find "${top_dir}" -type f -name '*.flac' | sort \
+readarray -t file_array < <( find "${top_dir}" -type f \( -name '*.flac' -o -name '*.m4a' \) | sort \
 	|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 	kill -SIGUSR1 $$; } )
 
