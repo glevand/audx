@@ -291,19 +291,25 @@ check_program "sox" "${sox}"
 
 case "${input_type}" in
 flac_file)
-	if [[ ${verbose} ]]; then echo "INFO: Using flac_file '${arg_1}'." >&2; fi
+	if [[ ${verbose} ]]; then
+		echo "INFO: Using flac_file '${arg_1}'."
+	fi
 	check_file 'flac_file' "${arg_1}"
 	files_array=("${arg_1}")
 	files_prefix=''
 	;;
 playlist)
-	if [[ ${verbose} ]]; then echo "INFO: Using playlist '${arg_1}'." >&2; fi
+	if [[ ${verbose} ]]; then
+		echo "INFO: Using playlist '${arg_1}'."
+	fi
 	check_file 'playlist' "${arg_1}"
 	readarray -t files_array < "${arg_1}"
 	files_prefix="${arg_1%/*}/"
 	;;
 top_dir)
-	if [[ ${verbose} ]]; then echo "INFO: Using top-dir '${arg_1}'." >&2; fi
+	if [[ ${verbose} ]]; then
+		echo "INFO: Using top-dir '${arg_1}'."
+	fi
 	check_top_dir "${arg_1}"
 
 	readarray -t files_array < <(find "${arg_1}" -type f -name '*.flac' | sort \

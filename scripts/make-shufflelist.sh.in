@@ -203,6 +203,12 @@ readarray -t album_array < <( \
 	|| { echo "${script_name}: ERROR: album_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 	kill -SIGUSR1 $$; } )
 
+if (( ${#album_array[@]} == 0 )); then
+	echo "INFO: No M3U album files found: '${top_dir}'" >&2
+	trap "on_exit 'Success'" EXIT
+	exit 0
+fi
+
 echo "INFO: Considering ${#album_array[@]} albums." >&2
 
 extra_verbose=''
