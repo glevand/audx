@@ -115,7 +115,7 @@ set -o nounset
 source "${SCRIPT_TOP}/audx-lib.sh"
 
 canonical=''
-file_types=''
+file_types='flac m4a'
 clobber=''
 out_file=''
 option_A=''
@@ -134,7 +134,6 @@ top_dir="${top_dir:-${collection_top:-}}"
 m3u_file="${m3u_file:-album.m3u}"
 
 known_file_types="flac mp3 m4a sox wav"
-file_types="${file_types:-flac}"
 
 if [[ ${usage} ]]; then
 	usage
