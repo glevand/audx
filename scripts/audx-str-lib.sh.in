@@ -169,18 +169,29 @@ str_clean_common() {
 
 	str_out="${str_out//[;‚]/,}"
 	str_out="${str_out//[—‒―–‐→|\/\\]/-}"
+
 	str_out="${str_out//[₂]/2}"
-	str_out="${str_out//[æàäåáã]/a}"
-	str_out="${str_out//[ç]/c}"
+	str_out="${str_out//[³]/3}"
+	str_out="${str_out//[⁴]/4}"
+
+	str_out="${str_out//[À]/A}"
+	str_out="${str_out//[Ç]/C}"
 	str_out="${str_out//[É]/E}"
-	str_out="${str_out//[èé]/e}"
-	str_out="${str_out//[ñ]/n}"
 	str_out="${str_out//[Ö]/O}"
+
+	str_out="${str_out//[æàäåáã]/a}"
+	str_out="${str_out//[çć]/c}"
+	str_out="${str_out//[èéê]/e}"
+	str_out="${str_out//[ł]/l}"
+	str_out="${str_out//[ñ]/n}"
 	str_out="${str_out//[öóð]/o}"
 	str_out="${str_out//[ř]/r}"
+	str_out="${str_out//[śš]/s}"
 	str_out="${str_out//[Ü]/U}"
 	str_out="${str_out//[ü]/u}"
 	str_out="${str_out//[ÿ]/y}"
+	str_out="${str_out//[ž]/z}"
+
 	str_out="${str_out//…/...}"
 	str_out="${str_out//°/ Degrees}"
 	str_out="${str_out//[«»]/}"
