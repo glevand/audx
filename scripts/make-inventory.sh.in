@@ -97,14 +97,18 @@ generate_inventory_list() {
 	local list_type=${1}
 
 	local src_dir
-	local output_file
 	local src_path
+	local output_file
 	local album_path
+
+	local -a album_array
+	local -a artist_array
+	local -a sorted_array
 
 	for src_dir in "${src_dirs[@]}"; do
 		src_dir="${src_dir%/}"
-		output_file="${output_dir}/${src_dir##*/}-${list_type}.lst"
 		src_path="$(realpath "${src_dir}")"
+		output_file="${output_dir}/${src_dir##*/}-${list_type}.lst"
 
 		if [[ -n "$(find "${src_dir}" -maxdepth 0 -type d -empty 2>/dev/null)" ]]; then
 			echo "${script_name}: INFO: Empty directory: '${src_dir}'" >&2
@@ -116,13 +120,13 @@ generate_inventory_list() {
 			continue
 		fi
 
+		album_array=()
 		readarray -t album_array < <( \
 			find "${src_path}" -type f -name 'album.m3u' | sort \
 			|| { echo "${script_name}: ERROR: album_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 			kill -SIGUSR1 $$; } )
 
-		local -a artist_array
-
+		artist_array=()
 		for (( i = 0; i < ${#album_array[@]}; i++ )); do
 			local album
 			local artist_path
@@ -141,12 +145,11 @@ generate_inventory_list() {
 				echo "${script_name}: WARNING: No album: '${album_array[i]}'" >&2
 			fi
 
+			local ftime_regex='^([[:digit:]]{4})-([[:digit:]]{2})-([[:digit:]]{2})'
 			local ftime=''
+			local first
 
 			if [[ ${age_sort} ]]; then
-				local first
-				local ftime_regex='^([[:digit:]]{4})-([[:digit:]]{2})-([[:digit:]]{2})'
-
 				first="$(find "${album_path}" -type f \( -name '*.flac' -o -name '*.m4a' \) -print -quit)"
 
 				if [[ ! -f "${first}" ]]; then
@@ -165,8 +168,6 @@ generate_inventory_list() {
 			artist_array+=("${ftime}@@@${artist}/${album}@@@${album_path}")
 		done
 
-		local -a sorted_array
-
 		IFS=$'\n'
 		sorted_array=($(sort <<<"${artist_array[*]}"))
 		unset IFS
@@ -177,9 +178,9 @@ generate_inventory_list() {
 			echo ''
 		} > "${output_file}"
 
-		for (( i = 0; i < ${#sorted_array[@]}; i++ )); do
-			local data_regex='^(.*)@@@(.*)@@@(.*)$'
+		local data_regex='^(.*)@@@(.*)@@@(.*)$'
 
+		for (( i = 0; i < ${#sorted_array[@]}; i++ )); do
 			if [[ ! "${sorted_array[i]}" =~ ${data_regex} ]]; then
 				echo "${FUNCNAME[0]}: ERROR: No regex match '${sorted_array[i]}'" >&2
 				exit 1
@@ -214,10 +215,11 @@ generate_inventory_list() {
 			fi
 
 			if [[ "${list_type}" == 'tracks'* ]]; then
-				local track_array
+				local -a track_array
 				local track
 				local j
 
+				track_array=()
 				readarray -t track_array < <( \
 					find "${album_path}" -type f -name '*.flac' -o -name '*.m4a' | sort \
 					|| { echo "${script_name}: ERROR: track_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
@@ -230,13 +232,13 @@ generate_inventory_list() {
 				done
 			fi
 		done
-	done
 
-	if [[ ${verbose} ]]; then
-		echo "# ${output_file}"
-		cat "${output_file}"
-		echo ''
-	fi
+		if [[ ${verbose} && -f "${output_file}" ]]; then
+			echo "# ${output_file}"
+			cat "${output_file}"
+			echo ''
+		fi
+	done
 }
 
 #===============================================================================
