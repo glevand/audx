@@ -434,6 +434,10 @@ m4a_get_tag() {
 		t_type='-artist'
 		regex_tag='([[:print:]]+)'
 		;;
+	'DATE')
+		t_type='-year'
+		regex_tag='([[:print:]]+)'
+		;;
 	'ALBUM')
 		t_type='-album'
 		regex_tag='([[:print:]]+)'
@@ -497,6 +501,7 @@ m4a_fill_tag_set() {
 	_m4a_fill_tag_set__tags[file]="${file}"
 	_m4a_fill_tag_set__tags[ARTIST]="$(m4a_get_tag 'ARTIST' "${file}" 'required')"
 	_m4a_fill_tag_set__tags[ALBUM]="$(m4a_get_tag 'ALBUM' "${file}" 'required')"
+	_m4a_fill_tag_set__tags[DATE]="$(m4a_get_tag 'DATE' "${file}" 'optional')"
 	_m4a_fill_tag_set__tags[TITLE]="$(m4a_get_tag 'TITLE' "${file}" 'required')"
 	_m4a_fill_tag_set__tags[GENRE]="$(m4a_get_tag 'GENRE' "${file}" 'optional')"
 	_m4a_fill_tag_set__tags[TRACKNUMBER]="$(m4a_get_tag "TRACKNUMBER" "${file}" 'required')"
@@ -602,6 +607,7 @@ print_tag_set() {
 	echo "${msg}file: '${file}'"
 	echo "${msg}  ARTIST:      '${_print_tag_set__tags[ARTIST]}'"
 	echo "${msg}  ALBUM:       '${_print_tag_set__tags[ALBUM]}'"
+	echo "${msg}  DATE:        '${_print_tag_set__tags[DATE]}'"
 	echo "${msg}  TITLE:       '${_print_tag_set__tags[TITLE]}'"
 	echo "${msg}  GENRE:       '${_print_tag_set__tags[GENRE]}'"
 	echo "${msg}  TRACKNUMBER: '${_print_tag_set__tags[TRACKNUMBER]}'"
@@ -637,6 +643,7 @@ flac_fill_tag_set() {
 	_flac_fill_tag_set__tags[file]="${file}"
 	_flac_fill_tag_set__tags[ARTIST]="$(flac_get_tag 'ARTIST' "${file}" 'required')"
 	_flac_fill_tag_set__tags[ALBUM]="$(flac_get_tag 'ALBUM' "${file}" 'required')"
+	_flac_fill_tag_set__tags[DATE]="$(flac_get_tag 'DATE' "${file}" 'optional')"
 	_flac_fill_tag_set__tags[TITLE]="$(flac_get_tag 'TITLE' "${file}" 'required')"
 	_flac_fill_tag_set__tags[GENRE]="$(flac_get_tag 'GENRE' "${file}" 'optional')"
 	_flac_fill_tag_set__tags[TRACKNUMBER]="$(flac_get_tag "TRACKNUMBER" "${file}" 'required')"
@@ -661,6 +668,7 @@ flac_write_tag_set() {
 
 	"${metaflac}" --preserve-modtime --remove-tag='ARTIST' --set-tag="ARTIST=${_flac_write_tag_set__tags[ARTIST]}" "${file}"
 	"${metaflac}" --preserve-modtime --remove-tag='ALBUM' --set-tag="ALBUM=${_flac_write_tag_set__tags[ALBUM]}" "${file}"
+	"${metaflac}" --preserve-modtime --remove-tag='DATE' --set-tag="DATE=${_flac_write_tag_set__tags[DATE]}" "${file}"
 	"${metaflac}" --preserve-modtime --remove-tag='TITLE' --set-tag="TITLE=${_flac_write_tag_set__tags[TITLE]}" "${file}"
 	"${metaflac}" --preserve-modtime --remove-tag='GENRE' --set-tag="GENRE=${_flac_write_tag_set__tags[GENRE]}" "${file}"
 	"${metaflac}" --preserve-modtime --remove-tag='TRACKNUMBER' --set-tag="TRACKNUMBER=${_flac_write_tag_set__tags[TRACKNUMBER]}" "${file}"
@@ -781,8 +789,9 @@ make_m3u_header() {
 	local info=${1:-}
 	local artist=${2:-}
 	local album=${3:-}
-	local genre=${4:-}
-	local cddb=${5:-}
+	local date=${4:-}
+	local genre=${5:-}
+	local cddb=${6:-}
 
 	{
 		echo '#EXTM3U'
@@ -792,9 +801,15 @@ make_m3u_header() {
 		if [[ "${artist}" ]]; then
 			echo "#EXTART: ${artist}"
 		fi
-		if [[ "${album}" ]]; then
+
+		if [[ "${album}" && "${date}" ]]; then
+			echo "#EXTALB: ${album} (${date})"
+		elif [[ "${album}" ]]; then
 			echo "#EXTALB: ${album}"
+		elif [[ "${date}" ]]; then
+			echo "#EXTALB: - (${date})"
 		fi
+
 		if [[ "${genre}" ]]; then
 			echo "#EXTGENRE: ${genre}"
 		fi
@@ -809,17 +824,22 @@ test_make_m3u_header() {
 	local info="M3U header test - ${start_time}"
 	local artist='Buddy Guy'
 	local album='Born to Play Guitar'
+	local date='2015'
 	local genre='BLUES'
 	local cddb='c10de60e'
 
 	echo "--- ${FUNCNAME[0]} test-1 ---"
-	make_m3u_header "${info}" "${artist}" "${album}" "${genre}" "${cddb}"
+	make_m3u_header "${info}" "${artist}" "${album}" "${date}" "${genre}" "${cddb}"
 
 	echo "--- ${FUNCNAME[0]} test-2 ---"
-	make_m3u_header "${info}" '' '' "${genre}" "${cddb}"
+	make_m3u_header "${info}" '' '' '' "${genre}" "${cddb}"
 
 	echo "--- ${FUNCNAME[0]} test-3 ---"
 	make_m3u_header "${info}" "${artist}"
+	echo '--------------'
+
+	echo "--- ${FUNCNAME[0]} test-4 ---"
+	make_m3u_header "${info}" "${artist}" '' "${date}" "${genre}" "${cddb}"
 	echo '--------------'
 }
 
@@ -863,6 +883,10 @@ write_m3u_playlist() {
 		} >&2
 	fi
 
+	if [[ ! ${tags[DATE]} ]]; then
+		echo "${script_name}: No DATE tag found in '${files_array[0]}'" >&2
+	fi
+
 	if [[ ! ${tags[CDDB]} ]]; then
 		echo "${script_name}: No CDDB tag found in '${files_array[0]}'" >&2
 	fi
@@ -876,7 +900,7 @@ write_m3u_playlist() {
 
 	{
 		make_m3u_header "AUDX ${type^^} playlist" "${tags[ARTIST]}" \
-			"${tags[ALBUM]}" "${tags[GENRE]}" "${tags[CDDB]}"
+			"${tags[ALBUM]}" "${tags[DATE]}" "${tags[GENRE]}" "${tags[CDDB]}"
 		printf "%s\n" "${files_array[@]}"
 	} > "${out_file}"
 
