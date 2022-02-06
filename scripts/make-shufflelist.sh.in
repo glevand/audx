@@ -255,7 +255,7 @@ if (( ${good_count} < ${count} )); then
 	exit 1
 fi
 
-make_m3u_header "AUDX Shuffle List - ${start_time}" 'Various' '' '' '' > "${out_file}"
+make_m3u_header "AUDX Shuffle List - ${start_time}" 'Various' "$(date +%Y.%m.%d)" '' '' '' > "${out_file}"
 
 for (( i = 0; i < ${count}; i++ )); do
 	for (( j = 0; ; j++ )); do
