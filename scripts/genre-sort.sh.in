@@ -206,8 +206,8 @@ for file in "${files_array[@]}"; do
 	tag="${tag,,}"-
 
 	if [[ ! "${tag}" ]]; then
-		echo "${script_name}: INFO: No GENRE tag: '${file}'."
-		continue
+		echo "${script_name}: ERROR: No GENRE tag: '${file}'."
+		exit 1
 	fi
 
 	rel_path="${dir#"${top_dir}"}"
