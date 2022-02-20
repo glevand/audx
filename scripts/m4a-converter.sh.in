@@ -131,9 +131,9 @@ setup_p_script() {
 	out_file="${output_dir}/${triple[ARTIST]}/${triple[ALBUM]}/${triple[TITLE]}.m4a"
 
 	if [[ ! ${clobber} && -e "${out_file}" ]]; then
-# 		if [[ ${debug} ]]; then
-# 			echo "${id}: File exists '${out_file}'" >&2
-# 		fi
+		if [[ ${verbose} ]]; then
+			echo "${id}: File exists '${out_file}'" >&2
+		fi
 		return
 	fi
 
