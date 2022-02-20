@@ -182,6 +182,7 @@ str_clean_common() {
 	str_out="${str_out//[æàäåáã]/a}"
 	str_out="${str_out//[çć]/c}"
 	str_out="${str_out//[èéê]/e}"
+	str_out="${str_out//[ī]/i}"
 	str_out="${str_out//[ł]/l}"
 	str_out="${str_out//[ñ]/n}"
 	str_out="${str_out//[öóð]/o}"
