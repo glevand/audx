@@ -12,6 +12,7 @@ usage() {
 		echo "  -b --bitrate     - Encoding bitrate. Default: '${bitrate}'."
 		echo "  -o --output-dir  - Output directory. Default: '${output_dir}'."
 		echo "  -c --clobber     - Overwrite existing files. Default: '${clobber}'."
+		echo "  -e --exists      - Print existing files. Default: '${exists}'."
 		echo "  -k --keep-tmp    - Keep tmp directory. Default: '${keep_tmp_dir}'."
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution. Default: '${verbose}'."
@@ -36,8 +37,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="b:o:ckhvgd"
-	local long_opts="bitrate:,output-dir:,clobber,keep-tmp,help,verbose,debug,dry-run"
+	local short_opts="b:o:cekhvgd"
+	local long_opts="bitrate:,output-dir:,clobber,exists,keep-tmp,help,verbose,debug,dry-run"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -57,6 +58,10 @@ process_opts() {
 			;;
 		-c | --clobber)
 			clobber=1
+			shift
+			;;
+		-e | --exists)
+			exists=1
 			shift
 			;;
 		-k | --keep-tmp)
@@ -131,7 +136,7 @@ setup_p_script() {
 	out_file="${output_dir}/${triple[ARTIST]}/${triple[ALBUM]}/${triple[TITLE]}.m4a"
 
 	if [[ ! ${clobber} && -e "${out_file}" ]]; then
-		if [[ ${verbose} ]]; then
+		if [[ ${exists} || ${verbose} ]]; then
 			echo "${id}: File exists '${out_file}'" >&2
 		fi
 		return
@@ -230,6 +235,7 @@ source "${SCRIPT_TOP}/audx-lib.sh"
 bitrate='328k'
 output_dir="/tmp/audx-m4a-${start_time}"
 clobber=''
+exists=''
 usage=''
 verbose=''
 debug=''
@@ -327,7 +333,11 @@ esac
 in_count="${#files_array[@]}"
 
 echo "${script_name}: INFO: Writing files to '${output_dir}'." >&2
-echo "${script_name}: INFO: Processing ${in_count} input files." >&2
+if [[ ${dry_run} ]]; then
+	echo "${script_name}: INFO: Processing ${in_count} input files (DRY RUN)." >&2
+else
+	echo "${script_name}: INFO: Processing ${in_count} input files." >&2
+fi
 
 tmp_dir="$(mktemp --tmpdir --directory ${script_name}.XXXX)"
 
