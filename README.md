@@ -314,6 +314,22 @@ Info:
   Home: https://github.com/glevand/audx
 ```
 
+### batch-shufflelist.sh - Runs make-shufflelist.sh as batch.
+
+```
+batch-shufflelist.sh - Batch create M3U shuffle lists.
+Usage: batch-shufflelist.sh [flags] top-dir
+Option flags:
+  -h --help        - Show this help and exit.
+  -v --verbose     - Verbose execution.
+  -g --debug       - Extra verbose execution.
+Inputs:
+  top-dir          - ''
+Info:
+  AUDX batch-shufflelist.sh
+  Project Home: https://github.com/glevand/audx
+```
+
 ## Licence & Usage
 
 All files in the [audx project](https://github.com/glevand/audx), unless
