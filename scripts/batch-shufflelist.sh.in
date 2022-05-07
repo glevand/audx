@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+
+usage() {
+	local old_xtrace
+	old_xtrace="$(shopt -po xtrace || :)"
+	set +o xtrace
+
+	{
+		echo "${script_name} - Batch create M3U shuffle lists."
+		echo "Usage: ${script_name} [flags] top-dir"
+		echo 'Option flags:'
+		echo "  -h --help        - Show this help and exit."
+		echo "  -v --verbose     - Verbose execution."
+		echo "  -g --debug       - Extra verbose execution."
+		echo 'Inputs:'
+		echo "  top-dir          - '${top_dir}'"
+		echo 'Info:'
+		print_project_info
+	} >&2
+	eval "${old_xtrace}"
+}
+
+process_opts() {
+	local short_opts="hvg"
+	local long_opts="help,verbose,debug"
+
+	local opts
+	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
+
+	eval set -- "${opts}"
+
+	while true ; do
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
+		case "${1}" in
+		-h | --help)
+			usage=1
+			shift
+			;;
+		-v | --verbose)
+			verbose=1
+			shift
+			;;
+		-g | --debug)
+			verbose=1
+			debug=1
+			set -x
+			shift
+			;;
+		--)
+			shift
+			if [[ ${1:-} ]]; then
+				top_dir="${1}"
+				shift
+			fi
+			extra_args="${*}"
+			break
+			;;
+		*)
+			echo "${script_name}: ERROR: Internal opts: '${*}'" >&2
+			exit 1
+			;;
+		esac
+	done
+}
+
+test_album_file() {
+	local album_file="${1}"
+	local start="${2}"
+	local end="${3}"
+
+# 	echo "" >&2
+# 	echo "${FUNCNAME[0]}>------------------------" >&2
+# 	echo "${FUNCNAME[0]}: album  = '${album_file}'" >&2
+# 	echo "${FUNCNAME[0]}: start  = '${start}'" >&2
+# 	echo "${FUNCNAME[0]}: end    = '${end}'" >&2
+
+	local first_file
+	first_file="$(find_first_file "${album_file%/*}" "${start}" "${end}" '')"
+
+	if [[ ${first_file} ]]; then
+		if [[ ${verbose} ]]; then
+			echo "${FUNCNAME[0]}: Add '${album_file}'" >&2
+		fi
+		echo "${album_file}"
+	fi
+
+# 	echo "${FUNCNAME[0]}: out = @${first_file}@" >&2
+# 	echo "${FUNCNAME[0]}<------------------------" >&2
+}
+
+#===============================================================================
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
+script_name="${0##*/}"
+
+SECONDS=0
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+
+real_source="$(realpath "${BASH_SOURCE}")"
+SCRIPT_TOP="$(realpath "${SCRIPT_TOP:-${real_source%/*}}")"
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+
+set -eE
+set -o pipefail
+set -o nounset
+
+source "${SCRIPT_TOP}/audx-lib.sh"
+
+usage=''
+verbose=''
+debug=''
+
+top_dir="${top_dir:-${collection_top:-}}"
+
+process_opts "${@}"
+
+if [[ ${usage} ]]; then
+	usage
+	trap - EXIT
+	exit 0
+fi
+
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
+fi
+
+top_dir="$(realpath --canonicalize-existing "${top_dir}")"
+
+check_top_dir "${top_dir}"
+top_dir="$(realpath -e "${top_dir}")"
+
+cd "${top_dir}"
+
+readarray -t album_array < <(ls -1 .)
+
+{
+	echo "${script_name}: INFO: Found ${#album_array[@]} directories."
+	echo
+} >&2
+
+for (( i = 0; i < ${#album_array[@]}; i++ )); do
+	# echo "${i}: '${album_array[i]}'"
+	(cd "${album_array[i]}" && "${SCRIPT_TOP}/make-shufflelist.sh" -v -a -o'shufflelist.m3u' .)
+done
+
+trap "on_exit 'Success'" EXIT
+exit 0
