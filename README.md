@@ -2,6 +2,12 @@
 
 Digital audio utilities.
 
+* [Cassette Rip Utilities](#cassette-rip-utilities)
+* [FLAC File Utilities](#flac-file-utilities)
+* [M4A File Utilities](#m4a-file-utilities)
+* [Music Collection Utilities](#music-collection-utilities)
+* [License & Usage](#licence--usage)
+
 ## Cassette Rip Utilities
 
 ## rip-c - Rip audio cassettes.
@@ -30,7 +36,7 @@ Option steps:
   -3 --encode-flac  - Encode to flac.
 Info:
   AUDX rip-c.sh
-  Home: https://github.com/glevand/audx
+  Project Home: https://github.com/glevand/audx
 ```
 
 ### rip-c-to-flac
@@ -43,7 +49,7 @@ Option flags:
   -g --debug       - Extra verbose execution.
 Info:
   AUDX rip-c-to-flac.sh
-  Home: https://github.com/glevand/audx
+  Project Home: https://github.com/glevand/audx
 ```
 
 ### rip-c-flac-tags
@@ -56,7 +62,7 @@ Option flags:
   -g --debug       - Extra verbose execution.
 Info:
   AUDX rip-c-flac-tags.sh
-  Home: https://github.com/glevand/audx
+  Project Home: https://github.com/glevand/audx
 ```
 
 ### rip-c Equipment
@@ -70,6 +76,49 @@ Info:
 
 ## FLAC File Utilities
 
+### flac-print-tags - Recursively print FLAC metadata tags.
+
+```
+flac-print-tags.sh - Recursively print FLAC metadata tags.
+Usage: flac-print-tags.sh [flags] <top-dir|file>
+Option flags:
+  -a --all     - Print the VORBIS_COMMENT block.
+  -h --help    - Show this help and exit.
+  -v --verbose - Verbose execution.
+  -g --debug   - Extra verbose execution.
+Info:
+  AUDX flac-print-tags.sh
+  Project Home: https://github.com/glevand/audx
+```
+
+### flac-write-tag - Write new FLAC metadata tags.
+
+```
+flac-write-tag.sh - Write new FLAC metadata tags using --tag, or --tag-name and --tag-value.
+Usage: flac-write-tag.sh [flags] <top-dir|file>
+Option flags:
+  -t --tag         - Full tag 'NAME=VALUE'. An empty VALUE will delete tag.  Default=''.
+  -h --help        - Show this help and exit.
+  -v --verbose     - Verbose execution.
+  -g --debug       - Extra verbose execution.
+  -d --dry-run     - Dry run, don't modify files.
+Common tags:
+  ARTIST
+  ALBUM
+  TITLE
+  GENRE
+  DATE
+  TRACKNUMBER
+  TRACKTOTAL
+Examples:
+  flac-write-tag.sh.in  --tag='ALBUM=No Jacket Required' "${collection}/Phil Collins/No Jacket Required"
+  flac-write-tag.sh.in  --tag='ARTIST=Ultravox' "${collection}/Ultravox"
+  flac-write-tag.sh.in  --tag='COMMENT=' "${collection}/Bruce Cockburn/Stealing Fire"
+Info:
+  AUDX flac-write-tag.sh
+  Project Home: https://github.com/glevand/audx
+```
+
 ### flac-add-tracktotal - Add FLAC tracktotal metadata tags.
 
 ```
@@ -82,7 +131,7 @@ Option flags:
   -d --dry-run     - Dry run, don't modify files.
 Info:
   AUDX flac-add-tracktotal.sh
-  Home: https://github.com/glevand/audx
+  Project Home: https://github.com/glevand/audx
 ```
 
 ### flac-clean-tags - Clean FLAC metadata tags using standard rules.
@@ -97,7 +146,7 @@ Option flags:
   -d --dry-run     - Dry run, don't modify files.
 Info:
   AUDX flac-clean-tags.sh
-  Home: https://github.com/glevand/audx
+  Project Home: https://github.com/glevand/audx
 ```
 
 ### flac-meta-rename - Rename files based on FLAC metadata tags.
@@ -113,22 +162,7 @@ Option flags:
   -d --dry-run - Dry run, don't rename files.
 Info:
   AUDX flac-meta-rename.sh
-  Home: https://github.com/glevand/audx
-```
-
-### flac-print-tags - Recursively print FLAC metadata tags.
-
-```
-flac-print-tags.sh - Recursively print FLAC metadata tags.
-Usage: flac-print-tags.sh [flags] <top-dir|file>
-Option flags:
-  -a --all     - Print the VORBIS_COMMENT block.
-  -h --help    - Show this help and exit.
-  -v --verbose - Verbose execution.
-  -g --debug   - Extra verbose execution.
-Info:
-  AUDX flac-print-tags.sh
-  Home: https://github.com/glevand/audx
+  Project Home: https://github.com/glevand/audx
 ```
 
 ### flac-tag-switcher - Swap FLAC title/artist tags.
@@ -145,55 +179,23 @@ Option flags:
   -g --debug      - Extra verbose execution.
 Info:
   AUDX flac-tag-switcher.sh
-  Home: https://github.com/glevand/audx
+  Project Home: https://github.com/glevand/audx
 ```
 
-### flac-write-tag - Write new FLAC metadata tags.
+## M4A File Utilities
+
+### m4a-print-tags - Recursively print M4A metadata tags.
 
 ```
-flac-write-tag.sh - Write new FLAC metadata tags using --tag, or --tag-name and --tag-value.
-Usage: flac-write-tag.sh [flags] <top-dir|file>
+m4a-print-tags.sh - Recursively print M4A metadata tags.
+Usage: m4a-print-tags.sh.in [flags] <top-dir|file>
 Option flags:
-  -t --tag         - Full tag 'NAME=VALUE'. Default=''.
-  -n --tag-name    - Tag name. Default=''.
-  -l --tag-value   - Tag value. Default=''.'
-  -h --help        - Show this help and exit.
-  -v --verbose     - Verbose execution.
-  -g --debug       - Extra verbose execution.
-  -d --dry-run     - Dry run, don't modify files.
-Common TAGs:
-  ARTIST
-  ALBUM
-  TITLE
-  DATE
-  TRACKNUMBER
-  TRACKTOTAL
-Examples:
-  flac-write-tag.sh "${collection}/Phil Collins/No Jacket Required" --tag='ALBUM=No Jacket Required'
-  flac-write-tag.sh "${collection}/Ultravox" --tag-name='ARTIST' --tag-value='Ultravox'
+  -h --help    - Show this help and exit.
+  -v --verbose - Verbose execution.
+  -g --debug   - Extra verbose execution.
 Info:
-  AUDX flac-write-tag.sh
-  Home: https://github.com/glevand/audx
-```
-
-## Music Collection Utilities
-
-### check-vfat-names - Check vfat file names.
-
-Recursively check for valid vfat file names.
-
-```
-check-vfat-names.sh - Check vfat file names.
-Usage: check-vfat-names.sh [flags] top-dir
-Option flags:
-  -d --vfat-dir    - vfat test directory. Default: ''.
-  -c --clean-names - Clean file names using standard rules. Default: ''.
-  -h --help        - Show this help and exit.
-  -v --verbose     - Verbose execution.
-  -g --debug       - Extra verbose execution.
-Info:
-  AUDX check-vfat-names.sh
-  Home: https://github.com/glevand/audx
+  AUDX m4a-print-tags.sh.in
+  Project Home: https://github.com/glevand/audx
 ```
 
 ### m4a-converter - Convert FLAC files to m4a AAC encoded files.
@@ -213,7 +215,7 @@ Input:
   top-dir          - '/home/music-collection'
 Info:
   AUDX m4a-converter.sh
-  Home: https://github.com/glevand/audx
+  Project Home: https://github.com/glevand/audx
 ```
 
 Typical CPU usage when running the m4a-converter script.
@@ -232,6 +234,26 @@ Option flags:
 Input:
 Info:
   AUDX m4a-play.sh
+  Project Home: https://github.com/glevand/audx
+```
+
+## Music Collection Utilities
+
+### check-vfat-names - Check vfat file names.
+
+Recursively check for valid vfat file names.
+
+```
+check-vfat-names.sh - Check vfat file names.
+Usage: check-vfat-names.sh [flags] top-dir
+Option flags:
+  -d --vfat-dir    - vfat test directory. Default: ''.
+  -c --clean-names - Clean file names using standard rules. Default: ''.
+  -h --help        - Show this help and exit.
+  -v --verbose     - Verbose execution.
+  -g --debug       - Extra verbose execution.
+Info:
+  AUDX check-vfat-names.sh
   Project Home: https://github.com/glevand/audx
 ```
 
@@ -270,7 +292,7 @@ Inputs:
   top-dir          - '/home/music-collection'
 Info:
   AUDX make-playlists.sh
-  Home: https://github.com/glevand/audx
+  Project Home: https://github.com/glevand/audx
 ```
 
 ### make-age-list - Make age lists of an album collection.
@@ -286,7 +308,7 @@ Option flags:
   -g --debug      - Extra verbose execution.
 Info:
   AUDX make-age-list.sh
-  Home: https://github.com/glevand/audx
+  Project Home: https://github.com/glevand/audx
 ```
 
 ### make-shufflelist.sh - Create an m3u playlist of random albums.
@@ -311,7 +333,7 @@ Date Specifiers:
   'last Thursday'
 Info:
   AUDX make-shufflelist.sh
-  Home: https://github.com/glevand/audx
+  Project Home: https://github.com/glevand/audx
 ```
 
 ### batch-shufflelist.sh - Runs make-shufflelist.sh as batch.
@@ -327,6 +349,22 @@ Inputs:
   top-dir          - ''
 Info:
   AUDX batch-shufflelist.sh
+  Project Home: https://github.com/glevand/audx
+```
+
+### genre-sort.sh - Sort FLAC files base on GENRE metadata tag.
+
+```
+genre-sort.sh.in - Sort FLAC files base on GENRE metadata tag.
+Usage: genre-sort.sh [flags] <top-dir>
+Option flags:
+  -o --output-dir - Output directory. Default: '/tmp/audx-sort'.
+  -c --copy-cmd   - Copy command. Default='cp -avi --link'.
+  -h --help       - Show this help and exit.
+  -v --verbose    - Verbose execution.
+  -g --debug      - Extra verbose execution.
+Info:
+  AUDX genre-sort.sh
   Project Home: https://github.com/glevand/audx
 ```
 
