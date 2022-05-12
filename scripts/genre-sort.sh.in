@@ -16,7 +16,6 @@ usage() {
 		echo "  -h --help       - Show this help and exit."
 		echo "  -v --verbose    - Verbose execution."
 		echo "  -g --debug      - Extra verbose execution."
-		echo "  -d --dry-run    - Dry run, don't modify files."
 		echo "Info:"
 		print_project_info
 	} >&2
@@ -65,10 +64,6 @@ process_opts() {
 			set -x
 			shift
 			;;
-		-d | --dry-run)
-			dry_run=1
-			shift
-			;;
 		--)
 			shift
 			top_dir="${1:-}"
@@ -114,7 +109,6 @@ copy_cmd='cp -avi --link'
 usage=''
 verbose=''
 debug=''
-dry_run=''
 
 process_opts "${@}"
 
@@ -158,11 +152,7 @@ readarray -t files_array < <(find "${top_dir}" -type f -name '01-*.flac' | sort 
 	|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 	kill -SIGUSR1 $$; } )
 
-if [[ ${dry_run} ]]; then
-	echo "${script_name}: INFO: Processing ${#files_array[@]} files (DRY RUN)."
-else
-	echo "${script_name}: INFO: Processing ${#files_array[@]} files."
-fi
+echo "${script_name}: INFO: Processing ${#files_array[@]} files."
 
 output_dir="$(realpath --canonicalize-missing "${output_dir}")"
 copy_file="${output_dir}/genre-copy.sh"
