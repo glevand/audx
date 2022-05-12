@@ -102,15 +102,30 @@ print_playing() {
 	local album=${2}
 	local fall_back=${3}
 
+	echo
 	if [[ ${artist} && ${album} ]]; then
-		echo "${script_name}: Playing: ${artist}, ${album}"
+		echo "Playing: ${artist}, ${album}"
 	elif [[ ${artist} ]]; then
-		echo "${script_name}: Playing: ${artist}"
+		echo "Playing: ${artist}"
 	elif [[ ${album} ]]; then
-		echo "${script_name}: Playing: ${album}"
+		echo "Playing: ${album}"
 	else
-		echo "${script_name}: Playing: ${fall_back}"
+		echo "Playing: ${fall_back}"
 	fi
+}
+
+print_tracks() {
+	local -n _print_tracks__tracks_array="${1}"
+	local in_count="${#_print_tracks__tracks_array[@]}"
+
+	local id
+	local file
+
+	for (( id = 1; id <= ${in_count}; id++ )); do
+		file="${_print_tracks__tracks_array[$(( id - 1 ))]}"
+		echo "${id}/${in_count}: '${file}'"
+	done
+	echo
 }
 
 play_tracks() {
@@ -242,6 +257,7 @@ play_playlist() {
 	fi
 
 	print_playing "${artist}" "${album}" "'${playlist_file}'"
+	print_tracks tracks_array
 	play_tracks tracks_array "${files_prefix}"
 }
 
@@ -261,6 +277,7 @@ play_top_dir() {
 	if [[ ${#tracks_array[@]} != 0 ]]; then
 		m4a_fill_tag_set "${tracks_array[0]}" tags
 		print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "'${top_dir}'"
+		print_tracks tracks_array
 	fi
 
 	play_tracks tracks_array ''
