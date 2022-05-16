@@ -389,7 +389,12 @@ if (( loop_counter != 0 )); then
 # 	moreutils_parallel "${p_script_dir}/${bucket}"
 fi
 
-echo "${script_name}: INFO: Wrote ${out_counter} m4a files to '${output_dir}'" >&2
+echo "${script_name}: INFO: Wrote ${out_counter} m4a files to '${output_dir}'." >&2
+
+if (( out_counter != 0 )); then
+	sec_per_file="$(divided_by "${SECONDS}" "${out_counter}")"
+	echo "${script_name}: INFO: Averaged ${sec_per_file} seconds per file." >&2
+fi
 
 trap "on_exit 'Success'" EXIT
 exit 0
