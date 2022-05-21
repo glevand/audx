@@ -10,11 +10,9 @@ Digital audio utilities.
 
 ## Cassette Rip Utilities
 
-## rip-c - Rip audio cassettes.
-
 Record, split, and re-encode analog audio from cassette or vinyl.
 
-### rip-c
+### rip-c - Rip audio cassettes.
 
 ```
 rip-c.sh - Rip audio cassettes.
@@ -39,7 +37,8 @@ Info:
   Project Home: https://github.com/glevand/audx
 ```
 
-### rip-c-to-flac
+### rip-c-to-flac - Encode SOX files as FLAC.
+
 ```
 rip-c-to-flac.sh - Encode SOX files as FLAC.
 Usage: rip-c-to-flac.sh [flags] top-dir
@@ -52,7 +51,8 @@ Info:
   Project Home: https://github.com/glevand/audx
 ```
 
-### rip-c-flac-tags
+### rip-c-flac-tags - Add FLAC metadata tags to rip-c files.
+
 ```
 rip-c-flac-tags.sh - Add FLAC metadata tags to rip-c files.
 Usage: rip-c-flac-tags.sh [flags] top-dir
@@ -75,6 +75,8 @@ Info:
 * [Sony MDR-DS6000 Wireless Headphones](https://www.crutchfield.com/S-qvDLUN72Ckb/p_158MDR6000/Sony-MDR-DS6000.html).
 
 ## FLAC File Utilities
+
+Utilities for working with FLAC encoded audio files.
 
 ### flac-print-tags - Recursively print FLAC metadata tags.
 
@@ -184,6 +186,8 @@ Info:
 
 ## M4A File Utilities
 
+Utilities for working with AAC encoded MPEG-4 audio files.
+
 ### m4a-print-tags - Recursively print M4A metadata tags.
 
 ```
@@ -198,10 +202,10 @@ Info:
   Project Home: https://github.com/glevand/audx
 ```
 
-### m4a-converter - Convert FLAC files to m4a AAC encoded files.
+### m4a-converter - Convert FLAC files to AAC encoded M4A files.
 
 ```
-m4a-converter.sh - Convert FLAC files to m4a AAC encoded files suitable for download to Walkman type devices.
+m4a-converter.sh - Convert FLAC files to AAC encoded M4A files suitable for download to Walkman type devices..
 Usage: m4a-converter.sh [flags] <top-dir | m3u playlist | flac file>
 Option flags:
   -b --bitrate     - Encoding bitrate. Default: '328k'.
@@ -238,6 +242,8 @@ Info:
 ```
 
 ## Music Collection Utilities
+
+Utilities for managing a collection of audio files.
 
 ### check-vfat-names - Check vfat file names.
 
