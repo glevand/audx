@@ -6,7 +6,7 @@ usage() {
 	set +o xtrace
 
 	{
-		echo "${script_name} - Convert FLAC files to m4a AAC encoded files suitable for download to Walkman type devices."
+		echo "${script_name} - Convert FLAC files to AAC encoded M4A files suitable for download to Walkman type devices."
 		echo "Usage: ${script_name} [flags] <top-dir | M3U playlist | flac file>"
 		echo "Option flags:"
 		echo "  -b --bitrate     - Encoding bitrate. Default: '${bitrate}'."
