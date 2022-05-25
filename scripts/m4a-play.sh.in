@@ -296,8 +296,7 @@ play_top_dir() {
 
 	local -a tracks_array
 
-# FIXME: search for flac files also...
-	readarray -t tracks_array < <(find "${top_dir}" -type f -name '*.m4a' | sort \
+	readarray -t tracks_array < <(find "${top_dir}" -type f -name '*.flac' -o -name '*.m4a' | sort \
 		|| { echo "${script_name}: ERROR: tracks_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 		kill -SIGUSR1 $$; } )
 
@@ -306,7 +305,7 @@ play_top_dir() {
 	if [[ ${#tracks_array[@]} != 0 ]]; then
 		local term_line
 
-		m4a_fill_tag_set "${tracks_array[0]}" tags
+		fill_tag_set "${tracks_array[0]}" tags
 		print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "'${top_dir}'" term_line
 		print_tracks  tracks_array '' "${term_line}"
 	fi
