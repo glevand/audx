@@ -101,30 +101,53 @@ print_playing() {
 	local artist=${1}
 	local album=${2}
 	local fall_back=${3}
+	local -n _print_playing__term_line="${4}"
+
 
 	echo
 	if [[ ${artist} && ${album} ]]; then
-		echo "Playing: ${artist}, ${album}"
+		str="Playing: ${artist}, ${album}"
 	elif [[ ${artist} ]]; then
-		echo "Playing: ${artist}"
+		str="Playing: ${artist}"
 	elif [[ ${album} ]]; then
-		echo "Playing: ${album}"
+		str="Playing: ${album}"
 	else
-		echo "Playing: ${fall_back}"
+		str="Playing: ${fall_back}"
 	fi
+	echo "${str}"
+	_print_playing__term_line="${str//[[:print:]]/-}"
+	echo "${_print_playing__term_line}"
 }
 
 print_tracks() {
 	local -n _print_tracks__tracks_array="${1}"
+	local files_prefix="${2}"
+	local term_line=${3}
+
 	local in_count="${#_print_tracks__tracks_array[@]}"
 
 	local id
 	local file
+	local ext
 
 	for (( id = 1; id <= ${in_count}; id++ )); do
 		file="${_print_tracks__tracks_array[$(( id - 1 ))]}"
-		echo "${id}/${in_count}: '${file}'"
+		ext="${file##*.}"
+
+#		echo "${id}/${in_count}: '${file}'"
+
+		local title
+		if [[ "${ext}" = 'm4a' ]]; then
+			title="$(m4a_get_tag 'TITLE' "${files_prefix}${file}" 'required')"
+			echo "${id}/${in_count}: ${title}"
+		elif [[  "${ext}" = 'flac' ]]; then
+			title="$(flac_get_tag 'TITLE' "${files_prefix}${file}" 'required')"
+			echo "${id}/${in_count}: ${title}"
+		else
+			echo "${id}/${in_count}: Unknown file type '${files_prefix}${file}'." >&2
+		fi
 	done
+	echo "${term_line}"
 	echo
 }
 
@@ -146,16 +169,19 @@ play_tracks() {
 	local id
 	local file
 	local ext
+	local -A tags
 
 	for (( id = 1; id <= ${in_count}; id++ )); do
 		file="${_play_tracks__tracks_array[$(( id - 1 ))]}"
 		ext="${file##*.}"
 
 		if [[ "${ext}" = 'm4a' ]]; then
-			echo "${id}/${in_count}: '${files_prefix}${file}'"
+			m4a_fill_tag_set "${files_prefix}${file}" tags
+			echo "${id}/${in_count}: ${tags[ARTIST]}, ${tags[ALBUM]}, ${tags[TITLE]}"
 			${ffplay} -loglevel quiet -nodisp -autoexit "${files_prefix}${file}" > /dev/null || :
 		elif [[  "${ext}" = 'flac' ]]; then
-			echo "${id}/${in_count}: '${files_prefix}${file}'"
+			flac_fill_tag_set "${files_prefix}${file}" tags
+			echo "${id}/${in_count}: ${tags[ARTIST]}, ${tags[ALBUM]}, ${tags[TITLE]}"
 			${sox_play} --no-show-progress "${files_prefix}${file}"
 		else
 			echo "${id}/${in_count}: Unknown file type '${files_prefix}${file}'." >&2
@@ -163,18 +189,19 @@ play_tracks() {
 	done
 }
 
-play_m4a() {
-	local m4a_file="${1}"
+play_file() {
+	local in_file="${1}"
 
-	check_file 'm4a file' "${m4a_file}"
+	check_file 'input file' "${in_file}"
 
-	local -a tracks_array=("${m4a_file}")
+	local -a tracks_array=("${in_file}")
 
 	local -A tags
-	m4a_fill_tag_set "${m4a_file}" tags
+	fill_tag_set "${in_file}" tags
 
-	print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "'${m4a_file}'"
-	play_tracks tracks_array ''
+	local term_line
+	print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "'${in_file}'" term_line
+	play_tracks tracks_array '' "${term_line}"
 }
 
 play_playlist() {
@@ -256,8 +283,9 @@ play_playlist() {
 		echo "${script_name}: ERROR: Unknown files_prefix: playlist = '${playlist_file}', track = '${tracks_array[0]}'" >&2
 	fi
 
-	print_playing "${artist}" "${album}" "'${playlist_file}'"
-	print_tracks tracks_array
+	local term_line
+	print_playing "${artist}" "${album}" "'${playlist_file}'" term_line
+	print_tracks  tracks_array "${files_prefix}" "${term_line}"
 	play_tracks tracks_array "${files_prefix}"
 }
 
@@ -268,6 +296,7 @@ play_top_dir() {
 
 	local -a tracks_array
 
+# FIXME: search for flac files also...
 	readarray -t tracks_array < <(find "${top_dir}" -type f -name '*.m4a' | sort \
 		|| { echo "${script_name}: ERROR: tracks_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 		kill -SIGUSR1 $$; } )
@@ -275,9 +304,11 @@ play_top_dir() {
 	local -A tags
 
 	if [[ ${#tracks_array[@]} != 0 ]]; then
+		local term_line
+
 		m4a_fill_tag_set "${tracks_array[0]}" tags
-		print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "'${top_dir}'"
-		print_tracks tracks_array
+		print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "'${top_dir}'" term_line
+		print_tracks  tracks_array '' "${term_line}"
 	fi
 
 	play_tracks tracks_array ''
@@ -325,6 +356,8 @@ elif [[ -f "${arg_1}" && "${arg_1##*.}" == 'm3u' ]]; then
 	input_type='playlist'
 elif [[ -f "${arg_1}" && "${arg_1##*.}" == 'm4a' ]]; then
 	input_type='m4a_file'
+elif [[ -f "${arg_1}" && "${arg_1##*.}" == 'flac' ]]; then
+	input_type='flac_file'
 fi
 
 if [[ ${usage} ]]; then
@@ -360,6 +393,9 @@ check_program "ffplay" "${ffplay}"
 sox_play="${sox_play:-play}"
 check_program "sox_play" "${sox_play}"
 
+metaflac="${metaflac:-metaflac}"
+check_program "metaflac" "${metaflac}"
+
 if [[ ! ${arg_1} ]]; then
 	set +o xtrace
 	echo "${script_name}: ERROR: No input files." >&2
@@ -370,8 +406,8 @@ fi
 arg_1="$(realpath -e "${arg_1}")"
 
 case "${input_type}" in
-m4a_file)
-	play_m4a "${arg_1}"
+flac_file | m4a_file)
+	play_file "${arg_1}"
 	;;
 playlist)
 	play_playlist "${arg_1}"
