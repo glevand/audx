@@ -780,6 +780,22 @@ flac_meta_path() {
 	echo "${dest}"
 }
 
+fill_tag_set() {
+	local file="${1}"
+	local -n _fill_tag_set__tags="${2}"
+
+	local ext="${file##*.}"
+
+	if [[ "${ext}" = 'm4a' ]]; then
+		m4a_fill_tag_set "${file}" _fill_tag_set__tags
+	elif [[  "${ext}" = 'flac' ]]; then
+		flac_fill_tag_set "${file}" _fill_tag_set__tags
+	else
+		echo "${FUNCNAME}: Unknown file type '${file}'." >&2
+	fi
+
+}
+
 make_m3u_header() {
 	local info=${1:-}
 	local artist=${2:-}
