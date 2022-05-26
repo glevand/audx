@@ -113,9 +113,9 @@ Common tags:
   TRACKNUMBER
   TRACKTOTAL
 Examples:
-  flac-write-tag.sh.in  --tag='ALBUM=No Jacket Required' "${collection}/Phil Collins/No Jacket Required"
-  flac-write-tag.sh.in  --tag='ARTIST=Ultravox' "${collection}/Ultravox"
-  flac-write-tag.sh.in  --tag='COMMENT=' "${collection}/Bruce Cockburn/Stealing Fire"
+  flac-write-tag.sh  --tag='ALBUM=No Jacket Required' "${collection}/Phil Collins/No Jacket Required"
+  flac-write-tag.sh  --tag='ARTIST=Ultravox' "${collection}/Ultravox"
+  flac-write-tag.sh  --tag='COMMENT=' "${collection}/Bruce Cockburn/Stealing Fire"
 Info:
   AUDX flac-write-tag.sh
   Project Home: https://github.com/glevand/audx
@@ -192,13 +192,13 @@ Utilities for working with AAC encoded MPEG-4 audio files.
 
 ```
 m4a-print-tags.sh - Recursively print M4A metadata tags.
-Usage: m4a-print-tags.sh.in [flags] <top-dir|file>
+Usage: m4a-print-tags.sh [flags] <top-dir|file>
 Option flags:
   -h --help    - Show this help and exit.
   -v --verbose - Verbose execution.
   -g --debug   - Extra verbose execution.
 Info:
-  AUDX m4a-print-tags.sh.in
+  AUDX m4a-print-tags.sh
   Project Home: https://github.com/glevand/audx
 ```
 
@@ -226,18 +226,18 @@ Typical CPU usage when running the m4a-converter script.
 
 ![m4a-converter CPU Usage](images/m4a-converter-cpu-usage.png)
 
-### m4a-play - Play AAC encoded M4A files.
+### audx-play - Play AAC encoded M4A files.
 
 ```
-m4a-play.sh.in - Play AAC encoded M4A files.
-Usage: m4a-play.sh.in [flags] <top-dir | M3U playlist | M4A file>
+audx-play.sh - Play AAC encoded M4A files.
+Usage: audx-play.sh [flags] <top-dir | M3U playlist | M4A file>
 Option flags:
   -h --help        - Show this help and exit.
   -v --verbose     - Verbose execution. Default: ''.
   -g --debug       - Extra verbose execution. Default: ''.
 Input:
 Info:
-  AUDX m4a-play.sh
+  AUDX audx-play.sh
   Project Home: https://github.com/glevand/audx
 ```
 
@@ -361,7 +361,7 @@ Info:
 ### genre-sort.sh - Sort FLAC files base on GENRE metadata tag.
 
 ```
-genre-sort.sh.in - Sort FLAC files base on GENRE metadata tag.
+genre-sort.sh - Sort FLAC files base on GENRE metadata tag.
 Usage: genre-sort.sh [flags] <top-dir>
 Option flags:
   -o --output-dir - Output directory. Default: '/tmp/audx-sort'.

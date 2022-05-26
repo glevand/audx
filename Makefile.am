@@ -5,6 +5,7 @@ ACLOCAL_AMFLAGS = -I m4
 composed_bin_scripts = \
 	scripts/audx-lib.sh \
 	scripts/audx-str-lib.sh \
+	scripts/audx-play.sh \
 	scripts/batch-shufflelist.sh \
 	scripts/check-vfat-names.sh \
 	scripts/flac-add-tracktotal.sh \
@@ -19,7 +20,6 @@ composed_bin_scripts = \
 	scripts/make-inventory.sh \
 	scripts/make-playlists.sh \
 	scripts/make-shufflelist.sh \
-	scripts/m4a-play.sh \
 	scripts/rip-c.sh \
 	scripts/rip-c-flac-tags.sh \
 	scripts/rip-c-to-flac.sh
