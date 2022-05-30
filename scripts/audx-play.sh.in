@@ -100,12 +100,14 @@ on_sigint() {
 print_playing() {
 	local artist=${1}
 	local album=${2}
-	local fall_back=${3}
-	local -n _print_playing__term_line="${4}"
-
+	local date=${3}
+	local fall_back=${4}
+	local -n _print_playing__term_line="${5}"
 
 	echo
-	if [[ ${artist} && ${album} ]]; then
+	if [[ ${artist} && ${album} && ${date} ]]; then
+		str="Playing: ${artist}, ${album} (${date})"
+	elif [[ ${artist} && ${album} ]]; then
 		str="Playing: ${artist}, ${album}"
 	elif [[ ${artist} ]]; then
 		str="Playing: ${artist}"
@@ -200,7 +202,7 @@ play_file() {
 	fill_tag_set "${in_file}" tags
 
 	local term_line
-	print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "'${in_file}'" term_line
+	print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "${tags[DATE]}" "'${in_file}'" term_line
 	play_tracks tracks_array '' "${term_line}"
 }
 
@@ -217,6 +219,7 @@ play_playlist() {
 	local line_count="${#lines_array[@]}"
 	local artist=''
 	local album=''
+	local date=''
 
 	for (( id = 1; id <= ${line_count}; id++ )); do
 		line="${lines_array[$(( id - 1 ))]}"
@@ -230,6 +233,9 @@ play_playlist() {
 			fi
 			if [[ "${line::8}" = '#EXTALB:' ]]; then
 				album="${line:9}"
+			fi
+			if [[ "${line::9}" = '#EXTDATE:' ]]; then
+				date="${line:10}"
 			fi
 			continue
 		fi
@@ -284,7 +290,7 @@ play_playlist() {
 	fi
 
 	local term_line
-	print_playing "${artist}" "${album}" "'${playlist_file}'" term_line
+	print_playing "${artist}" "${album}" "${date}" "'${playlist_file}'" term_line
 	print_tracks  tracks_array "${files_prefix}" "${term_line}"
 	play_tracks tracks_array "${files_prefix}"
 }
@@ -306,7 +312,7 @@ play_top_dir() {
 		local term_line
 
 		fill_tag_set "${tracks_array[0]}" tags
-		print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "'${top_dir}'" term_line
+		print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "${tags[DATE]}" "'${top_dir}'" term_line
 		print_tracks  tracks_array '' "${term_line}"
 	fi
 
