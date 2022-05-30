@@ -813,14 +813,20 @@ make_m3u_header() {
 			echo "#EXTART: ${artist}"
 		fi
 
-		if [[ "${album}" && "${date}" ]]; then
-			echo "#EXTALB: ${album} (${date})"
-		elif [[ "${album}" ]]; then
-			echo "#EXTALB: ${album}"
-		elif [[ "${date}" ]]; then
-			echo "#EXTALB: - (${date})"
-		fi
+# 		if [[ "${album}" && "${date}" ]]; then
+# 			echo "#EXTALB: ${album} (${date})"
+# 		elif [[ "${album}" ]]; then
+# 			echo "#EXTALB: ${album}"
+# 		elif [[ "${date}" ]]; then
+# 			echo "#EXTALB: - (${date})"
+# 		fi
 
+		if [[ "${album}" ]]; then
+			echo "#EXTALB: ${album}"
+		fi
+		if [[ "${date}" ]]; then
+			echo "#EXTDATE: ${date}"
+		fi
 		if [[ "${genre}" ]]; then
 			echo "#EXTGENRE: ${genre}"
 		fi
