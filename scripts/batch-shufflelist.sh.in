@@ -123,10 +123,21 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
+print_project_banner >&2
+
 if [[ ${extra_args} ]]; then
 	set +o xtrace
 	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
 	usage
+	exit 1
+fi
+
+if [[ -f "${SCRIPT_TOP}/make-shufflelist.sh" ]]; then
+	msl="${SCRIPT_TOP}/make-shufflelist.sh"
+elif [[ -f "${SCRIPT_TOP}/make-shufflelist.sh.in" ]]; then
+	msl="${SCRIPT_TOP}/make-shufflelist.sh.in"
+else
+	echo "${script_name}: ERROR: File not found: '${SCRIPT_TOP}/make-shufflelist.sh'" >&2
 	exit 1
 fi
 
@@ -146,7 +157,7 @@ readarray -t album_array < <(ls -1 .)
 
 for (( i = 0; i < ${#album_array[@]}; i++ )); do
 	# echo "${i}: '${album_array[i]}'"
-	(cd "${album_array[i]}" && "${SCRIPT_TOP}/make-shufflelist.sh" -v -a -o'shufflelist.m3u' .)
+	(cd "${album_array[i]}" && "${msl}" -v -a -o'shufflelist.m3u' .)
 done
 
 trap "on_exit 'Success'" EXIT
