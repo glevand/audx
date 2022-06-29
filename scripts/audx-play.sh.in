@@ -184,7 +184,7 @@ play_tracks() {
 		elif [[  "${ext}" = 'flac' ]]; then
 			flac_fill_tag_set "${files_prefix}${file}" tags
 			echo "${id}/${in_count}: ${tags[ARTIST]}, ${tags[ALBUM]}, ${tags[TITLE]}"
-			${sox_play} --no-show-progress "${files_prefix}${file}"
+			${sox} --no-show-progress "${files_prefix}${file:?}" -d
 		else
 			echo "${id}/${in_count}: Unknown file type '${files_prefix}${file}'." >&2
 		fi
@@ -322,13 +322,12 @@ play_top_dir() {
 #===============================================================================
 export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
 
-script_name="${0##*/}"
-
 SECONDS=0
 start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 real_source="$(realpath "${BASH_SOURCE}")"
 SCRIPT_TOP="$(realpath "${SCRIPT_TOP:-${real_source%/*}}")"
+script_name="${real_source##*/}"
 
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
@@ -395,8 +394,8 @@ check_program "exiftool" "${exiftool}"
 ffplay="${ffplay:-ffplay}"
 check_program "ffplay" "${ffplay}"
 
-sox_play="${sox_play:-play}"
-check_program "sox_play" "${sox_play}"
+sox="${sox:-sox}"
+check_program "sox" "${sox}"
 
 metaflac="${metaflac:-metaflac}"
 check_program "metaflac" "${metaflac}"
