@@ -140,11 +140,21 @@ print_tracks() {
 
 		local title
 		if [[ "${ext}" = 'm4a' ]]; then
+			# 'Duration       : 0:06:33'
+			local duration="$(exiftool -Duration "${files_prefix}${file}")"
+			duration="${duration#*: }"
+			duration="${duration#0:0}"
+			duration="${duration#0:}"
+
 			title="$(m4a_get_tag 'TITLE' "${files_prefix}${file}" 'required')"
-			echo "${id}/${in_count}: ${title}"
+			echo "${id}/${in_count}: ${title} (${duration})"
 		elif [[  "${ext}" = 'flac' ]]; then
+			local samples="$(${metaflac} --show-total-samples "${files_prefix}${file}")"
+			local rate="$(${metaflac} --show-sample-rate "${files_prefix}${file}")"
+			local seconds="$(( samples / rate))"
+
 			title="$(flac_get_tag 'TITLE' "${files_prefix}${file}" 'required')"
-			echo "${id}/${in_count}: ${title}"
+			echo "${id}/${in_count}: ${title} ($(sec_to_min "${seconds}"))"
 		else
 			echo "${id}/${in_count}: Unknown file type '${files_prefix}${file}'." >&2
 		fi
@@ -178,12 +188,22 @@ play_tracks() {
 		ext="${file##*.}"
 
 		if [[ "${ext}" = 'm4a' ]]; then
+			# 'Duration       : 0:06:33'
+			local duration="$(exiftool -Duration "${files_prefix}${file}")"
+			duration="${duration#*: }"
+			duration="${duration#0:0}"
+			duration="${duration#0:}"
+
 			m4a_fill_tag_set "${files_prefix}${file}" tags
-			echo "${id}/${in_count}: ${tags[ARTIST]}, ${tags[ALBUM]}, ${tags[TITLE]}"
+			echo "${id}/${in_count}: ${tags[ARTIST]}, ${tags[ALBUM]}, ${tags[TITLE]} (${duration})"
 			${ffplay} -loglevel quiet -nodisp -autoexit "${files_prefix}${file}" > /dev/null || :
 		elif [[  "${ext}" = 'flac' ]]; then
+			local samples="$(${metaflac} --show-total-samples "${files_prefix}${file}")"
+			local rate="$(${metaflac} --show-sample-rate "${files_prefix}${file}")"
+			local seconds="$(( samples / rate))"
+
 			flac_fill_tag_set "${files_prefix}${file}" tags
-			echo "${id}/${in_count}: ${tags[ARTIST]}, ${tags[ALBUM]}, ${tags[TITLE]}"
+			echo "${id}/${in_count}: ${tags[ARTIST]}, ${tags[ALBUM]}, ${tags[TITLE]} ($(sec_to_min "${seconds}"))"
 			${sox} --no-show-progress "${files_prefix}${file:?}" -d
 		else
 			echo "${id}/${in_count}: Unknown file type '${files_prefix}${file}'." >&2
