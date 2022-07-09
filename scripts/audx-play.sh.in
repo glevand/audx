@@ -151,10 +151,12 @@ print_tracks() {
 		elif [[  "${ext}" = 'flac' ]]; then
 			local samples="$(${metaflac} --show-total-samples "${files_prefix}${file}")"
 			local rate="$(${metaflac} --show-sample-rate "${files_prefix}${file}")"
-			local seconds="$(( samples / rate))"
+
+			local duration="$(( samples / rate))"
+			duration="$(sec_to_min_sec "${duration}")"
 
 			title="$(flac_get_tag 'TITLE' "${files_prefix}${file}" 'required')"
-			echo "${id}/${in_count}: ${title} ($(sec_to_min "${seconds}"))"
+			echo "${id}/${in_count}: ${title} (${duration})"
 		else
 			echo "${id}/${in_count}: Unknown file type '${files_prefix}${file}'." >&2
 		fi
@@ -202,8 +204,11 @@ play_tracks() {
 			local rate="$(${metaflac} --show-sample-rate "${files_prefix}${file}")"
 			local seconds="$(( samples / rate))"
 
+			local duration="$(( samples / rate))"
+			duration="$(sec_to_min_sec "${duration}")"
+
 			flac_fill_tag_set "${files_prefix}${file}" tags
-			echo "${id}/${in_count}: ${tags[ARTIST]}, ${tags[ALBUM]}, ${tags[TITLE]} ($(sec_to_min "${seconds}"))"
+			echo "${id}/${in_count}: ${tags[ARTIST]}, ${tags[ALBUM]}, ${tags[TITLE]} (${duration})"
 			${sox} --no-show-progress "${files_prefix}${file:?}" -d
 		else
 			echo "${id}/${in_count}: Unknown file type '${files_prefix}${file}'." >&2
