@@ -85,6 +85,34 @@ sec_to_min() {
 	divided_by "${sec}" '60'
 }
 
+sec_to_min_sec() {
+	local sec="${1}"
+
+	local dec="$(divided_by "${sec}" '60')"
+	local min="${dec%.*}"
+
+	sec="${dec#*.}"
+	sec="${sec#0}"
+	sec="$(( sec * 60 / 100 ))"
+
+	if (( sec < 10 )); then
+		sec="0${sec}"
+	fi
+
+	echo "${min}:${sec}"
+}
+
+test_sec_to_min_sec() {
+	local sec;
+	local min_sec;
+
+	# 208 sec = 3:28
+	for (( sec = 0; sec <= 208; sec++ )); do
+		min_sec="$(sec_to_min_sec "${sec}")"
+		echo "${sec} => ${min_sec}"
+	done
+}
+
 sec_to_hour() {
 	local sec="${1}"
 
