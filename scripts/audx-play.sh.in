@@ -123,8 +123,9 @@ print_playing() {
 
 print_tracks() {
 	local -n _print_tracks__tracks_array="${1}"
-	local files_prefix="${2}"
-	local term_line=${3}
+	local print_artist="${2}"
+	local files_prefix="${3}"
+	local term_line=${4}
 
 	local in_count="${#_print_tracks__tracks_array[@]}"
 
@@ -138,6 +139,7 @@ print_tracks() {
 
 #		echo "${id}/${in_count}: '${file}'"
 
+		local artist_str=''
 		local title
 		if [[ "${ext}" = 'm4a' ]]; then
 			# 'Duration       : 0:06:33'
@@ -146,8 +148,11 @@ print_tracks() {
 			duration="${duration#0:0}"
 			duration="${duration#0:}"
 
+			if [[ ${print_artist} ]]; then
+				artist_str="$(m4a_get_tag 'ARTIST' "${files_prefix}${file}" 'required'), "
+			fi
 			title="$(m4a_get_tag 'TITLE' "${files_prefix}${file}" 'required')"
-			echo "${id}/${in_count}: ${title} (${duration})"
+			echo "${id}/${in_count}: ${artist_str}${title} (${duration})"
 		elif [[  "${ext}" = 'flac' ]]; then
 			local samples="$(${metaflac} --show-total-samples "${files_prefix}${file}")"
 			local rate="$(${metaflac} --show-sample-rate "${files_prefix}${file}")"
@@ -155,8 +160,11 @@ print_tracks() {
 			local duration="$(( samples / rate))"
 			duration="$(sec_to_min_sec "${duration}")"
 
+			if [[ ${print_artist} ]]; then
+				artist_str="$(flac_get_tag 'ARTIST' "${files_prefix}${file}" 'required'), "
+			fi
 			title="$(flac_get_tag 'TITLE' "${files_prefix}${file}" 'required')"
-			echo "${id}/${in_count}: ${title} (${duration})"
+			echo "${id}/${in_count}: ${artist_str}${title} (${duration})"
 		else
 			echo "${id}/${in_count}: Unknown file type '${files_prefix}${file}'." >&2
 		fi
@@ -314,9 +322,14 @@ play_playlist() {
 		echo "${script_name}: ERROR: Unknown files_prefix: playlist = '${playlist_file}', track = '${tracks_array[0]}'" >&2
 	fi
 
+	local print_artist=''
+	if [[ "${artist}" == *'Various Artists'* ]]; then
+		print_artist=1
+	fi
+
 	local term_line
 	print_playing "${artist}" "${album}" "${date}" "'${playlist_file}'" term_line
-	print_tracks  tracks_array "${files_prefix}" "${term_line}"
+	print_tracks tracks_array "${print_artist}" "${files_prefix}" "${term_line}"
 	play_tracks tracks_array "${files_prefix}"
 }
 
@@ -337,8 +350,18 @@ play_top_dir() {
 		local term_line
 
 		fill_tag_set "${tracks_array[0]}" tags
-		print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "${tags[DATE]}" "'${top_dir}'" term_line
-		print_tracks  tracks_array '' "${term_line}"
+
+		local print_artist
+		if [[ "${top_dir}" == *'Various Artists/'* ]]; then
+			print_artist=1
+			artist='Various Artists'
+		else
+			print_artist=''
+			artist="${tags[ARTIST]}"
+		fi
+
+		print_playing "${artist}" "${tags[ALBUM]}" "${tags[DATE]}" "'${top_dir}'" term_line
+		print_tracks tracks_array "${print_artist}" '' "${term_line}"
 	fi
 
 	play_tracks tracks_array ''
@@ -440,7 +463,6 @@ flac_file | m4a_file)
 	;;
 playlist)
 	play_playlist "${arg_1}"
-
 	;;
 top_dir)
 	play_top_dir "${arg_1}"
