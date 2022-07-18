@@ -943,8 +943,15 @@ write_m3u_playlist() {
 		done
 	fi
 
+	local artist
+	if [[ "${dir}" == *'Various Artists/'* ]]; then
+		artist='Various Artists'
+	else
+		artist="${tags[ARTIST]}"
+	fi
+
 	{
-		make_m3u_header "AUDX ${type^^} playlist" "${tags[ARTIST]}" \
+		make_m3u_header "AUDX ${type^^} playlist" "${artist}" \
 			"${tags[ALBUM]}" "${tags[DATE]}" "${tags[GENRE]}" "${tags[CDDB]}"
 		printf "%s\n" "${files_array[@]}"
 	} > "${out_file}"
