@@ -958,3 +958,27 @@ write_m3u_playlist() {
 
 	echo "${script_name}: Wrote ${#files_array[@]} ${type} entries: '${out_file}'" >&2
 }
+
+fill_random_array() {
+	local count=${1}
+	local -n _fill_random_array__in_array="${2}"
+	local -n _fill_random_array__out_array="${3}"
+
+	local -a index_array
+	local index
+	local i
+
+	index_array=($("${shuf}" -i0-$(( count - 1 ))))
+
+	for (( i = 0; i < ${count}; i++ )); do
+		index="${index_array[i]}"
+		_fill_random_array__out_array[i]+="${_fill_random_array__in_array[index]}"
+		if [[ ${verbose} ]]; then
+			echo "${i} (${index}): '${_fill_random_array__in_array[index]}'" >&2
+		fi
+	done
+	if [[ ${verbose} ]]; then
+		echo >&2
+	fi
+}
+
