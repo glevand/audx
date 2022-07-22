@@ -123,17 +123,17 @@ test_album_file() {
 #===============================================================================
 export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
 
-script_name="${0##*/}"
-
 SECONDS=0
 start_time="$(date +%Y.%m.%d-%H.%M.%S)"
 
 real_source="$(realpath "${BASH_SOURCE}")"
 SCRIPT_TOP="$(realpath "${SCRIPT_TOP:-${real_source%/*}}")"
+script_name="${real_source##*/}"
 
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
 trap 'on_err SIGUSR1 ? 3' SIGUSR1
+trap 'on_sigint' SIGINT
 
 set -eE
 set -o pipefail
@@ -149,7 +149,6 @@ end_date=''
 usage=''
 verbose=''
 debug=''
-
 m3u_file="${m3u_file:-album.m3u}"
 
 if [[ -f "${HOME}/.audx.conf" ]]; then
@@ -166,6 +165,8 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
+print_project_banner >&2
+
 if [[ ${extra_args} ]]; then
 	set +o xtrace
 	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
@@ -174,8 +175,6 @@ if [[ ${extra_args} ]]; then
 fi
 
 top_dir="$(realpath --canonicalize-existing "${top_dir}")"
-
-print_project_banner >&2
 
 parallel="${parallel:-parallel}"
 check_program "parallel" "${parallel}"
@@ -213,22 +212,24 @@ readarray -t album_array < <( \
 	|| { echo "${script_name}: ERROR: album_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 	kill -SIGUSR1 $$; } )
 
-if (( ${#album_array[@]} == 0 )); then
+album_count="${#album_array[@]}"
+
+if (( ${album_count} == 0 )); then
 	echo "INFO: No M3U album files found: '${top_dir}'" >&2
 	trap "on_exit 'Success'" EXIT
 	exit 0
 fi
 
-echo "INFO: Considering ${#album_array[@]} albums." >&2
+echo "INFO: Considering ${album_count} albums." >&2
 
-extra_verbose=''
+extra_verbose="${extra_verbose:-}"
 
 if [[ ${extra_verbose} ]]; then
 	{
 		echo
 		echo "--- album array ---"
-		for (( i = 0; i < ${#album_array[@]}; i++ )); do
-			echo "${i}: '${album_array[i]}'"
+		for (( id = 1; id <= ${album_count}; id++ )); do
+			echo "${id}: '${album_array[$(( id - 1 ))]}'"
 		done
 		echo "--- album array ---"
 		echo
@@ -242,9 +243,11 @@ readarray -t good_array < <( \
 	parallel test_album_file {} "'${start_date}'" "'${end_date}'" ::: "${album_array[@]}" \
 	|| { echo "${script_name}: ERROR: good_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 	kill -SIGUSR1 $$; } )
+
 good_count="${#good_array[@]}"
 
 unset album_array
+unset album_count
 
 echo "INFO: Found ${good_count} eligible albums." >&2
 
@@ -256,8 +259,8 @@ if [[ ${verbose} ]]; then
 	{
 		echo
 		echo "--- good array ---"
-		for (( i = 0; i < ${good_count}; i++ )); do
-			echo "${i}: '${good_array[i]}'"
+		for (( id = 1; id <= ${good_count}; id++ )); do
+			echo "${id}: '${good_array[$(( id - 1 ))]}'"
 		done
 		echo "--- good array ---"
 		echo
@@ -269,31 +272,15 @@ if (( ${good_count} < ${count} )); then
 	exit 1
 fi
 
-make_m3u_header "AUDX Shuffle List - ${start_time}" 'Various' "$(date +%Y.%m.%d)" '' '' '' > "${out_file}"
+make_m3u_header "AUDX Shuffle List - ${start_time}" 'Various' 'AUDX Shuffle List' "$(date +%Y.%m.%d)" '' '' > "${out_file}"
+
+declare -a random_array
+
+fill_random_array "${good_count}" good_array random_array
 
 for (( i = 0; i < ${count}; i++ )); do
-	for (( j = 0; ; j++ )); do
-		rand="$("${shuf}" -n1 -i0-${good_count})"
-
-		# echo "good_count = ${good_count}, j = ${j}" >&2
-
-		if [[ -v good_array[rand] ]]; then
-			# echo "good rand = ${rand} = '${good_array[rand]}'" >&2
-			break
-		fi
-
-		# echo "bad rand = ${rand}" >&2
-
-		if (( j > (good_count * good_count) )); then
-			echo "${script_name}: INTERNAL ERROR: random loop." >&2
-			exit 1
-		fi
-	done
-
-	album_file="${good_array[rand]}"
-	album_dir="${good_array[rand]%/*}"
-	unset good_array[rand]
-
+	album_file="${random_array[i]}"
+	
 	declare -A triple
 	path_to_artist_album_title "${album_file}" triple
 
