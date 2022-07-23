@@ -342,6 +342,23 @@ Info:
   Project Home: https://github.com/glevand/audx
 ```
 
+### shuffle-playlist.sh - Randomly shuffle an M3U playlist.
+
+```
+shuffle-playlist.sh - Randomly shuffle an M3U playlist.
+Usage: shuffle-playlist.sh [flags] <M3U playlist>
+Option flags:
+  -o --output-file - Shuffle list output file. Default: '/tmp/audx-shufflelist.m3u'.
+  -h --help        - Show this help and exit.
+  -v --verbose     - Verbose execution. Default: ''.
+  -g --debug       - Extra verbose execution. Default: ''.
+Input:
+  ''
+Info:
+  AUDX shuffle-playlist.sh
+  Project Home: https://github.com/glevand/audx
+```
+
 ### batch-shufflelist.sh - Runs make-shufflelist.sh as batch.
 
 ```

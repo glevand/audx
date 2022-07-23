@@ -1,0 +1,222 @@
+#!/usr/bin/env bash
+
+usage() {
+	local old_xtrace
+	old_xtrace="$(shopt -po xtrace || :)"
+	set +o xtrace
+
+	{
+		echo "${script_name} - Randomly shuffle an M3U playlist."
+		echo "Usage: ${script_name} [flags] <M3U playlist>"
+		echo "Option flags:"
+		echo "  -o --output-file - Shuffle list output file. Default: '${out_file}'."
+		echo "  -h --help        - Show this help and exit."
+		echo "  -v --verbose     - Verbose execution. Default: '${verbose}'."
+		echo "  -g --debug       - Extra verbose execution. Default: '${debug}'."
+		echo 'Input:'
+		echo "  '${playlist_file}'"
+		echo "Info:"
+		print_project_info
+	} >&2
+	eval "${old_xtrace}"
+}
+
+process_opts() {
+	local short_opts="o:hvg"
+	local long_opts="output-file:,help,verbose,debug"
+
+	local opts
+	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
+
+	eval set -- "${opts}"
+
+	while true ; do
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
+		case "${1}" in
+		-o | --output-file)
+			out_file="${2}"
+			shift 2
+			;;
+		-h | --help)
+			usage=1
+			shift
+			;;
+		-v | --verbose)
+			verbose=1
+			shift
+			;;
+		-g | --debug)
+			verbose=1
+			debug=1
+			keep_tmp_dir=1
+			set -x
+			shift
+			;;
+		--)
+			shift
+			playlist_file="${1:-}"
+			if [[ ${playlist_file} ]]; then
+				shift
+			fi
+			extra_args="${*}"
+			break
+			;;
+		*)
+			echo "${script_name}: ERROR: Internal opts: '${*}'" >&2
+			exit 1
+			;;
+		esac
+	done
+}
+
+#===============================================================================
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
+SECONDS=0
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+
+real_source="$(realpath "${BASH_SOURCE}")"
+SCRIPT_TOP="$(realpath "${SCRIPT_TOP:-${real_source%/*}}")"
+script_name="${real_source##*/}"
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+trap 'on_sigint' SIGINT
+
+set -eE
+set -o pipefail
+set -o nounset
+
+source "${SCRIPT_TOP}/audx-lib.sh"
+
+out_file="/tmp/audx-shufflelist-${start_time}.m3u"
+usage=''
+verbose=''
+debug=''
+playlist_file=''
+
+process_opts "${@}"
+
+if [[ ${usage} ]]; then
+	usage
+	trap - EXIT
+	exit 0
+fi
+
+print_project_banner
+
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
+fi
+
+shuf="${shuf:-shuf}"
+check_program "shuf" "${shuf}"
+
+if [[ ! ${playlist_file} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: No input file." >&2
+	usage
+	exit 1
+fi
+
+check_file 'playlist' "${playlist_file}"
+
+if [[ ! -f ${playlist_file} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Bad input file '${playlist_file}'" >&2
+	usage
+	exit 1
+fi
+
+playlist="$(realpath -e "${playlist_file}")"
+
+if [[ ${verbose} ]]; then
+	echo "${script_name}: INFO: playlist = '${playlist_file}'"
+fi
+
+readarray -t lines_array < "${playlist_file}"
+
+line_count="${#lines_array[@]}"
+
+declare -a header_array
+declare -a data_array
+
+in_header=1
+
+for (( id = 1; id <= ${line_count}; id++ )); do
+	line="${lines_array[$(( id - 1 ))]}"
+
+	if [[ "${line::1}" = '#' ]]; then
+		if [[ ${in_header} ]]; then
+			if [[ ${verbose} ]]; then
+				echo "${id}: (header) = '${line}'" >&2
+			fi
+			header_array=("${header_array[@]}" "${line}")
+			continue
+		fi
+		if [[ ${verbose} ]]; then
+			echo "${id}: (comment) = '${line}'" >&2
+		fi
+		continue
+	fi
+
+	in_header=''
+
+	if [[ ! "${line}" ]]; then
+		if [[ ${verbose} ]]; then
+			echo "${id}: (blank) = '${line}'" >&2
+		fi
+		continue
+	fi
+
+	if [[ ${verbose} ]]; then
+		echo "${id}: (data) = '${line}'" >&2
+	fi
+	data_array=("${data_array[@]}" "${line}")
+done
+
+header_count="${#header_array[@]}"
+data_count="${#data_array[@]}"
+
+if [[ ${verbose} ]]; then
+	{
+		echo "data_count = '${data_count}'"
+		echo
+	} >&2
+fi
+
+echo -n '' > "${out_file}"
+
+for (( id = 1; id <= ${header_count}; id++ )); do
+	header="${header_array[$(( id - 1 ))]}"
+	echo "${header}" >> "${out_file}"
+done
+
+echo "#COMMENT:AUDX shuffle-playlist - ${start_time}" >> "${out_file}"
+echo >> "${out_file}"
+
+declare -a random_array
+
+fill_random_array "${data_count}" data_array random_array
+
+for (( i = 0; i < ${data_count}; i++ )); do
+	echo "${random_array[i]}" >> "${out_file}"
+done
+
+if [[ ${verbose} ]]; then
+	{
+		echo '-------------------------'
+		cat "${out_file}"
+		echo '-------------------------'
+	} >&2
+fi
+
+echo "INFO: Wrote ${data_count} lines." >&2
+echo "INFO: Playlist in '${out_file}'." >&2
+
+trap "on_exit 'Success'" EXIT
+exit 0
