@@ -22,7 +22,8 @@ composed_bin_scripts = \
 	scripts/make-shufflelist.sh \
 	scripts/rip-c.sh \
 	scripts/rip-c-flac-tags.sh \
-	scripts/rip-c-to-flac.sh
+	scripts/rip-c-to-flac.sh \
+	scripts/shuffle-playlist.sh
 
 bin_SCRIPTS = $(composed_bin_scripts)
 
