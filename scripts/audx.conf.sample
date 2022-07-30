@@ -3,3 +3,4 @@
 #
 
 collection_top="${collection_top:-${HOME}/music-collection}"
+state_dir="${state_dir:-${HOME}/audx-state"
