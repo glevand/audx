@@ -496,7 +496,7 @@ m4a_get_tag() {
 	esac
 
 	local tag
-	tag="$("${exiftool}" -T "${t_type}" "${file}")"
+	tag="$("${exiftool}" -T "${t_type}" "${file}" 2>/dev/null || :)"
 
 	if [[ ! "${tag}" =~ ${regex_tag} ]]; then
 		if [[ ${optional} == 'optional' ]]; then
@@ -510,6 +510,7 @@ m4a_get_tag() {
 		echo "${FUNCNAME[0]}: INFO: '${tag}' => '${BASH_REMATCH[1]}'." >&2
 	fi
 
+#	echo "${FUNCNAME}:${LINENO}: @${BASH_REMATCH[1]}@" >&2
 	echo "${BASH_REMATCH[1]}"
 }
 
