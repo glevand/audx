@@ -126,7 +126,6 @@ print_playing() {
 get_tags_array() {
 	local -n _get_tags_array__tracks_array="${1}"
 	local -n _get_tags_array__tags_array="${2}"
-	local files_prefix="${3}"
 
 	local track_count="${#_get_tags_array__tracks_array[@]}"
 
@@ -137,7 +136,7 @@ get_tags_array() {
 		local get_tag
 		local duration
 
-		file="${files_prefix}${_get_tags_array__tracks_array[$(( id - 1 ))]}"
+		file="${_get_tags_array__tracks_array[$(( id - 1 ))]}"
 
 		_get_tags_array__tags_array[${id},id]="${id}"
 		_get_tags_array__tags_array[${id},file]="${file}"
@@ -260,13 +259,10 @@ play_file() {
 	local -a tracks_array=("${in_file}")
 
 	local -A tags_array
-	get_tags_array tracks_array tags_array ''
-
-	local -A tags
-	fill_tag_set "${in_file}" tags
+	get_tags_array tracks_array tags_array
 
 	local term_line
-	print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "${tags[DATE]}" "'${in_file}'" term_line
+	print_playing "${tags_array[1,ARTIST]}" "${tags_array[1,ALBUM]}" "${tags_array[1,DATE]}" "'${in_file}'" term_line
 
 	play_tracks tracks_array tags_array ''
 }
@@ -319,7 +315,13 @@ play_playlist() {
 				echo "${id}: (m4a track) = '${line}'" >&2
 			fi
 
-			tracks_array=("${tracks_array[@]}" "${line}")
+			if [[ -f "${line}" ]]; then
+				tracks_array=("${tracks_array[@]}" "${line}")
+			elif [[ -f "${playlist_file%/*}/${line}" ]]; then
+				tracks_array=("${tracks_array[@]}" "${playlist_file%/*}/${line}")
+			else
+				echo "${script_name}: ERROR: Unknown file prefix: playlist = '${playlist_file}', track = '${line}'" >&2
+			fi
 			continue
 		fi
 
@@ -328,20 +330,26 @@ play_playlist() {
 				echo "${id}: (flac track) = '${line}'" >&2
 			fi
 
-			tracks_array=("${tracks_array[@]}" "${line}")
+			if [[ -f "${line}" ]]; then
+				tracks_array=("${tracks_array[@]}" "${line}")
+			elif [[ -f "${playlist_file%/*}/${line}" ]]; then
+				tracks_array=("${tracks_array[@]}" "${playlist_file%/*}/${line}")
+			else
+				echo "${script_name}: ERROR: Unknown file prefix: playlist = '${playlist_file}', track = '${line}'" >&2
+			fi
 			continue
 		fi
 
 		if [[ "${line: -4:4}" = '.m3u' ]]; then
 			local line_orig="${line}"
 
-			if [[ ! -f "${line}" ]]; then
-				line="${arg_1%/*}/${line}"
-			fi
-
-			if [[ ! -f "${line}" ]]; then
-				echo "${script_name}: ERROR: Can't find file '${line_orig}'" >&2
-				exit 1
+			if [[ -f "${line}" ]]; then
+				:
+			elif [[ -f "${playlist_file%/*}/${line}" ]]; then
+				line="${playlist_file%/*}/${line}"
+			else
+				echo "${script_name}: ERROR: Unknown file prefix: playlist = '${playlist_file}', line = '${line}'" >&2
+				continue
 			fi
 
 			if [[ ${verbose} ]]; then
@@ -363,22 +371,16 @@ play_playlist() {
 		return
 	fi
 
-	if [[ -f "${tracks_array[0]}" ]]; then
-		files_prefix=''
-	elif [[ -f "${playlist_file%/*}/${tracks_array[0]}" ]]; then
-		files_prefix="${playlist_file%/*}/"
-	else
-		echo "${script_name}: ERROR: Unknown files_prefix: playlist = '${playlist_file}', track = '${tracks_array[0]}'" >&2
-	fi
-
 	local -A tags_array
-	get_tags_array tracks_array tags_array "${files_prefix}"
+	get_tags_array tracks_array tags_array
 
 	local term_line
 	print_playing "${artist}" "${album}" "${date}" "'${playlist_file}'" term_line
 
 	local print_artist=''
 	if [[ "${artist}" == *'Various Artists'* ]]; then
+		print_artist=1
+	elif [[ "${playlist_file}" == *'Various Artists/'* ]]; then
 		print_artist=1
 	fi
 
@@ -406,11 +408,8 @@ play_top_dir() {
 		return
 	fi
 
-	local -A tags
-	fill_tag_set "${tracks_array[0]}" tags
-
 	local -A tags_array
-	get_tags_array tracks_array tags_array ''
+	get_tags_array tracks_array tags_array
 
 	local print_artist
 	local artist
@@ -419,11 +418,11 @@ play_top_dir() {
 		artist='Various Artists'
 	else
 		print_artist=''
-		artist="${tags[ARTIST]}"
+		artist="${tags_array[1,ARTIST]}"
 	fi
 
 	local term_line
-	print_playing "${artist}" "${tags[ALBUM]}" "${tags[DATE]}" "'${top_dir}'" term_line
+	print_playing "${artist}" "${tags_array[1,ALBUM]}" "${tags_array[1,DATE]}" "'${top_dir}'" term_line
 
 	print_tracks tags_array "${track_count}" "${print_artist}" "${term_line}"
 
