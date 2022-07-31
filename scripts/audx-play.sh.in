@@ -235,7 +235,7 @@ play_tracks() {
 	for (( id = 1; id <= ${track_count}; id++ )); do
 		local file=${_play_tracks__tags_array[${id},file]}
 
-		echo "${id}/${track_count}: ${_play_tracks__tags_array[${id},ARTIST]}, ${_play_tracks__tags_array[${id},ALBUM]}, ${_play_tracks__tags_array[${id},TITLE]} (${_play_tracks__tags_array[${id},duration]})"
+		echo "${id}/${track_count}: ${_play_tracks__tags_array[${id},ARTIST]}, ${_play_tracks__tags_array[${id},TITLE]} (${_play_tracks__tags_array[${id},duration]})"
 
 		if [[ "${_play_tracks__tags_array[${id},ext]}" = 'm4a' ]]; then
 			if [[ ! ${silent_test:-} ]]; then
