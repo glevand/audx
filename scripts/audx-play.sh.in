@@ -104,6 +104,7 @@ print_playing() {
 	local fall_back=${4}
 	local -n _print_playing__term_line="${5}"
 
+	local str
 	echo
 	if [[ ${artist} && ${album} && ${date} ]]; then
 		str="Playing: ${artist}, ${album} (${date})"
@@ -117,56 +118,99 @@ print_playing() {
 		str="Playing: ${fall_back}"
 	fi
 	echo "${str}"
+
 	_print_playing__term_line="${str//[[:print:]]/-}"
 	echo "${_print_playing__term_line}"
 }
 
-print_tracks() {
-	local -n _print_tracks__tracks_array="${1}"
-	local print_artist="${2}"
+get_tags_array() {
+	local -n _get_tags_array__tracks_array="${1}"
+	local -n _get_tags_array__tags_array="${2}"
 	local files_prefix="${3}"
-	local term_line=${4}
 
-	local in_count="${#_print_tracks__tracks_array[@]}"
+	local track_count="${#_get_tags_array__tracks_array[@]}"
 
 	local id
-	local file
-	local ext
 
-	for (( id = 1; id <= ${in_count}; id++ )); do
-		file="${_print_tracks__tracks_array[$(( id - 1 ))]}"
-		ext="${file##*.}"
+	for (( id = 1; id <= ${track_count}; id++ )); do
+		local file
+		local get_tag
+		local duration
 
-#		echo "${id}/${in_count}: '${file}'"
+		file="${files_prefix}${_get_tags_array__tracks_array[$(( id - 1 ))]}"
 
-		local artist_str=''
-		local title
-		if [[ "${ext}" = 'm4a' ]]; then
+		_get_tags_array__tags_array[${id},id]="${id}"
+		_get_tags_array__tags_array[${id},file]="${file}"
+		_get_tags_array__tags_array[${id},ext]="${file##*.}"
+
+		if [[ "${_get_tags_array__tags_array[${id},ext]}" = 'm4a' ]]; then
+			get_tag='m4a_get_tag'
+
 			# 'Duration       : 0:06:33'
-			local duration="$(exiftool -Duration "${files_prefix}${file}")"
+			duration="$("${exiftool}" -Duration "${file}" 2>/dev/null || :)"
 			duration="${duration#*: }"
 			duration="${duration#0:0}"
 			duration="${duration#0:}"
 
-			if [[ ${print_artist} ]]; then
-				artist_str="$(m4a_get_tag 'ARTIST' "${files_prefix}${file}" 'required'), "
-			fi
-			title="$(m4a_get_tag 'TITLE' "${files_prefix}${file}" 'required')"
-			echo "${id}/${in_count}: ${artist_str}${title} (${duration})"
-		elif [[  "${ext}" = 'flac' ]]; then
-			local samples="$(${metaflac} --show-total-samples "${files_prefix}${file}")"
-			local rate="$(${metaflac} --show-sample-rate "${files_prefix}${file}")"
+		elif [[  "${_get_tags_array__tags_array[${id},ext]}" = 'flac' ]]; then
+			get_tag='flac_get_tag'
 
-			local duration="$(( samples / rate))"
+			local samples="$(${metaflac} --show-total-samples "${file}")"
+			local rate="$(${metaflac} --show-sample-rate "${file}")"
+
+			duration="$(( samples / rate))"
 			duration="$(sec_to_min_sec "${duration}")"
 
-			if [[ ${print_artist} ]]; then
-				artist_str="$(flac_get_tag 'ARTIST' "${files_prefix}${file}" 'required'), "
-			fi
-			title="$(flac_get_tag 'TITLE' "${files_prefix}${file}" 'required')"
-			echo "${id}/${in_count}: ${artist_str}${title} (${duration})"
 		else
-			echo "${id}/${in_count}: Unknown file type '${files_prefix}${file}'." >&2
+			echo "${_get_tags_array__tags_array[${id},id]}/${track_count}: Unknown file type: '"${file}"'." >&2
+			continue
+		fi
+
+		_get_tags_array__tags_array[${id},duration]="${duration}"
+		_get_tags_array__tags_array[${id},ARTIST]="$("${get_tag}" 'ARTIST' "${file}" 'required')"
+		_get_tags_array__tags_array[${id},ALBUM]="$("${get_tag}" 'ALBUM' "${file}" 'required')"
+		_get_tags_array__tags_array[${id},TITLE]="$("${get_tag}" 'TITLE' "${file}" 'required')"
+		_get_tags_array__tags_array[${id},DATE]="$("${get_tag}" 'DATE' "${file}" 'optional')"
+
+# 		_get_tags_array__tags_array[${id},GENRE]="$("${get_tag}" 'GENRE' "${file}" 'optional')"
+# 		_get_tags_array__tags_array[${id},TRACKNUMBER]="$("${get_tag}" "TRACKNUMBER" "${file}" 'required')"
+# 		_get_tags_array__tags_array[${id},TRACKTOTAL]="$("${get_tag}" "TRACKTOTAL" "${file}" 'optional')"
+# 		_get_tags_array__tags_array[${id},CDDB]="$("${get_tag}" "CDDB" "${file}" 'optional')"
+# 		_get_tags_array__tags_array[${id},DISCID]="$("${get_tag}" "DISCID" "${file}" 'optional')"
+	done
+
+# 	echo >&2
+# 	for key in "${!_get_tags_array__tags_array[@]}"; do
+# 		echo -e "key = @${key}@, \t@${_get_tags_array__tags_array[${key}]}@" >&2
+# 	done
+
+# 	echo >&2
+# 	echo "${FUNCNAME}:"
+# 	for (( id = 1; id <= ${track_count}; id++ )); do
+# 		echo "${id}/${track_count}:" >&2
+# 		echo "  file     = @${_get_tags_array__tags_array[${id},file]}@" >&2
+# 		echo "  ARTIST   = @${_get_tags_array__tags_array[${id},ARTIST]}@" >&2
+# 		echo "  ALBUM    = @${_get_tags_array__tags_array[${id},ALBUM]}@" >&2
+# 		echo "  DATE     = @${_get_tags_array__tags_array[${id},DATE]}@" >&2
+# 		echo "  TITLE    = @${_get_tags_array__tags_array[${id},TITLE]}@" >&2
+# 		echo "  duration = @${_get_tags_array__tags_array[${id},duration]}@" >&2
+# 		echo >&2
+# 	done
+}
+
+print_tracks() {
+	local -n _print_tracks__tags_array="${1}"
+	local track_count="${2}"
+	local print_artist="${3}"
+	local term_line=${4}
+
+	local id
+
+	for (( id = 1; id <= ${track_count}; id++ )); do
+		if [[ ${print_artist} ]]; then
+			echo "${id}/${track_count}: ${_print_tracks__tags_array[${id},ARTIST]}, ${_print_tracks__tags_array[${id},TITLE]} (${_print_tracks__tags_array[${id},duration]})"
+		else
+			echo "${id}/${track_count}: ${_print_tracks__tags_array[${id},TITLE]} (${_print_tracks__tags_array[${id},duration]})"
 		fi
 	done
 	echo "${term_line}"
@@ -175,51 +219,31 @@ print_tracks() {
 
 play_tracks() {
 	local -n _play_tracks__tracks_array="${1}"
-	local files_prefix="${2}"
+	local -n _play_tracks__tags_array="${2}"
 
-	local in_count="${#_play_tracks__tracks_array[@]}"
+	local track_count="${#_play_tracks__tracks_array[@]}"
 
-	if [[ ${#_play_tracks__tracks_array[@]} == 0 ]]; then
+	if [[ ${track_count} == 0 ]]; then
 		echo "${script_name}: INFO: No input files found." >&2
 		return
 	fi
 
 	if [[ ${verbose} ]]; then
-		echo "${script_name}: Playing ${in_count} input files."
+		echo "${script_name}: Playing ${track_count} input files."
 	fi
 
 	local id
-	local file
-	local ext
-	local -A tags
+	for (( id = 1; id <= ${track_count}; id++ )); do
+		local file=${_play_tracks__tags_array[${id},file]}
 
-	for (( id = 1; id <= ${in_count}; id++ )); do
-		file="${_play_tracks__tracks_array[$(( id - 1 ))]}"
-		ext="${file##*.}"
+		echo "${id}/${track_count}: ${_play_tracks__tags_array[${id},ARTIST]}, ${_play_tracks__tags_array[${id},ALBUM]}, ${_play_tracks__tags_array[${id},TITLE]} (${_play_tracks__tags_array[${id},duration]})"
 
-		if [[ "${ext}" = 'm4a' ]]; then
-			# 'Duration       : 0:06:33'
-			local duration="$(exiftool -Duration "${files_prefix}${file}")"
-			duration="${duration#*: }"
-			duration="${duration#0:0}"
-			duration="${duration#0:}"
-
-			m4a_fill_tag_set "${files_prefix}${file}" tags
-			echo "${id}/${in_count}: ${tags[ARTIST]}, ${tags[ALBUM]}, ${tags[TITLE]} (${duration})"
-			${ffplay} -loglevel quiet -nodisp -autoexit "${files_prefix}${file}" > /dev/null || :
-		elif [[  "${ext}" = 'flac' ]]; then
-			local samples="$(${metaflac} --show-total-samples "${files_prefix}${file}")"
-			local rate="$(${metaflac} --show-sample-rate "${files_prefix}${file}")"
-			local seconds="$(( samples / rate))"
-
-			local duration="$(( samples / rate))"
-			duration="$(sec_to_min_sec "${duration}")"
-
-			flac_fill_tag_set "${files_prefix}${file}" tags
-			echo "${id}/${in_count}: ${tags[ARTIST]}, ${tags[ALBUM]}, ${tags[TITLE]} (${duration})"
-			${sox} --no-show-progress "${files_prefix}${file:?}" -d
+		if [[ "${_play_tracks__tags_array[${id},ext]}" = 'm4a' ]]; then
+			${ffplay} -loglevel quiet -nodisp -autoexit "${file}" > /dev/null || :
+		elif [[  "${_play_tracks__tags_array[${id},ext]}" = 'flac' ]]; then
+			${sox} --no-show-progress "${file:?}" -d
 		else
-			echo "${id}/${in_count}: Unknown file type '${files_prefix}${file}'." >&2
+			echo "${id}/${track_count}: Unknown file type '${file}'." >&2
 		fi
 	done
 }
@@ -231,16 +255,22 @@ play_file() {
 
 	local -a tracks_array=("${in_file}")
 
+	local -A tags_array
+	get_tags_array tracks_array tags_array ''
+
 	local -A tags
 	fill_tag_set "${in_file}" tags
 
 	local term_line
 	print_playing "${tags[ARTIST]}" "${tags[ALBUM]}" "${tags[DATE]}" "'${in_file}'" term_line
-	play_tracks tracks_array '' "${term_line}"
+
+	play_tracks tracks_array tags_array ''
 }
 
 play_playlist() {
 	local playlist_file="${1}"
+
+	playlist_file="$(realpath "${playlist_file}")"
 
 	check_file 'playlist' "${playlist_file}"
 
@@ -299,6 +329,17 @@ play_playlist() {
 		fi
 
 		if [[ "${line: -4:4}" = '.m3u' ]]; then
+			local line_orig="${line}"
+
+			if [[ ! -f "${line}" ]]; then
+				line="${arg_1%/*}/${line}"
+			fi
+
+			if [[ ! -f "${line}" ]]; then
+				echo "${script_name}: ERROR: Can't find file '${line_orig}'" >&2
+				exit 1
+			fi
+
 			if [[ ${verbose} ]]; then
 				echo "${id}: (playlist) = '${line}'" >&2
 			fi
@@ -310,7 +351,11 @@ play_playlist() {
 		echo "${script_name}: ERROR: ${id}: Unknown line type: '${line}'." >&2
 	done
 
-	if [[ ! "${tracks_array[@]}" ]]; then
+	local track_count="${#tracks_array[@]}"
+
+#	echo "track_count = ${track_count}" >&2
+
+	if [[ ${track_count} == 0 ]]; then
 		return
 	fi
 
@@ -322,19 +367,26 @@ play_playlist() {
 		echo "${script_name}: ERROR: Unknown files_prefix: playlist = '${playlist_file}', track = '${tracks_array[0]}'" >&2
 	fi
 
+	local -A tags_array
+	get_tags_array tracks_array tags_array "${files_prefix}"
+
+	local term_line
+	print_playing "${artist}" "${album}" "${date}" "'${playlist_file}'" term_line
+
 	local print_artist=''
 	if [[ "${artist}" == *'Various Artists'* ]]; then
 		print_artist=1
 	fi
 
-	local term_line
-	print_playing "${artist}" "${album}" "${date}" "'${playlist_file}'" term_line
-	print_tracks tracks_array "${print_artist}" "${files_prefix}" "${term_line}"
-	play_tracks tracks_array "${files_prefix}"
+	print_tracks tags_array "${track_count}" "${print_artist}" "${term_line}"
+
+	play_tracks tracks_array tags_array
 }
 
 play_top_dir() {
 	local top_dir="${1}"
+
+# 	echo "top_dir = '${top_dir}'" >&2
 
 	check_top_dir "${top_dir}"
 
@@ -344,27 +396,34 @@ play_top_dir() {
 		|| { echo "${script_name}: ERROR: tracks_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 		kill -SIGUSR1 $$; } )
 
-	local -A tags
+	local track_count="${#tracks_array[@]}"
 
-	if [[ ${#tracks_array[@]} != 0 ]]; then
-		local term_line
-
-		fill_tag_set "${tracks_array[0]}" tags
-
-		local print_artist
-		if [[ "${top_dir}" == *'Various Artists/'* ]]; then
-			print_artist=1
-			artist='Various Artists'
-		else
-			print_artist=''
-			artist="${tags[ARTIST]}"
-		fi
-
-		print_playing "${artist}" "${tags[ALBUM]}" "${tags[DATE]}" "'${top_dir}'" term_line
-		print_tracks tracks_array "${print_artist}" '' "${term_line}"
+	if [[ ${track_count} == 0 ]]; then
+		return
 	fi
 
-	play_tracks tracks_array ''
+	local -A tags
+	fill_tag_set "${tracks_array[0]}" tags
+
+	local -A tags_array
+	get_tags_array tracks_array tags_array ''
+
+	local print_artist
+	local artist
+	if [[ "${top_dir}" == *'Various Artists/'* ]]; then
+		print_artist=1
+		artist='Various Artists'
+	else
+		print_artist=''
+		artist="${tags[ARTIST]}"
+	fi
+
+	local term_line
+	print_playing "${artist}" "${tags[ALBUM]}" "${tags[DATE]}" "'${top_dir}'" term_line
+
+	print_tracks tags_array "${track_count}" "${print_artist}" "${term_line}"
+
+	play_tracks tracks_array tags_array
 }
 
 #===============================================================================
@@ -385,6 +444,8 @@ trap 'on_sigint' SIGINT
 set -eE
 set -o pipefail
 set -o nounset
+
+shopt -s extglob
 
 source "${SCRIPT_TOP}/audx-lib.sh"
 
