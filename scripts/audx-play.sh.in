@@ -9,6 +9,7 @@ usage() {
 		echo "${script_name} - Play AAC encoded M4A files."
 		echo "Usage: ${script_name} [flags] <top-dir | M3U playlist | M4A file>"
 		echo "Option flags:"
+		echo "  -s --state-file  - State file. Default: '${state_file}'."
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution. Default: '${verbose}'."
 		echo "  -g --debug       - Extra verbose execution. Default: '${debug}'."
@@ -31,8 +32,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="hvg"
-	local long_opts="help,verbose,debug,recurse-count:"
+	local short_opts="s:hvg"
+	local long_opts="state-file:,help,verbose,debug,recurse-count:"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -42,6 +43,10 @@ process_opts() {
 	while true ; do
 		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
+		-s | --state-file)
+			state_file="${2}"
+			shift 2
+			;;
 		-h | --help)
 			usage=1
 			shift
@@ -219,6 +224,7 @@ print_tracks() {
 play_tracks() {
 	local -n _play_tracks__tracks_array="${1}"
 	local -n _play_tracks__tags_array="${2}"
+	local state_file="${3}"
 
 	local track_count="${#_play_tracks__tracks_array[@]}"
 
@@ -269,6 +275,7 @@ play_file() {
 
 play_playlist() {
 	local playlist_file="${1}"
+	local state_file="${2}"
 
 	playlist_file="$(realpath "${playlist_file}")"
 
@@ -386,11 +393,13 @@ play_playlist() {
 
 	print_tracks tags_array "${track_count}" "${print_artist}" "${term_line}"
 
-	play_tracks tracks_array tags_array
+	mkdir -p "${state_dir}"
+	play_tracks tracks_array tags_array "${state_file}"
 }
 
 play_top_dir() {
 	local top_dir="${1}"
+	local state_file="${2}"
 
 # 	echo "top_dir = '${top_dir}'" >&2
 
@@ -426,7 +435,7 @@ play_top_dir() {
 
 	print_tracks tags_array "${track_count}" "${print_artist}" "${term_line}"
 
-	play_tracks tracks_array tags_array
+	play_tracks tracks_array tags_array "${state_file}"
 }
 
 #===============================================================================
@@ -452,6 +461,7 @@ shopt -s extglob
 
 source "${SCRIPT_TOP}/audx-lib.sh"
 
+state_file=''
 usage=''
 verbose=''
 debug=''
@@ -475,6 +485,10 @@ elif [[ -f "${arg_1}" && "${arg_1##*.}" == 'm4a' ]]; then
 elif [[ -f "${arg_1}" && "${arg_1##*.}" == 'flac' ]]; then
 	input_type='flac_file'
 fi
+
+state_dir="${state_dir:-/tmp/audx-state}"
+state_file="${state_dir}/${arg_1:-${start_time}}.state"
+state_file="$(realpath -m "${state_file}")"
 
 if [[ ${usage} ]]; then
 	usage
@@ -526,10 +540,10 @@ flac_file | m4a_file)
 	play_file "${arg_1}"
 	;;
 playlist)
-	play_playlist "${arg_1}"
+	play_playlist "${arg_1}" "${state_file}"
 	;;
 top_dir)
-	play_top_dir "${arg_1}"
+	play_top_dir "${arg_1}" "${state_file}"
 	;;
 *)
 	echo "${script_name}: ERROR: Unknown input type: '${arg_1}'" >&2
