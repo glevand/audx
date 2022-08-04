@@ -102,32 +102,6 @@ on_sigint() {
 	last_int="${now}"
 }
 
-print_playing() {
-	local artist=${1}
-	local album=${2}
-	local date=${3}
-	local fall_back=${4}
-	local -n _print_playing__term_line="${5}"
-
-	local str
-	echo
-	if [[ ${artist} && ${album} && ${date} ]]; then
-		str="Playing: ${artist}, ${album} (${date})"
-	elif [[ ${artist} && ${album} ]]; then
-		str="Playing: ${artist}, ${album}"
-	elif [[ ${artist} ]]; then
-		str="Playing: ${artist}"
-	elif [[ ${album} ]]; then
-		str="Playing: ${album}"
-	else
-		str="Playing: ${fall_back}"
-	fi
-	echo "${str}"
-
-	_print_playing__term_line="${str//[[:print:]]/-}"
-	echo "${_print_playing__term_line}"
-}
-
 get_tags_array() {
 	local -n _get_tags_array__tracks_array="${1}"
 	local -n _get_tags_array__tags_array="${2}"
@@ -138,7 +112,7 @@ get_tags_array() {
 
 	for (( id = 1; id <= ${track_count}; id++ )); do
 		local file
-		local get_tag
+		local -A file_tags
 		local duration
 
 		file="${_get_tags_array__tracks_array[$(( id - 1 ))]}"
@@ -148,7 +122,8 @@ get_tags_array() {
 		_get_tags_array__tags_array[${id},ext]="${file##*.}"
 
 		if [[ "${_get_tags_array__tags_array[${id},ext]}" = 'm4a' ]]; then
-			get_tag='m4a_get_tag'
+
+			m4a_fill_tag_set "${file}" file_tags
 
 			# 'Duration       : 0:06:33'
 			duration="$("${exiftool}" -Duration "${file}" 2>/dev/null || :)"
@@ -157,7 +132,8 @@ get_tags_array() {
 			duration="${duration#0:}"
 
 		elif [[  "${_get_tags_array__tags_array[${id},ext]}" = 'flac' ]]; then
-			get_tag='flac_get_tag'
+
+			flac_fill_tag_set "${file}" file_tags
 
 			local samples="$(${metaflac} --show-total-samples "${file}")"
 			local rate="$(${metaflac} --show-sample-rate "${file}")"
@@ -171,16 +147,17 @@ get_tags_array() {
 		fi
 
 		_get_tags_array__tags_array[${id},duration]="${duration}"
-		_get_tags_array__tags_array[${id},ARTIST]="$("${get_tag}" 'ARTIST' "${file}" 'required')"
-		_get_tags_array__tags_array[${id},ALBUM]="$("${get_tag}" 'ALBUM' "${file}" 'required')"
-		_get_tags_array__tags_array[${id},TITLE]="$("${get_tag}" 'TITLE' "${file}" 'required')"
-		_get_tags_array__tags_array[${id},DATE]="$("${get_tag}" 'DATE' "${file}" 'optional')"
 
-# 		_get_tags_array__tags_array[${id},GENRE]="$("${get_tag}" 'GENRE' "${file}" 'optional')"
-# 		_get_tags_array__tags_array[${id},TRACKNUMBER]="$("${get_tag}" "TRACKNUMBER" "${file}" 'required')"
-# 		_get_tags_array__tags_array[${id},TRACKTOTAL]="$("${get_tag}" "TRACKTOTAL" "${file}" 'optional')"
-# 		_get_tags_array__tags_array[${id},CDDB]="$("${get_tag}" "CDDB" "${file}" 'optional')"
-# 		_get_tags_array__tags_array[${id},DISCID]="$("${get_tag}" "DISCID" "${file}" 'optional')"
+		_get_tags_array__tags_array[${id},ARTIST]="${file_tags[ARTIST]}"
+		_get_tags_array__tags_array[${id},ALBUM]="${file_tags[ALBUM]}"
+		_get_tags_array__tags_array[${id},TITLE]="${file_tags[TITLE]}"
+		_get_tags_array__tags_array[${id},DATE]="${file_tags[DATE]}"
+
+# 		_get_tags_array__tags_array[${id},GENRE]="${file_tags[GENRE]}"
+# 		_get_tags_array__tags_array[${id},TRACKNUMBER]="${file_tags[TRACKNUMBER]}"
+# 		_get_tags_array__tags_array[${id},TRACKTOTAL]="${file_tags[TRACKTOTAL]}"
+# 		_get_tags_array__tags_array[${id},CDDB]="${file_tags[CDDB]}"
+# 		_get_tags_array__tags_array[${id},DISCID]="${file_tags[DISCID]}"
 	done
 
 # 	echo >&2
@@ -189,7 +166,6 @@ get_tags_array() {
 # 	done
 
 # 	echo >&2
-# 	echo "${FUNCNAME}:"
 # 	for (( id = 1; id <= ${track_count}; id++ )); do
 # 		echo "${id}/${track_count}:" >&2
 # 		echo "  file     = @${_get_tags_array__tags_array[${id},file]}@" >&2
@@ -202,6 +178,33 @@ get_tags_array() {
 # 	done
 }
 
+print_playing() {
+	local artist=${1}
+	local album=${2}
+	local date=${3}
+	local fall_back=${4}
+	local -n _print_playing__term_line="${5}"
+
+	local str
+	if [[ ${artist} && ${album} && ${date} ]]; then
+		str="Playing: ${artist}, ${album} (${date})"
+	elif [[ ${artist} && ${album} ]]; then
+		str="Playing: ${artist}, ${album}"
+	elif [[ ${artist} ]]; then
+		str="Playing: ${artist}"
+	elif [[ ${album} ]]; then
+		str="Playing: ${album}"
+	else
+		str="Playing: ${fall_back}"
+	fi
+
+	_print_playing__term_line="${str//[[:print:]]/-}"
+
+	echo
+	echo "${str}"
+	echo "${_print_playing__term_line}"
+}
+
 print_tracks() {
 	local -n _print_tracks__tags_array="${1}"
 	local track_count="${2}"
@@ -209,7 +212,6 @@ print_tracks() {
 	local term_line=${4}
 
 	local id
-
 	for (( id = 1; id <= ${track_count}; id++ )); do
 		if [[ ${print_artist} ]]; then
 			echo "${id}/${track_count}: ${_print_tracks__tags_array[${id},ARTIST]}, ${_print_tracks__tags_array[${id},TITLE]} (${_print_tracks__tags_array[${id},duration]})"
@@ -217,6 +219,7 @@ print_tracks() {
 			echo "${id}/${track_count}: ${_print_tracks__tags_array[${id},TITLE]} (${_print_tracks__tags_array[${id},duration]})"
 		fi
 	done
+
 	echo "${term_line}"
 	echo
 }
