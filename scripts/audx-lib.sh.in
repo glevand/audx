@@ -523,22 +523,123 @@ m4a_fill_tag_set() {
 	fi
 
 	_m4a_fill_tag_set__tags[file]="${file}"
-	_m4a_fill_tag_set__tags[ARTIST]="$(m4a_get_tag 'ARTIST' "${file}" 'required')"
-	_m4a_fill_tag_set__tags[ALBUM]="$(m4a_get_tag 'ALBUM' "${file}" 'required')"
-	_m4a_fill_tag_set__tags[DATE]="$(m4a_get_tag 'DATE' "${file}" 'optional')"
-	_m4a_fill_tag_set__tags[TITLE]="$(m4a_get_tag 'TITLE' "${file}" 'required')"
-	_m4a_fill_tag_set__tags[GENRE]="$(m4a_get_tag 'GENRE' "${file}" 'optional')"
-	_m4a_fill_tag_set__tags[TRACKNUMBER]="$(m4a_get_tag "TRACKNUMBER" "${file}" 'required')"
-	_m4a_fill_tag_set__tags[TRACKTOTAL]="$(m4a_get_tag "TRACKTOTAL" "${file}" 'optional')"
-	_m4a_fill_tag_set__tags[CDDB]="$(m4a_get_tag "CDDB" "${file}" 'optional')"
-	_m4a_fill_tag_set__tags[DISCID]="$(m4a_get_tag "DISCID" "${file}" 'optional')"
 
-	_m4a_fill_tag_set__tags[TRACKNUMBER]="${_m4a_fill_tag_set__tags[TRACKNUMBER]#0}"
+	local tag_data;
+	tag_data="$("${exiftool}" "${file}")"
+
+# Artist                          : ABC
+# Album                           : Beauty Stab
+# Title                           : That Was Then But This Is Now
+# Genre                           : ROCK
+# Comment                         : CDDB=
+# Track Number                    : 1 of 12
+
+	local artist_regex='Artist *: ([[:print:]]+)'
+	local album_regex='Album *: ([[:print:]]+)'
+	local title_regex='Title *: ([[:print:]]+)'
+	local date_regex='Date *: ([[:print:]]+)'
+	local genre_regex='Genre *: ([[:print:]]+)'
+	local track_regex='Track Number *: ([[:digit:]]+) of ([[:digit:]]+)'
+
+	local cddb_regex='CDDB=([[:print:]]+)'
+	local discid_regex='DISCID=([[:print:]]+)'
+
+	if [[ "${tag_data}" =~ ${artist_regex} ]]; then
+		_m4a_fill_tag_set__tags[ARTIST]="${BASH_REMATCH[1]}"
+	else
+		echo "artist not found" >&2
+		exit 1
+	fi
+
+	if [[ "${tag_data}" =~ ${album_regex} ]]; then
+		_m4a_fill_tag_set__tags[ALBUM]="${BASH_REMATCH[1]}"
+	else
+		echo "album not found" >&2
+		exit 1
+	fi
+
+	if [[ "${tag_data}" =~ ${title_regex} ]]; then
+		_m4a_fill_tag_set__tags[TITLE]="${BASH_REMATCH[1]}"
+	else
+		echo "title not found" >&2
+		exit 1
+	fi
+
+	if [[ "${tag_data}" =~ ${date_regex} ]]; then
+		_m4a_fill_tag_set__tags[DATE]="${BASH_REMATCH[1]}"
+	else
+		_m4a_fill_tag_set__tags[DATE]=''
+		if [[ ${debug} ]]; then
+			echo "date not found" >&2
+		fi
+	fi
+
+	if [[ "${tag_data}" =~ ${genre_regex} ]]; then
+		_m4a_fill_tag_set__tags[GENRE]="${BASH_REMATCH[1]}"
+	else
+		_m4a_fill_tag_set__tags[GENRE]=''
+		if [[ ${debug} ]]; then
+			echo "genre not found" >&2
+		fi
+	fi
+
+	if [[ "${tag_data}" =~ ${track_regex} ]]; then
+		_m4a_fill_tag_set__tags[TRACKNUMBER]="${BASH_REMATCH[1]}"
+		_m4a_fill_tag_set__tags[TRACKTOTAL]="${BASH_REMATCH[2]}"
+		_m4a_fill_tag_set__tags[TRACKNUMBER]="${_m4a_fill_tag_set__tags[TRACKNUMBER]#0}"
+	else
+		echo "track not found" >&2
+		exit 1
+	fi
+
+	if [[ "${tag_data}" =~ ${cddb_regex} ]]; then
+		_m4a_fill_tag_set__tags[CDDB]="${BASH_REMATCH[1]}"
+	else
+		_m4a_fill_tag_set__tags[CDDB]=''
+		if [[ ${debug} ]]; then
+			echo "cddb not found" >&2
+		fi
+	fi
+
+	if [[ "${tag_data}" =~ ${discid_regex} ]]; then
+		_m4a_fill_tag_set__tags[DISCID]="${BASH_REMATCH[1]}"
+	else
+		_m4a_fill_tag_set__tags[DISCID]=''
+		if [[ ${debug} ]]; then
+			echo "discid not found" >&2
+		fi
+	fi
 
 	if [[ ${debug} ]]; then
 		print_tag_set "${FUNCNAME[0]}" "${file}" _m4a_fill_tag_set__tags
 	fi
 }
+
+# m4a_fill_tag_set_1() {
+# 	local file="${1}"
+# 	local -n _m4a_fill_tag_set__tags="${2}"
+# 
+# 	if ! m4a_check_file "${file}" 'quiet'; then
+# 		return
+# 	fi
+# 
+# 	_m4a_fill_tag_set__tags[file]="${file}"
+# 	_m4a_fill_tag_set__tags[ARTIST]="$(m4a_get_tag 'ARTIST' "${file}" 'required')"
+# 	_m4a_fill_tag_set__tags[ALBUM]="$(m4a_get_tag 'ALBUM' "${file}" 'required')"
+# 	_m4a_fill_tag_set__tags[DATE]="$(m4a_get_tag 'DATE' "${file}" 'optional')"
+# 	_m4a_fill_tag_set__tags[TITLE]="$(m4a_get_tag 'TITLE' "${file}" 'required')"
+# 	_m4a_fill_tag_set__tags[GENRE]="$(m4a_get_tag 'GENRE' "${file}" 'optional')"
+# 	_m4a_fill_tag_set__tags[TRACKNUMBER]="$(m4a_get_tag "TRACKNUMBER" "${file}" 'required')"
+# 	_m4a_fill_tag_set__tags[TRACKTOTAL]="$(m4a_get_tag "TRACKTOTAL" "${file}" 'optional')"
+# 	_m4a_fill_tag_set__tags[CDDB]="$(m4a_get_tag "CDDB" "${file}" 'optional')"
+# 	_m4a_fill_tag_set__tags[DISCID]="$(m4a_get_tag "DISCID" "${file}" 'optional')"
+# 
+# 	_m4a_fill_tag_set__tags[TRACKNUMBER]="${_m4a_fill_tag_set__tags[TRACKNUMBER]#0}"
+# 
+# 	if [[ ${debug} ]]; then
+# 		print_tag_set "${FUNCNAME[0]}" "${file}" _m4a_fill_tag_set__tags
+# 	fi
+# }
 
 m4a_print_tags() {
 	local file=${1}
@@ -628,17 +729,17 @@ print_tag_set() {
 	local file="${2}"
 	local -n _print_tag_set__tags="${3}"
 
-	echo "${msg}file: '${file}'"
-	echo "${msg}  ARTIST:      '${_print_tag_set__tags[ARTIST]}'"
-	echo "${msg}  ALBUM:       '${_print_tag_set__tags[ALBUM]}'"
-	echo "${msg}  DATE:        '${_print_tag_set__tags[DATE]}'"
-	echo "${msg}  TITLE:       '${_print_tag_set__tags[TITLE]}'"
-	echo "${msg}  GENRE:       '${_print_tag_set__tags[GENRE]}'"
-	echo "${msg}  TRACKNUMBER: '${_print_tag_set__tags[TRACKNUMBER]}'"
-	echo "${msg}  TRACKTOTAL:  '${_print_tag_set__tags[TRACKTOTAL]}'"
-	echo "${msg}  CDDB:        '${_print_tag_set__tags[CDDB]}'"
+	echo "${msg} file: '${file}'"
+	echo "${msg}   ARTIST:      '${_print_tag_set__tags[ARTIST]}'"
+	echo "${msg}   ALBUM:       '${_print_tag_set__tags[ALBUM]}'"
+	echo "${msg}   DATE:        '${_print_tag_set__tags[DATE]}'"
+	echo "${msg}   TITLE:       '${_print_tag_set__tags[TITLE]}'"
+	echo "${msg}   GENRE:       '${_print_tag_set__tags[GENRE]}'"
+	echo "${msg}   TRACKNUMBER: '${_print_tag_set__tags[TRACKNUMBER]}'"
+	echo "${msg}   TRACKTOTAL:  '${_print_tag_set__tags[TRACKTOTAL]}'"
+	echo "${msg}   CDDB:        '${_print_tag_set__tags[CDDB]}'"
 	if [[ ${_print_tag_set__tags[DISCID]} ]]; then
-		echo "${msg}  DISCID:      '${_print_tag_set__tags[DISCID]}'"
+		echo "${msg}   DISCID:      '${_print_tag_set__tags[DISCID]}'"
 	fi
 }
 
