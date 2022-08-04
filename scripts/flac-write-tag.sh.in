@@ -22,6 +22,7 @@ usage() {
 		echo "  DATE"
 		echo "  TRACKNUMBER"
 		echo "  TRACKTOTAL"
+		echo "  CDDB"
 		echo "Examples:"
 		echo "  ${script_name}  --tag='ALBUM=No Jacket Required' \"\${collection}/Phil Collins/No Jacket Required\""
 		echo "  ${script_name}  --tag='ARTIST=Ultravox' \"\${collection}/Ultravox\""
