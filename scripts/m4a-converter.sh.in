@@ -180,6 +180,7 @@ fdkaac_cmd='"${fdkaac}" \
   --album="$(escape_txt "${tags[ALBUM]}")" \
   --title="$(escape_txt "${tags[TITLE]}")" \
   --genre="$(escape_txt "${tags[GENRE]}")" \
+  --date="$(escape_txt "${tags[DATE]}")" \
   --comment="CDDB=${tags[CDDB]}" \
   --track="${tags[TRACKNUMBER]}/${tags[TRACKTOTAL]}" \
   -o "$(escape_txt "${out_file}")" -'
