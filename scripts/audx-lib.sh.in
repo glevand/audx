@@ -1030,12 +1030,16 @@ write_m3u_playlist() {
 		} >&2
 	fi
 
+	if [[ ! ${tags[CDDB]} ]]; then
+		echo "${script_name}: No CDDB tag found in '${files_array[0]}'" >&2
+	fi
+
 	if [[ ! ${tags[DATE]} ]]; then
 		echo "${script_name}: No DATE tag found in '${files_array[0]}'" >&2
 	fi
 
-	if [[ ! ${tags[CDDB]} ]]; then
-		echo "${script_name}: No CDDB tag found in '${files_array[0]}'" >&2
+	if [[ ! ${tags[GENRE]} ]]; then
+		echo "${script_name}: No GENRE tag found in '${files_array[0]}'" >&2
 	fi
 
 	if [[ ! ${canonical} ]]; then
