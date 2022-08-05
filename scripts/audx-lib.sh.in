@@ -860,9 +860,14 @@ metaflac_retag() {
 		;;
 	esac
 
+	local dry_run_txt=''
+	if [[ ${dry_run:-} ]]; then
+		dry_run_txt=' (DRY RUN)'
+	fi
+
 	{
 		echo "${FUNCNAME[0]}: file: '${file}'"
-		echo "${FUNCNAME[0]}:   ${tag_name}: '${old_tag}' => '${tag_value}'"
+		echo "${FUNCNAME[0]}:   ${tag_name}: '${old_tag}' => '${tag_value}'${dry_run_txt}"
 	}
 
 	if [[ ! ${dry_run:-} ]]; then
