@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+
+usage() {
+	local old_xtrace
+	old_xtrace="$(shopt -po xtrace || :)"
+	set +o xtrace
+
+	{
+		echo "${script_name} - Convert eight character DISCID tags to CDDB tags."
+		echo "Usage: ${script_name} [flags] <top-dir>"
+		echo "Option flags:"
+		echo "  -k --keep_id - Keep DISCID tag. Default: '${keep_id}'."
+		echo "  -h --help    - Show this help and exit."
+		echo "  -v --verbose - Verbose execution."
+		echo "  -g --debug   - Extra verbose execution."
+		echo "  -d --dry-run - Dry run, don't modify files."
+		echo "Info:"
+		print_project_info
+	} >&2
+	eval "${old_xtrace}"
+}
+
+process_opts() {
+	local short_opts="khvgd"
+	local long_opts="help,verbose,debug,dry-run"
+
+	local opts
+	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
+
+	eval set -- "${opts}"
+
+	while true ; do
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
+		case "${1}" in
+		-k | --keep-id)
+			keep_id=1
+			shift
+			;;
+		-h | --help)
+			usage=1
+			shift
+			;;
+		-v | --verbose)
+			verbose=1
+			shift
+			;;
+		-g | --debug)
+			verbose=1
+			debug=1
+			set -x
+			shift
+			;;
+		-d | --dry-run)
+			dry_run=1
+			shift
+			;;
+		--)
+			shift
+			top_dir="${1:-}"
+			if [[ ${top_dir} ]]; then
+				shift
+			fi
+			extra_args="${*}"
+			break
+			;;
+		*)
+			echo "${script_name}: ERROR: Internal opts: '${*}'" >&2
+			exit 1
+			;;
+		esac
+	done
+}
+
+#===============================================================================
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
+script_name="${0##*/}"
+
+SECONDS=0
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+
+real_source="$(realpath "${BASH_SOURCE}")"
+SCRIPT_TOP="$(realpath "${SCRIPT_TOP:-${real_source%/*}}")"
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+
+set -eE
+set -o pipefail
+set -o nounset
+
+source "${SCRIPT_TOP}/audx-lib.sh"
+
+keep_id=''
+usage=''
+verbose=''
+debug=''
+dry_run=''
+top_dir=''
+
+process_opts "${@}"
+
+if [[ -f "${HOME}/.audx.conf" ]]; then
+	source "${HOME}/.audx.conf"
+fi
+
+if [[ ${usage} ]]; then
+	usage
+	trap - EXIT
+	exit 0
+fi
+
+print_project_banner >&2
+
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
+fi
+
+if [[ ! ${top_dir} ]]; then
+	echo "${script_name}: ERROR: No input directory given." >&2
+	usage
+	exit 1
+fi
+
+top_dir="$(realpath -e "${top_dir}")"
+
+if [[ ! -d "${top_dir}" ]]; then
+	echo "${script_name}: ERROR: Bad top-dir: '${top_dir}'" >&2
+	usage
+	exit 1
+fi
+
+exiftool="${exiftool:-exiftool}"
+check_program "exiftool" "${exiftool}"
+
+metaflac="${metaflac:-metaflac}"
+check_program "metaflac" "${metaflac}"
+
+declare -a tracks_array
+
+readarray -t tracks_array < <(find "${top_dir}" -type f -name '*.flac' -o -name '*.m4a' | sort \
+	|| { echo "${script_name}: ERROR: tracks_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
+	kill -SIGUSR1 $$; } )
+
+track_count="${#tracks_array[@]}"
+
+if [[ ${dry_run} ]]; then
+	echo "${script_name}: INFO: Processing ${track_count} files (DRY RUN)." >&2
+else
+	echo "${script_name}: INFO: Processing ${track_count} files." >&2
+fi
+
+for track in "${tracks_array[@]}"; do
+
+	cddb="$(flac_get_tag 'CDDB' "${track}" 'optional')"
+
+#	echo "  CDDB   = '${cddb}'" >&2
+
+	if [[ ${cddb} ]]; then
+		continue
+	fi
+
+	discid="$(flac_get_tag 'DISCID' "${track}" 'optional')"
+
+	if [[ ! ${discid} ]]; then
+		continue
+	fi
+	
+	if [[ "${#discid}" != '8' ]]; then
+		echo "bad DISCID = '${discid}' (${#discid}) '${track}'" >&2
+		continue
+	fi
+
+#	echo "good DISCID = '${discid}' (${#discid}) '${track}'" >&2
+
+	flac_check_file "${track}" 'verbose'
+
+	metaflac_retag "${track}" 'CDDB' "${discid}" 'add'
+
+	if [[ ! ${keep_id} ]]; then
+		metaflac_retag "${track}" 'DISCID' '' 'remove'
+	fi
+done
+
+trap "on_exit 'Success'" EXIT
+exit 0

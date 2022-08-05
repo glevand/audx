@@ -10,6 +10,7 @@ composed_bin_scripts = \
 	scripts/check-vfat-names.sh \
 	scripts/flac-add-tracktotal.sh \
 	scripts/flac-clean-tags.sh \
+	scripts/flac-fixup-cddb.sh \
 	scripts/flac-meta-rename.sh \
 	scripts/flac-print-tags.sh \
 	scripts/flac-tag-switcher.sh \
