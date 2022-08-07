@@ -6,8 +6,8 @@ usage() {
 	set +o xtrace
 
 	{
-		echo "${script_name} - Play AAC encoded M4A files."
-		echo "Usage: ${script_name} [flags] <top-dir | M3U playlist | M4A file>"
+		echo "${script_name} - Play FLAC and AAC encoded M4A files."
+		echo "Usage: ${script_name} [flags] <top-dir | M3U playlist | M4A file | FLAC file>"
 		echo "Option flags:"
 		echo "  -s --state-file  - State file. Default: '${state_file}'."
 		echo "  -h --help        - Show this help and exit."
@@ -100,6 +100,7 @@ on_sigint() {
 		exit 0
 	fi
 	last_int="${now}"
+	got_sig_int=1
 }
 
 get_tags_array() {
@@ -240,9 +241,23 @@ play_tracks() {
 		echo "${script_name}: Playing ${track_count} input files."
 	fi
 
+	local state_data=''
+	if [[ -f "${state_file}" ]]; then
+		state_data="$(<"${state_file}")"
+	fi
+
 	local id
 	for (( id = 1; id <= ${track_count}; id++ )); do
+
 		local file=${_play_tracks__tags_array[${id},file]}
+		local file_name="${file##*/}"
+
+		if [[ "${state_data}" =~ "${file_name}" ]]; then
+			if [[ "${verbose}" ]]; then
+				echo "Found state: '${file_name}'" >&2
+			fi
+			continue
+		fi
 
 		echo "${id}/${track_count}: ${_play_tracks__tags_array[${id},ARTIST]}, ${_play_tracks__tags_array[${id},TITLE]} (${_play_tracks__tags_array[${id},duration]})"
 
@@ -257,7 +272,22 @@ play_tracks() {
 		else
 			echo "${id}/${track_count}: Unknown file type '${file}'." >&2
 		fi
+
+		if [[ ${got_sig_int} ]]; then
+			got_sig_int=''
+		else
+			if [[ "${verbose}" ]]; then
+				echo "Add state: '${file_name}'" >&2
+			fi
+			echo "${file_name}" >> "${state_file}"
+		fi
 	done
+
+	if [[ "${state_file}" ]]; then
+		rm "${state_file}"
+	fi
+
+	echo
 }
 
 play_file() {
@@ -295,7 +325,7 @@ play_playlist() {
 	local date=''
 
 	for (( id = 1; id <= ${line_count}; id++ )); do
-		line="${lines_array[$(( id - 1 ))]}"
+		local line="${lines_array[$(( id - 1 ))]}"
 
 		if [[ "${line::1}" = '#' ]]; then
 			if [[ ${verbose} ]]; then
@@ -352,6 +382,8 @@ play_playlist() {
 
 		if [[ "${line: -4:4}" = '.m3u' ]]; then
 			local line_orig="${line}"
+			local state_entry="${line#/}"
+			state_entry="${state_entry//\//-}"
 
 			if [[ -f "${line}" ]]; then
 				:
@@ -366,7 +398,29 @@ play_playlist() {
 				echo "${id}: (playlist) = '${line}'" >&2
 			fi
 
+			if [[ -f "${state_file}" ]]; then
+				local state_data
+				state_data="$(<"${state_file}")"
+
+				if [[ "${state_data}" =~ "${state_entry}" ]]; then
+					if [[ "${verbose}" ]]; then
+						echo "Found state: '${state_entry}'" >&2
+					fi
+					continue
+				fi
+			fi
+
 			"${SCRIPT_TOP}/${script_name}" ${verbose:+--verbose} ${debug:+--debug} --recurse-count="$(( recurse_count + 1 ))" "${line}"
+
+			if [[ ${got_sig_int} ]]; then
+				got_sig_int=''
+			else
+				if [[ "${verbose}" ]]; then
+					echo "Add state: '${state_entry}'" >&2
+				fi
+				echo "${state_entry}" >> "${state_file}"
+			fi
+
 			continue
 		fi
 
@@ -468,8 +522,9 @@ state_file=''
 usage=''
 verbose=''
 debug=''
-recurse_count=''
+recurse_count=0
 arg_1=''
+got_sig_int=''
 
 process_opts "${@}"
 
@@ -490,8 +545,11 @@ elif [[ -f "${arg_1}" && "${arg_1##*.}" == 'flac' ]]; then
 fi
 
 state_dir="${state_dir:-/tmp/audx-state}"
-state_file="${state_dir}/${arg_1:-${start_time}}.state"
-state_file="$(realpath -m "${state_file}")"
+
+state_file="${arg_1:-${start_time}}.state"
+state_file="${state_file#/}"
+state_file="${state_file//\//-}"
+state_file="$(realpath -m "${state_dir}/${state_file}")"
 
 if [[ ${usage} ]]; then
 	usage
