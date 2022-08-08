@@ -184,6 +184,22 @@ Info:
   Project Home: https://github.com/glevand/audx
 ```
 
+### flac-fixup-cddb - Convert eight character DISCID tags to CDDB tags.
+
+```
+flac-fixup-cddb.sh - Convert eight character DISCID tags to CDDB tags.
+Usage: flac-fixup-cddb.sh [flags] <top-dir>
+Option flags:
+  -k --keep_id - Keep DISCID tag. Default: ''.
+  -h --help    - Show this help and exit.
+  -v --verbose - Verbose execution.
+  -g --debug   - Extra verbose execution.
+  -d --dry-run - Dry run, don't modify files.
+Info:
+  AUDX flac-tag-switcher.sh
+  Project Home: https://github.com/glevand/audx
+```
+
 ## M4A File Utilities
 
 Utilities for working with AAC encoded MPEG-4 audio files.
@@ -226,12 +242,13 @@ Typical CPU usage when running the m4a-converter script.
 
 ![m4a-converter CPU Usage](images/m4a-converter-cpu-usage.png)
 
-### audx-play - Play AAC encoded M4A files.
+### audx-play - Play FLAC and AAC encoded M4A files.
 
 ```
-audx-play.sh - Play AAC encoded M4A files.
-Usage: audx-play.sh [flags] <top-dir | M3U playlist | M4A file>
+audx-play.sh - Play FLAC and AAC encoded M4A files.
+Usage: audx-play.sh [flags] <top-dir | M3U playlist | M4A file | FLAC file>
 Option flags:
+  -s --state-file  - State file. Default: '/tmp/audx-state/state'.
   -h --help        - Show this help and exit.
   -v --verbose     - Verbose execution. Default: ''.
   -g --debug       - Extra verbose execution. Default: ''.
