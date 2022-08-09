@@ -83,7 +83,6 @@ process_opts() {
 	done
 }
 
-last_int=0
 on_sigint() {
 	local now="$(( SECONDS + 1 ))"
 	local delta="$(( now - last_int ))"
@@ -101,6 +100,20 @@ on_sigint() {
 	fi
 	last_int="${now}"
 	got_sig_int=1
+}
+
+write_state() {
+	local state_file="${1}"
+	local entry="${2}"
+
+	if [[ ! -f "${state_file}" ]]; then
+		{
+			echo '# AUDX state file'
+			echo "# ${state_file##*/}"
+			echo
+		} > "${state_file}"
+	fi
+	echo "${entry}" >> "${state_file}"
 }
 
 get_tags_array() {
@@ -279,7 +292,7 @@ play_tracks() {
 			if [[ "${verbose}" ]]; then
 				echo "Add state: '${file_name}'" >&2
 			fi
-			echo "${file_name}" >> "${state_file}"
+			write_state "${state_file}" "${file_name}"
 		fi
 	done
 
@@ -418,7 +431,7 @@ play_playlist() {
 				if [[ "${verbose}" ]]; then
 					echo "Add state: '${state_entry}'" >&2
 				fi
-				echo "${state_entry}" >> "${state_file}"
+				write_state "${state_file}" "${state_entry}"
 			fi
 
 			continue
@@ -524,6 +537,7 @@ verbose=''
 debug=''
 recurse_count=0
 arg_1=''
+last_int=0
 got_sig_int=''
 
 process_opts "${@}"
