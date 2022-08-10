@@ -296,7 +296,7 @@ play_tracks() {
 		fi
 	done
 
-	if [[ "${state_file}" ]]; then
+	if [[ -f "${state_file}" ]]; then
 		rm "${state_file}"
 	fi
 
