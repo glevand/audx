@@ -547,21 +547,21 @@ m4a_fill_tag_set() {
 	if [[ "${tag_data}" =~ ${artist_regex} ]]; then
 		_m4a_fill_tag_set__tags[ARTIST]="${BASH_REMATCH[1]}"
 	else
-		echo "artist not found" >&2
+		echo "${FUNCNAME[0]}: ERROR: 'Artist' tag not found in file '${file}'." >&2
 		exit 1
 	fi
 
 	if [[ "${tag_data}" =~ ${album_regex} ]]; then
 		_m4a_fill_tag_set__tags[ALBUM]="${BASH_REMATCH[1]}"
 	else
-		echo "album not found" >&2
+		echo "${FUNCNAME[0]}: ERROR: 'Album' tag not found in file '${file}'." >&2
 		exit 1
 	fi
 
 	if [[ "${tag_data}" =~ ${title_regex} ]]; then
 		_m4a_fill_tag_set__tags[TITLE]="${BASH_REMATCH[1]}"
 	else
-		echo "title not found" >&2
+		echo "${FUNCNAME[0]}: ERROR: 'Title' tag not found in file '${file}'." >&2
 		exit 1
 	fi
 
@@ -570,7 +570,7 @@ m4a_fill_tag_set() {
 	else
 		_m4a_fill_tag_set__tags[DATE]=''
 		if [[ ${debug} ]]; then
-			echo "date not found" >&2
+			echo "${FUNCNAME[0]}: WARNING: 'Date' tag not found in file '${file}'." >&2
 		fi
 	fi
 
@@ -579,7 +579,7 @@ m4a_fill_tag_set() {
 	else
 		_m4a_fill_tag_set__tags[GENRE]=''
 		if [[ ${debug} ]]; then
-			echo "genre not found" >&2
+			echo "${FUNCNAME[0]}: WARNING: 'Genre' tag not found in file '${file}'." >&2
 		fi
 	fi
 
@@ -588,7 +588,7 @@ m4a_fill_tag_set() {
 		_m4a_fill_tag_set__tags[TRACKTOTAL]="${BASH_REMATCH[2]}"
 		_m4a_fill_tag_set__tags[TRACKNUMBER]="${_m4a_fill_tag_set__tags[TRACKNUMBER]#0}"
 	else
-		echo "track not found" >&2
+		echo "${FUNCNAME[0]}: ERROR: 'Track Number' tag not found in file '${file}'." >&2
 		exit 1
 	fi
 
@@ -597,7 +597,7 @@ m4a_fill_tag_set() {
 	else
 		_m4a_fill_tag_set__tags[CDDB]=''
 		if [[ ${debug} ]]; then
-			echo "cddb not found" >&2
+			echo "${FUNCNAME[0]}: WARNING: 'CDDB' tag not found in file '${file}'." >&2
 		fi
 	fi
 
@@ -606,7 +606,7 @@ m4a_fill_tag_set() {
 	else
 		_m4a_fill_tag_set__tags[DISCID]=''
 		if [[ ${debug} ]]; then
-			echo "discid not found" >&2
+			echo "${FUNCNAME[0]}: WARNING: 'DISCID' tag not found in file '${file}'." >&2
 		fi
 	fi
 
