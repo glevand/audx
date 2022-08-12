@@ -18,6 +18,10 @@ usage() {
 		echo "  -v --verbose     - Verbose execution. Default: '${verbose}'."
 		echo "  -g --debug       - Extra verbose execution. Default: '${debug}'."
 		echo "  -d --dry-run     - Dry run, don't run encoder."
+		echo "Common bitrates:"
+		echo "  Truck Music: 328 bps"
+		echo "  Phone Music: 192 bps"
+		echo "  Low-Fi Music: 96 bps"
 		echo 'Input:'
 		case "${input_type}" in
 		flac_file)
