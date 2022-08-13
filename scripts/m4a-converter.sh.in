@@ -396,8 +396,8 @@ fi
 
 echo "${script_name}: INFO: Wrote ${out_counter} m4a files to '${output_dir}'." >&2
 
-if (( out_counter != 0 )); then
-	sec_per_file="$(divided_by "${SECONDS}" "${out_counter}")"
+if (( in_count != 0 )); then
+	sec_per_file="$(divided_by "${SECONDS}" "${in_count}")"
 	echo "${script_name}: INFO: Averaged ${sec_per_file} seconds per file." >&2
 fi
 
