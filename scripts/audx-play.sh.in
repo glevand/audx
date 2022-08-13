@@ -9,7 +9,7 @@ usage() {
 		echo "${script_name} - Play FLAC and AAC encoded M4A files."
 		echo "Usage: ${script_name} [flags] <top-dir | M3U playlist | M4A file | FLAC file>"
 		echo "Option flags:"
-		echo "  -s --state-file  - State file. Default: '${state_file}'."
+		echo "  -s --state-dir   - State directory. Default: '${state_dir}'."
 		echo "  -h --help        - Show this help and exit."
 		echo "  -v --verbose     - Verbose execution. Default: '${verbose}'."
 		echo "  -g --debug       - Extra verbose execution. Default: '${debug}'."
@@ -33,7 +33,7 @@ usage() {
 
 process_opts() {
 	local short_opts="s:hvg"
-	local long_opts="state-file:,help,verbose,debug,recurse-count:"
+	local long_opts="state-dir:,help,verbose,debug,recurse-count:"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -43,8 +43,8 @@ process_opts() {
 	while true ; do
 		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
 		case "${1}" in
-		-s | --state-file)
-			state_file="${2}"
+		-s | --state-dir)
+			state_dir="${2}"
 			shift 2
 			;;
 		-h | --help)
@@ -423,7 +423,7 @@ play_playlist() {
 				fi
 			fi
 
-			"${SCRIPT_TOP}/${script_name}" ${verbose:+--verbose} ${debug:+--debug} --recurse-count="$(( recurse_count + 1 ))" "${line}"
+			"${SCRIPT_TOP}/${script_name}" ${verbose:+--verbose} ${debug:+--debug} --state-dir=${state_dir} --recurse-count="$(( recurse_count + 1 ))" "${line}"
 
 			if [[ ${got_sig_int} ]]; then
 				got_sig_int=''
@@ -531,7 +531,7 @@ shopt -s extglob
 
 source "${SCRIPT_TOP}/audx-lib.sh"
 
-state_file=''
+state_dir=''
 usage=''
 verbose=''
 debug=''
@@ -563,6 +563,7 @@ state_dir="${state_dir:-/tmp/audx-state}"
 state_file="${arg_1:-${start_time}}.state"
 state_file="$(realpath -m "${state_file}")"
 state_file="${state_file#/}"
+state_file="${state_file%/*}--${state_file##*/}"
 state_file="${state_file//\//-}"
 state_file="$(realpath -m "${state_dir}/${state_file}")"
 
