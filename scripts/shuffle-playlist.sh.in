@@ -82,7 +82,6 @@ script_name="${real_source##*/}"
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
 trap 'on_err SIGUSR1 ? 3' SIGUSR1
-trap 'on_sigint' SIGINT
 
 set -eE
 set -o pipefail
