@@ -1062,7 +1062,7 @@ write_m3u_playlist() {
 	fi
 
 	{
-		make_m3u_header "AUDX ${type^^} playlist" "${artist}" \
+		make_m3u_header "AUDX playlist" "${artist}" \
 			"${tags[ALBUM]}" "${tags[DATE]}" "${tags[GENRE]}" "${tags[CDDB]}"
 		printf "%s\n" "${files_array[@]}"
 	} > "${out_file}"
