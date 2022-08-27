@@ -146,7 +146,7 @@ setup_p_script() {
 		return
 	fi
 
-	if [[ ${debug} ]]; then
+	if [[ ${verbose} ]]; then
 		echo "${id}: Setup '${out_file}'" >&2
 		#echo "${id}: Setup '${out_file}' @ '${p_script}'" >&2
 	fi
