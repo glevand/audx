@@ -537,7 +537,7 @@ m4a_fill_tag_set() {
 	local artist_regex='Artist *: ([[:print:]]+)'
 	local album_regex='Album *: ([[:print:]]+)'
 	local title_regex='Title *: ([[:print:]]+)'
-	local date_regex='Date *: ([[:print:]]+)'
+	local date_regex='Content Create Date *: ([[:print:]]+)'
 	local genre_regex='Genre *: ([[:print:]]+)'
 	local track_regex='Track Number *: ([[:digit:]]+) of ([[:digit:]]+)'
 
@@ -1062,7 +1062,7 @@ write_m3u_playlist() {
 	fi
 
 	{
-		make_m3u_header "AUDX playlist" "${artist}" \
+		make_m3u_header "AUDX playlist - ${start_time}" "${artist}" \
 			"${tags[ALBUM]}" "${tags[DATE]}" "${tags[GENRE]}" "${tags[CDDB]}"
 		printf "%s\n" "${files_array[@]}"
 	} > "${out_file}"
