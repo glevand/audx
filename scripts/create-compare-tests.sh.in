@@ -1,0 +1,218 @@
+#!/usr/bin/env bash
+
+usage() {
+	local old_xtrace
+	old_xtrace="$(shopt -po xtrace || :)"
+	set +o xtrace
+
+	{
+		echo "${script_name} - Create encoding comparison files."
+		echo "Usage: ${script_name} [flags]"
+		echo "Option flags:"
+		echo "  -i --input-file - Input file. Default: '${input_file}'."
+		echo "  -o --output-dir - Output directory. Default: '${output_dir}'."
+#		echo "  -A --opt-A      - opt_A. Default: '${opt_A}'."
+#		echo "  -B --opt-B      - opt-B. Default: '${opt_B}'."
+		echo "  -h --help       - Show this help and exit."
+		echo "  -v --verbose    - Verbose execution. Default: '${verbose}'."
+		echo "  -g --debug      - Extra verbose execution. Default: '${debug}'."
+		echo "Info:"
+		print_project_info
+	} >&2
+	eval "${old_xtrace}"
+}
+
+process_opts() {
+	local short_opts="i:o:A:B:hvg"
+	local long_opts="input-file:,output-dir:,opt-A:,opt-B:,help,verbose,debug"
+
+	local opts
+	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
+
+	eval set -- "${opts}"
+
+	while true ; do
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
+		case "${1}" in
+		-i | --input-file)
+			input_file="${2}"
+			shift 2
+			;;
+		-o | --output-dir)
+			output_dir="${2}"
+			shift 2
+			;;
+		-A | --opt-A)
+			opt_A="${2}"
+			shift 2
+			;;
+		-B | --opt-B)
+			opt_B="${2}"
+			shift 2
+			;;
+		-h | --help)
+			usage=1
+			shift
+			;;
+		-v | --verbose)
+			verbose=1
+			shift
+			;;
+		-g | --debug)
+			verbose=1
+			debug=1
+			keep_tmp_dir=1
+			set -x
+			shift
+			;;
+		-d | --dry-run)
+			dry_run=1
+			shift
+			;;
+		--)
+			shift
+			extra_args="${*}"
+			break
+			;;
+		*)
+			echo "${script_name}: ERROR: Internal opts: '${*}'" >&2
+			exit 1
+			;;
+		esac
+	done
+}
+
+#===============================================================================
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
+SECONDS=0
+start_time="$(date +%Y.%m.%d-%H.%M.%S)"
+
+real_source="$(realpath "${BASH_SOURCE}")"
+SCRIPT_TOP="$(realpath "${SCRIPT_TOP:-${real_source%/*}}")"
+script_name="${real_source##*/}"
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+
+set -eE
+set -o pipefail
+set -o nounset
+
+source "${SCRIPT_TOP}/audx-lib.sh"
+
+input_file=''
+output_dir=''
+opt_A=''
+opt_B=''
+usage=''
+verbose=''
+debug=''
+
+process_opts "${@}"
+
+output_dir="${output_dir:-$(mktemp --tmpdir --directory ${script_name}.XXXX)}"
+
+if [[ ${usage} ]]; then
+	usage
+	trap - EXIT
+	exit 0
+fi
+
+print_project_banner >&2
+
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
+fi
+
+audx_scripts='/home/geoff/projects/audio/git/audx/scripts'
+
+m4a_converter="${m4a_converter:-${audx_scripts}/m4a-converter.sh.in}"
+#check_program "m4a-converter.sh" "${m4a_converter}"
+
+if [[ ! -f  "${input_file}" ]]; then
+	echo "${script_name}: ERROR: Bad Input file '${input_file}'"
+	exit 1
+fi
+
+flac_check_file "${input_file}" 'verbose'
+
+input_file="$(realpath "${input_file}")"
+
+test_name="${input_file##*/[0-9][0-9]-}"
+test_name="${test_name%.flac}"
+
+mkdir -p "${output_dir:?}/${test_name:?}"
+cd "${output_dir}/${test_name}"
+
+rm -fv *.mp3 *.m4a *.wav
+
+flac_opts=''
+lame_opts=''
+
+if [[ ! ${verbose} ]]; then
+	flac_opts='--silent'
+	lame_opts='--silent'
+fi
+
+echo >&2
+
+echo '---------------' >&2
+echo "${script_name}: INFO: Copying '${test_name} - 328k.mp3'." >&2
+cp "${input_file}" "${test_name}.flac"
+echo >&2
+
+echo '---------------' >&2
+echo "${script_name}: INFO: Generating '${test_name}.wav'." >&2
+flac --decode --force --stdout ${flac_opts} "${test_name}.flac" > "${test_name}.wav"
+echo >&2
+
+echo '---------------' >&2
+echo "${script_name}: INFO: Generating '${test_name} - 328k.mp3'." >&2
+lame ${lame_opts} -b 328 "${test_name}.wav" "${test_name} - 328k.mp3"
+echo >&2
+
+echo '---------------' >&2
+echo "${script_name}: INFO: Generating '${test_name} - 192k.mp3'." >&2
+lame ${lame_opts} -b 192 "${test_name}.wav" "${test_name} - 192k.mp3"
+echo >&2
+
+echo '---------------' >&2
+echo "${script_name}: INFO: Generating '${test_name} - 96k.mp3'." >&2
+lame ${lame_opts} -b 96 "${test_name}.wav" "${test_name} - 96k.mp3"
+echo >&2
+
+echo '---------------' >&2
+m4a_dir="${output_dir}/${test_name}/${output_dir##*/}"
+
+echo "${script_name}: INFO: Generating '${test_name} - 328k.m4a'." >&2
+m4a-converter.sh ${verbose:+--verbose} -b 328 -o . "${test_name}".flac
+mv -v "${m4a_dir}/${test_name}/${test_name}.m4a" "${test_name} - 328k.m4a"
+echo >&2
+
+echo '---------------' >&2
+echo "${script_name}: INFO: Generating '${test_name} - 192k.m4a'." >&2
+m4a-converter.sh ${verbose:+--verbose} -b 192 -o . "${test_name}".flac
+mv -v "${m4a_dir}/${test_name}/${test_name}.m4a" "${test_name} - 192k.m4a"
+echo >&2
+
+echo '---------------' >&2
+echo "${script_name}: INFO: Generating '${test_name} - 96k.m4a'." >&2
+m4a-converter.sh ${verbose:+--verbose} -b 96 -o . "${test_name}".flac
+mv -v "${m4a_dir}/${test_name}/${test_name}.m4a" "${test_name} - 96k.m4a"
+echo >&2
+
+rm -rf "${m4a_dir}"
+
+echo '---------------' >&2
+ls -lSh "${output_dir:?}/${test_name:?}"
+echo >&2
+
+echo "${script_name}: INFO: Test files output to '${output_dir:?}/${test_name:?}'." >&2
+
+trap "on_exit 'Success'" EXIT
+exit 0
