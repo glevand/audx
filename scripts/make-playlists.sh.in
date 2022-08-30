@@ -185,9 +185,7 @@ for dir in "${dir_array[@]}"; do
 		fi
 	fi
 
-	for type in ${file_types}; do
-		write_m3u_playlist "${out_file}" "${dir}" "${type}" "${canonical}"
-	done
+	write_m3u_playlist "${out_file}" "${dir}" "${file_types}" "${canonical}"
 done
 
 empty="$(find "${top_dir}" -depth -type f -name "${m3u_file}" -empty)"
