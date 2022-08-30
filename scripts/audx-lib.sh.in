@@ -996,36 +996,50 @@ test_make_m3u_header() {
 }
 
 write_m3u_playlist() {
-	local out_file=${1}
-	local dir=${2}
-	local type=${3}
+	local out_file="${1}"
+	local dir="${2}"
+	local file_types="${3}"
 	local canonical=${4}
 
+	local find_exp=''
+	local ext
+
+	for ext in ${file_types}; do
+		find_exp+="-o -name *.${ext} "
+	done
+
 	local files_array
-	readarray -t files_array < <( find "${dir}" -maxdepth 1 -type f -name "*.${type}" | sort -n \
+	readarray -t files_array < <( find "${dir}" -maxdepth 1 -type f -false ${find_exp} | sort -n \
 		|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 		kill -SIGUSR1 $$; } )
 
-	if (( ${#files_array[@]} == 0 )); then
+	local file_count="${#files_array[@]}"
+
+	if (( ${file_count} == 0 )); then
 		if [[ ${verbose} ]]; then
-			echo "${script_name}: No ${type} files found in '${dir}'" >&2
+			echo "${script_name}: No ${file_types} files found in '${dir}'" >&2
 		fi
 		return
 	fi
 
 	local -A tags
+	local file
 
-	case "${type}" in
-	'flac')
-		flac_fill_tag_set "${files_array[0]}" tags
-		;;
-	'm4a')
-		m4a_fill_tag_set "${files_array[0]}" tags
-		;;
-	*)
-		:
-		;;
-	esac
+	for file in "${files_array[@]}"; do
+		case "${file##*.}" in
+		'flac')
+			flac_fill_tag_set "${files_array[0]}" tags
+			break
+			;;
+		'm4a')
+			m4a_fill_tag_set "${files_array[0]}" tags
+			break
+			;;
+		*)
+			:
+			;;
+		esac
+	done
 
 	if [[ ${audx_lib_verbose} ]]; then
 		{
@@ -1049,7 +1063,7 @@ write_m3u_playlist() {
 
 	if [[ ! ${canonical} ]]; then
 		local i
-		for (( i = 0; i < ${#files_array[@]}; i++ )); do
+		for (( i = 0; i < ${file_count}; i++ )); do
 			files_array[i]="${files_array[i]##*/}"
 		done
 	fi
@@ -1067,7 +1081,7 @@ write_m3u_playlist() {
 		printf "%s\n" "${files_array[@]}"
 	} > "${out_file}"
 
-	echo "${script_name}: Wrote ${#files_array[@]} ${type} entries: '${out_file}'" >&2
+	echo "${script_name}: Wrote ${file_count} track entries to '${out_file}'" >&2
 }
 
 fill_random_array() {
