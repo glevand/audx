@@ -652,6 +652,19 @@ m4a_print_tags() {
 
 	m4a_fill_tag_set "${file}" tags
 	print_tag_set '' "${file}" tags
+	echo ''
+}
+
+m4a_print_all_tags() {
+	local file=${1}
+
+	if ! m4a_check_file "${file}" 'quiet'; then
+		return
+	fi
+
+	echo "file: '${file}'"
+	"${exiftool}" "${file}"
+	echo ''
 }
 
 flac_check_file() {
@@ -817,7 +830,7 @@ flac_print_vorbis_comment() {
 		return
 	fi
 
-	echo "${FUNCNAME[0]}: file: '${file}'"
+	echo "file: '${file}'"
 	"${metaflac}" --list --block-type=VORBIS_COMMENT "${file}"
 	echo ''
 }
@@ -833,6 +846,7 @@ flac_print_tags() {
 
 	flac_fill_tag_set "${file}" tags
 	print_tag_set '' "${file}" tags
+	echo ''
 }
 
 metaflac_retag() {
