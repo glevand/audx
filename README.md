@@ -3,6 +3,7 @@
 Digital audio utilities.
 
 * [Cassette Rip Utilities](#cassette-rip-utilities)
+* [Audio File Utilities](#audio-file-utilities)
 * [FLAC File Utilities](#flac-file-utilities)
 * [M4A File Utilities](#m4a-file-utilities)
 * [Music Collection Utilities](#music-collection-utilities)
@@ -74,6 +75,41 @@ Info:
 * [Sony TC-WE305 Dual Cassette Deck](https://www.sony.com/electronics/support/audio-components-cassette-decks).
 * [Sony MDR-DS6000 Wireless Headphones](https://www.crutchfield.com/S-qvDLUN72Ckb/p_158MDR6000/Sony-MDR-DS6000.html).
 
+
+## Audio File Utilities
+
+Utilities for working with encoded audio files.
+
+### audx-play - Play FLAC and AAC encoded M4A files.
+
+```
+audx-play.sh - Play FLAC and AAC encoded M4A files.
+Usage: audx-play.sh [flags] <top-dir | M3U playlist | M4A file | FLAC file>
+Option flags:
+  -s --state-file  - State file. Default: '/tmp/audx-state/state'.
+  -h --help        - Show this help and exit.
+  -v --verbose     - Verbose execution. Default: ''.
+  -g --debug       - Extra verbose execution. Default: ''.
+Input:
+Info:
+  AUDX audx-play.sh
+  Project Home: https://github.com/glevand/audx
+```
+
+### audx-print-tags - Recursively print metadata tags.
+
+```
+audx-print-tags.sh - Recursively print metadata tags.
+Usage: audx-print-tags.sh [flags] <top-dir|file>
+Option flags:
+  -a --all-tags - Print all tags (VORBIS_COMMENT block, etc).
+  -h --help     - Show this help and exit.
+  -v --verbose  - Verbose execution.
+  -g --debug    - Extra verbose execution.
+Info:
+  AUDX audx-print-tags.sh
+  Project Home: https://github.com/glevand/audx
+```
 ## FLAC File Utilities
 
 Utilities for working with FLAC encoded audio files.
@@ -241,22 +277,6 @@ Info:
 Typical CPU usage when running the m4a-converter script.
 
 ![m4a-converter CPU Usage](images/m4a-converter-cpu-usage.png)
-
-### audx-play - Play FLAC and AAC encoded M4A files.
-
-```
-audx-play.sh - Play FLAC and AAC encoded M4A files.
-Usage: audx-play.sh [flags] <top-dir | M3U playlist | M4A file | FLAC file>
-Option flags:
-  -s --state-file  - State file. Default: '/tmp/audx-state/state'.
-  -h --help        - Show this help and exit.
-  -v --verbose     - Verbose execution. Default: ''.
-  -g --debug       - Extra verbose execution. Default: ''.
-Input:
-Info:
-  AUDX audx-play.sh
-  Project Home: https://github.com/glevand/audx
-```
 
 ## Music Collection Utilities
 
