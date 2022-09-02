@@ -6,6 +6,7 @@ composed_bin_scripts = \
 	scripts/audx-lib.sh \
 	scripts/audx-str-lib.sh \
 	scripts/audx-play.sh \
+	scripts/audx-print-tags.sh \
 	scripts/batch-shufflelist.sh \
 	scripts/check-vfat-names.sh \
 	scripts/create-compare-tests.sh \
@@ -18,6 +19,7 @@ composed_bin_scripts = \
 	scripts/flac-write-tag.sh \
 	scripts/genre-sort.sh \
 	scripts/m4a-converter.sh \
+	scripts/m4a-print-tags.sh \
 	scripts/make-age-list.sh \
 	scripts/make-inventory.sh \
 	scripts/make-playlists.sh \
