@@ -288,7 +288,7 @@ play_tracks() {
 
 		if [[ ${got_sig_int} ]]; then
 			got_sig_int=''
-		else
+		elif [[ "${state_file}" ]]; then
 			if [[ "${verbose}" ]]; then
 				echo "Add state: '${file_name}'" >&2
 			fi
