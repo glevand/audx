@@ -1019,11 +1019,12 @@ write_m3u_playlist() {
 	local ext
 
 	for ext in ${file_types}; do
-		find_exp+="-o -name *.${ext} "
+		find_exp+="-o -name '*.${ext}' "
 	done
 
 	local files_array
-	readarray -t files_array < <( find "${dir}" -maxdepth 1 -type f -false ${find_exp} | sort -n \
+
+	readarray -t files_array < <( eval "find '${dir}' -maxdepth 1 -type f -false ${find_exp}" | sort -n \
 		|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
 		kill -SIGUSR1 $$; } )
 
