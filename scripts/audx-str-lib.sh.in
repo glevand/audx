@@ -93,6 +93,46 @@ test_str_is_comment() {
 	done
 }
 
+find_array_line() {
+	local -n _find_array_line__array="${1}"
+	local str="${2}"
+
+	local line
+	for line in "${_find_array_line__array[@]}"; do
+		if str_is_comment "${line}"; then
+			if [[ ${audx_str_lib_verbose} ]]; then
+				echo "${FUNCNAME[0]}: comment:   '${line}'" >&2
+			fi
+			continue
+		fi
+
+		if [[ "${line}" == "${str}" ]]; then
+			if [[ ${audx_str_lib_verbose} ]]; then
+				echo "${FUNCNAME[0]}: found:     '${line}'" >&2
+			fi
+			return 0
+		fi
+	done
+
+	if [[ ${audx_str_lib_verbose} ]]; then
+		echo "${FUNCNAME[0]}: not found: '${str}'" >&2
+	fi
+	return 1
+}
+
+find_file_line() {
+	local file="${1}"
+	local str="${2}"
+
+	local -a line_array
+	readarray -t line_array < "${file}"
+
+	if find_array_line line_array "${str}"; then
+		return 0
+	fi
+	return 1
+}
+
 str_trim_space() {
 	local str_in=${1}
 	local str_out="${str_in}"
