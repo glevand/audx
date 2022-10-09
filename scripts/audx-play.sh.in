@@ -254,9 +254,10 @@ play_tracks() {
 		echo "${script_name}: Playing ${track_count} input files."
 	fi
 
-	local state_data=''
+	local -a state_array=()
+
 	if [[ -f "${state_file}" ]]; then
-		state_data="$(<"${state_file}")"
+		readarray -t state_array < "${state_file}"
 	fi
 
 	local id
@@ -265,10 +266,7 @@ play_tracks() {
 		local file=${_play_tracks__tags_array[${id},file]}
 		local file_name="${file##*/}"
 
-		if [[ "${state_data}" =~ "${file_name}" ]]; then
-			if [[ "${verbose}" ]]; then
-				echo "Found state: '${file_name}'" >&2
-			fi
+		if find_array_line state_array "${file_name}"; then
 			continue
 		fi
 
@@ -329,6 +327,11 @@ play_playlist() {
 
 	local -a lines_array
 	local -a tracks_array=()
+	local -a state_array=()
+
+	if [[ -f "${state_file}" ]]; then
+		readarray -t state_array < "${state_file}"
+	fi
 
 	readarray -t lines_array < "${playlist_file}"
 
@@ -411,16 +414,8 @@ play_playlist() {
 				echo "${id}: (playlist) = '${line}'" >&2
 			fi
 
-			if [[ -f "${state_file}" ]]; then
-				local state_data
-				state_data="$(<"${state_file}")"
-
-				if [[ "${state_data}" =~ "${state_entry}" ]]; then
-					if [[ "${verbose}" ]]; then
-						echo "Found state: '${state_entry}'" >&2
-					fi
-					continue
-				fi
+			if find_array_line state_array "${state_entry}"; then
+				continue
 			fi
 
 			"${SCRIPT_TOP}/${script_name}" ${verbose:+--verbose} ${debug:+--debug} --state-dir=${state_dir} --recurse-count="$(( recurse_count + 1 ))" "${line}"
