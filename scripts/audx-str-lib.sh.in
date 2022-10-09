@@ -5,7 +5,93 @@
 # Home: @PACKAGE_URL@"
 #
 
-audx_str_lib_verbose=''
+audx_str_lib_verbose="${audx_str_lib_verbose:-}"
+
+str_eat_leading_space() {
+	local str_in=${1}
+	local str_out="${str_in}"
+
+	str_out="${str_out#"${str_out%%[![:space:]]*}"}"
+
+	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
+	fi
+
+	echo "${str_out}"
+}
+
+str_eat_trailing_space() {
+	local str_in=${1}
+	local str_out="${str_in}"
+
+	str_out="${str_out%"${str_out##*[![:space:]]}"}"
+
+	if [[ ${audx_str_lib_verbose} && "${str_in}" != "${str_out}" ]]; then
+		echo "${FUNCNAME[0]}: '${str_in}' => '${str_out}'" >&2
+	fi
+
+	echo "${str_out}"
+}
+
+test_str_eat_space() {
+	local input=(
+		'abc'
+		'def '
+		'ghi	'
+		' jkl'
+		'	mno'
+		'  pqr	'
+		'	stu	  '
+	)
+
+	audx_str_lib_verbose=1
+
+	local i
+	local out
+
+	echo "-- eat_leading_space --" >&2
+	for i in "${input[@]}"; do
+		str_eat_leading_space "${i}" > /dev/null
+	done
+
+	echo "-- eat_trailing_space --" >&2
+	for i in "${input[@]}"; do
+		str_eat_trailing_space "${i}" > /dev/null
+	done
+}
+
+str_is_comment() {
+	local str="${1}"
+	local regex="^[[:space:]]*#"
+
+	if [[ "${str}" =~ ${regex} ]]; then
+		return 0
+	fi
+	return 1
+}
+
+test_str_is_comment() {
+	local input=(
+		'abc'
+		'def#'
+		'g#hi'
+		'#jkl'
+		'# mno'
+		'  #  pqr'
+		'	# stu'
+	)
+
+	audx_str_lib_verbose=1
+
+	local i
+	for i in "${input[@]}"; do
+		if str_is_comment "${i}"; then
+			echo "${FUNCNAME[0]}: Yes: '${i}'" >&2
+		else
+			echo "${FUNCNAME[0]}: No:  '${i}'" >&2
+		fi
+	done
+}
 
 str_trim_space() {
 	local str_in=${1}
