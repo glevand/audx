@@ -367,7 +367,14 @@ for (( id = 1; id <= ${in_count}; id++ )); do
 
 	setup_p_script "${id}" "${files_prefix}${file}" "${p_script}" loop_counter
 
-	if (( (id % bucket_size) == 0 )); then
+# 	echo "in_count     = ${in_count}" >&2
+# 	echo "bucket       = ${bucket}" >&2
+# 	echo "id           = ${id}" >&2
+# 	echo "bucket_size  = ${bucket_size}" >&2
+# 	echo "%            = $(( id % bucket_size ))" >&2
+# 	echo "loop_counter = ${loop_counter}" >&2
+
+	if (( (id % bucket_size) == 0 || id == in_count )); then
 		if (( loop_counter == 0 )); then
 			echo "Bucket ${bucket} of ${bucket_count}: No new files." >&2
 			bucket=$(( bucket + 1 ))
