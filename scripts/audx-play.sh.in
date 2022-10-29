@@ -321,7 +321,7 @@ play_playlist() {
 	local playlist_file="${1}"
 	local state_file="${2}"
 
-	playlist_file="$(realpath "${playlist_file}")"
+	playlist_file="$(realpath -es "${playlist_file}")"
 
 	check_file 'playlist' "${playlist_file}"
 
@@ -556,11 +556,11 @@ fi
 state_dir="${state_dir:-/tmp/audx-state}"
 
 state_file="${arg_1:-${start_time}}.state"
-state_file="$(realpath -m "${state_file}")"
+state_file="$(realpath -ms "${state_file}")"
 state_file="${state_file#/}"
 state_file="${state_file%/*}--${state_file##*/}"
 state_file="${state_file//\//-}"
-state_file="$(realpath -m "${state_dir}/${state_file}")"
+state_file="$(realpath -ms "${state_dir}/${state_file}")"
 
 if [[ ${usage} ]]; then
 	usage
@@ -605,7 +605,7 @@ if [[ ! ${arg_1} ]]; then
 	exit 1
 fi
 
-arg_1="$(realpath -e "${arg_1}")"
+arg_1="$(realpath -es "${arg_1}")"
 
 case "${input_type}" in
 flac_file | m4a_file)
