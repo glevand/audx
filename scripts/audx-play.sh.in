@@ -376,7 +376,11 @@ play_playlist() {
 			elif [[ -f "${playlist_file%/*}/${line}" ]]; then
 				tracks_array=("${tracks_array[@]}" "${playlist_file%/*}/${line}")
 			else
-				echo "${script_name}: ERROR: Unknown file prefix: playlist = '${playlist_file}', track = '${line}'" >&2
+				{
+					echo "${script_name}: ERROR: Bad m4a entry, line ${id}:"
+					echo "   playlist = '${playlist_file}'"
+					echo "   entry    = '${line}'"
+				} >&2
 			fi
 			continue
 		fi
@@ -391,7 +395,11 @@ play_playlist() {
 			elif [[ -f "${playlist_file%/*}/${line}" ]]; then
 				tracks_array=("${tracks_array[@]}" "${playlist_file%/*}/${line}")
 			else
-				echo "${script_name}: ERROR: Unknown file prefix: playlist = '${playlist_file}', track = '${line}'" >&2
+				{
+					echo "${script_name}: ERROR: Bad flac entry, line ${id}:"
+					echo "   playlist = '${playlist_file}'"
+					echo "   entry    = '${line}'"
+				} >&2
 			fi
 			continue
 		fi
@@ -406,7 +414,11 @@ play_playlist() {
 			elif [[ -f "${playlist_file%/*}/${line}" ]]; then
 				line="${playlist_file%/*}/${line}"
 			else
-				echo "${script_name}: ERROR: Unknown file prefix: playlist = '${playlist_file}', line = '${line}'" >&2
+				{
+					echo "${script_name}: ERROR: Bad m3u entry, line ${id}:"
+					echo "   playlist = '${playlist_file}'"
+					echo "   entry    = '${line}'"
+				} >&2
 				continue
 			fi
 
