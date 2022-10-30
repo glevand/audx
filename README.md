@@ -257,7 +257,7 @@ Info:
 ### m4a-converter - Convert FLAC files to AAC encoded M4A files.
 
 ```
-m4a-converter.sh - Convert FLAC files to AAC encoded M4A files suitable for download to Walkman type devices..
+m4a-converter.sh - Convert FLAC files to AAC encoded M4A files suitable for download to Walkman type devices.
 Usage: m4a-converter.sh [flags] <top-dir | m3u playlist | flac file>
 Option flags:
   -b --bitrate     - Encoding bitrate. Default: '328k'.
@@ -267,6 +267,10 @@ Option flags:
   -h --help        - Show this help and exit.
   -v --verbose     - Verbose execution. Default: ''.
   -g --debug       - Extra verbose execution. Default: ''.
+Common bitrates:
+  Truck Music: 328 bps
+  Phone Music: 192 bps
+  Low-Fi Music: 96 bps
 Input:
   top-dir          - '/home/music-collection'
 Info:
