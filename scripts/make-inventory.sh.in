@@ -262,7 +262,7 @@ set -o nounset
 
 source "${SCRIPT_TOP}/audx-lib.sh"
 
-declare -a src_dirs
+declare -a src_dirs=()
 
 output_dir="/tmp/audx-inventory-${start_time}"
 canonical=''
@@ -275,7 +275,6 @@ config_file="${config_file_default}"
 usage=''
 verbose=''
 debug=''
-src_dirs=''
 
 collection_top=''
 
@@ -301,18 +300,23 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
-if [[ ! ${src_dirs} ]]; then
+if [[ ${#src_dirs[@]} == 0 ]]; then
+
 	if [[ ! ${collection_top} ]]; then
-		echo "${script_name}: ERROR: No source directories given and no collection_top defined."
+		echo "${script_name}: ERROR: No source directories given and no collection_top defined." >&2
 		usage
 		exit 1
 	fi
 
-	src_dirs=( "${collection_top}"/* )
+	items=( "${collection_top}"/* )
+
 	{
 		echo "${script_name}: INFO: No source directories given. Using:"
-		for dir in "${src_dirs[@]}"; do
-			echo "  ${dir}"
+		for item in "${items[@]}"; do
+			if [[ -d "${item}" ]]; then
+				src_dirs+=("${item}")
+				echo "  '${item}'"
+			fi
 		done
 		echo
 	} >&2
