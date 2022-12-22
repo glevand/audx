@@ -116,6 +116,55 @@ write_state() {
 	echo "${entry}" >> "${state_file}"
 }
 
+get_total_duration() {
+	local track_count="${1}"
+	local -n _total_duration__tags_array="${2}"
+
+	local minutes='0'
+	local seconds='0'
+	local regex='([[:digit:]]*):([[:digit:]]*)'
+
+	local id
+	local tag
+	local match
+
+	for (( id = 1; id <= ${track_count}; id++ )); do
+		tag="${_total_duration__tags_array[${id},duration]}"
+
+		if [[ ! "${tag}" =~ ${regex} ]]; then
+			echo "${FUNCNAME[0]}: ERROR: No match '${tag}'" >&2
+			exit 1
+		fi
+
+		match="${BASH_REMATCH[1]##+(0)}"
+#		echo "match-s = '${match}'" >&2
+
+		minutes="$(( minutes + match ))"
+
+		match="${BASH_REMATCH[2]##+(0)}"
+#		echo "match-m = '${match}'" >&2
+
+		seconds="$(( seconds + match ))"
+
+#		echo "${minutes}:${seconds}" >&2
+	done
+
+	local min_sec="$(sec_to_min_sec "${seconds}")"
+
+	if [[ ! "${min_sec}" =~ ${regex} ]]; then
+		echo "${FUNCNAME[0]}: ERROR: No match '${min_sec}'" >&2
+		exit 1
+	fi
+
+	minutes="$(( minutes + BASH_REMATCH[1] ))"
+	seconds="${BASH_REMATCH[2]}"
+
+# 	echo "------" >&2
+# 	echo "${minutes}:${seconds}" >&2
+
+	echo "${minutes}:${seconds}"
+}
+
 get_tags_array() {
 	local -n _get_tags_array__tracks_array="${1}"
 	local -n _get_tags_array__tags_array="${2}"
@@ -143,7 +192,6 @@ get_tags_array() {
 			duration="$("${exiftool}" -Duration "${file}" 2>/dev/null || :)"
 			duration="${duration#*: }"
 			duration="${duration#0:0}"
-			duration="${duration#0:}"
 
 		elif [[  "${_get_tags_array__tags_array[${id},ext]}" = 'flac' ]]; then
 
@@ -196,20 +244,21 @@ print_playing() {
 	local artist=${1}
 	local album=${2}
 	local date=${3}
-	local fall_back=${4}
-	local -n _print_playing__term_line="${5}"
+	local duration=${4}
+	local fall_back=${5}
+	local -n _print_playing__term_line="${6}"
 
 	local str
 	if [[ ${artist} && ${album} && ${date} ]]; then
-		str="Playing: ${artist}, ${album} (${date})"
+		str="Playing: ${artist}, ${album} - ${date} (${duration})"
 	elif [[ ${artist} && ${album} ]]; then
-		str="Playing: ${artist}, ${album}"
+		str="Playing: ${artist}, ${album} (${duration})"
 	elif [[ ${artist} ]]; then
-		str="Playing: ${artist}"
+		str="Playing: ${artist} (${duration})"
 	elif [[ ${album} ]]; then
-		str="Playing: ${album}"
+		str="Playing: ${album} (${duration})"
 	else
-		str="Playing: ${fall_back}"
+		str="Playing: ${fall_back} (${duration})"
 	fi
 
 	_print_playing__term_line="${str//[[:print:]]/-}"
@@ -311,8 +360,11 @@ play_file() {
 	local -A tags_array
 	get_tags_array tracks_array tags_array
 
+	local duration
+	duration="$(get_total_duration '1' tags_array)"
+
 	local term_line
-	print_playing "${tags_array[1,ARTIST]}" "${tags_array[1,ALBUM]}" "${tags_array[1,DATE]}" "'${in_file}'" term_line
+	print_playing "${tags_array[1,ARTIST]}" "${tags_array[1,ALBUM]}" "${tags_array[1,DATE]}" "${duration}" "'${in_file}'" term_line
 
 	play_tracks tracks_array tags_array ''
 }
@@ -458,8 +510,11 @@ play_playlist() {
 	local -A tags_array
 	get_tags_array tracks_array tags_array
 
+	local duration
+	duration="$(get_total_duration "${track_count}" tags_array)"
+
 	local term_line
-	print_playing "${artist}" "${album}" "${date}" "'${playlist_file}'" term_line
+	print_playing "${artist}" "${album}" "${date}" "${duration}" "'${playlist_file}'" term_line
 
 	local print_artist=''
 	if [[ "${artist}" == *'Various Artists'* ]]; then
@@ -507,8 +562,11 @@ play_top_dir() {
 		artist="${tags_array[1,ARTIST]}"
 	fi
 
+	local duration
+	duration="$(get_total_duration "${track_count}" tags_array)"
+
 	local term_line
-	print_playing "${artist}" "${tags_array[1,ALBUM]}" "${tags_array[1,DATE]}" "'${top_dir}'" term_line
+	print_playing "${artist}" "${tags_array[1,ALBUM]}" "${tags_array[1,DATE]}" "${duration}" "'${top_dir}'" term_line
 
 	print_tracks tags_array "${track_count}" "${print_artist}" "${term_line}"
 
