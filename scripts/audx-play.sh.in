@@ -570,7 +570,7 @@ state_dir="${state_dir:-/tmp/audx-state}"
 state_file="${arg_1:-${start_time}}.state"
 state_file="$(realpath -ms "${state_file}")"
 state_file="${state_file#/}"
-state_file="${state_file%/*}--${state_file##*/}"
+state_file="${state_file%/*}-${state_file##*/}"
 state_file="${state_file//\//-}"
 state_file="$(realpath -ms "${state_dir}/${state_file}")"
 
