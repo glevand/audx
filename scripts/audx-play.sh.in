@@ -189,9 +189,27 @@ get_tags_array() {
 			m4a_fill_tag_set "${file}" file_tags
 
 			# 'Duration       : 0:06:33'
+			# 'Duration          : 9.91 s'
+
 			duration="$("${exiftool}" -Duration "${file}" 2>/dev/null || :)"
 			duration="${duration#*: }"
-			duration="${duration#0:0}"
+
+			if [[ "${duration:(-1)}" == 's' ]]; then
+# 				echo "seconds: ${duration}"
+				duration="${duration% s}"
+				local test="${duration#*.}"
+				duration="${duration%.*}"
+
+				test="${test:(-2):1}"
+				if (( test > 5 )); then
+					duration="$(( duration + 1 ))"
+				fi
+				duration="0:${duration}"
+			else
+# 				echo "minutes: ${duration}"
+				duration="${duration#0:0}"
+			fi
+# 			echo "duration = '${duration}'"
 
 		elif [[  "${_get_tags_array__tags_array[${id},ext]}" = 'flac' ]]; then
 
