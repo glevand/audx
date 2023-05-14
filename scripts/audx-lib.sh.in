@@ -539,6 +539,7 @@ m4a_fill_tag_set() {
 	local title_regex='Title *: ([[:print:]]+)'
 	local date_regex='Content Create Date *: ([[:print:]]+)'
 	local genre_regex='Genre *: ([[:print:]]+)'
+	local track_only_regex='Track Number *: ([[:digit:]]+)'
 	local track_regex='Track Number *: ([[:digit:]]+) of ([[:digit:]]+)'
 
 	local cddb_regex='CDDB=([[:print:]]+)'
@@ -587,6 +588,9 @@ m4a_fill_tag_set() {
 		_m4a_fill_tag_set__tags[TRACKNUMBER]="${BASH_REMATCH[1]}"
 		_m4a_fill_tag_set__tags[TRACKTOTAL]="${BASH_REMATCH[2]}"
 		_m4a_fill_tag_set__tags[TRACKNUMBER]="${_m4a_fill_tag_set__tags[TRACKNUMBER]#0}"
+	elif [[ "${tag_data}" =~ ${track_only_regex} ]]; then
+		_m4a_fill_tag_set__tags[TRACKNUMBER]="${BASH_REMATCH[1]}"
+		_m4a_fill_tag_set__tags[TRACKTOTAL]='?'
 	else
 		echo "${FUNCNAME[0]}: ERROR: 'Track Number' tag not found in file '${file}'." >&2
 		exit 1
