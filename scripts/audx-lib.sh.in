@@ -1114,6 +1114,10 @@ fill_random_array() {
 
 	index_array=($("${shuf}" -i0-$(( count - 1 ))))
 
+	if [[ ${verbose} ]]; then
+		echo "--- random array ---" >&2
+	fi
+
 	for (( i = 0; i < ${count}; i++ )); do
 		index="${index_array[i]}"
 		_fill_random_array__out_array[i]+="${_fill_random_array__in_array[index]}"
@@ -1122,6 +1126,7 @@ fill_random_array() {
 		fi
 	done
 	if [[ ${verbose} ]]; then
+		echo "--- random array ---" >&2
 		echo >&2
 	fi
 }
