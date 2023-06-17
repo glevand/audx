@@ -288,6 +288,7 @@ for (( i = 0; i < ${count}; i++ )); do
 	echo "${album_file}" >> "${out_file}"
 done
 
+echo >&2
 echo "INFO: Playlist in '${out_file}'" >&2
 
 trap "on_exit 'Success'" EXIT
