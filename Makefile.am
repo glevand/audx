@@ -8,6 +8,7 @@ composed_bin_scripts = \
 	scripts/audx-play.sh \
 	scripts/audx-print-tags.sh \
 	scripts/batch-shufflelist.sh \
+	scripts/cddb-lookup.sh \
 	scripts/check-vfat-names.sh \
 	scripts/create-compare-tests.sh \
 	scripts/flac-add-tracktotal.sh \
