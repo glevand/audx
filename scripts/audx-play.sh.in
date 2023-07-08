@@ -104,12 +104,16 @@ on_sigint() {
 
 write_state() {
 	local state_file="${1}"
-	local entry="${2}"
+	local playlist_file="${2}"
+	local entry="${3}"
 
 	if [[ ! -f "${state_file}" ]]; then
 		{
 			echo '# AUDX state file'
-			echo "# ${state_file##*/}"
+			echo "# state: ${state_file##*/}"
+			if [[ ! -z "${playlist_file}" ]]; then
+				echo "# playlist: ${playlist_file}"
+			fi
 			echo
 		} > "${state_file}"
 	fi
@@ -357,7 +361,7 @@ play_tracks() {
 			if [[ "${verbose}" ]]; then
 				echo "Add state: '${file_name}'" >&2
 			fi
-			write_state "${state_file}" "${file_name}"
+			write_state "${state_file}" "" "${file_name}"
 		fi
 	done
 
@@ -508,7 +512,7 @@ play_playlist() {
 				if [[ "${verbose}" ]]; then
 					echo "Add state: '${state_entry}'" >&2
 				fi
-				write_state "${state_file}" "${state_entry}"
+				write_state "${state_file}" "${playlist_file}" "${state_entry}"
 			fi
 
 			continue
