@@ -110,10 +110,10 @@ write_state() {
 	if [[ ! -f "${state_file}" ]]; then
 		{
 			echo '# AUDX state file'
-			echo "# state: ${state_file##*/}"
 			if [[ ! -z "${playlist_file}" ]]; then
 				echo "# playlist: ${playlist_file}"
 			fi
+			echo "# state: ${state_file##*/}"
 			echo
 		} > "${state_file}"
 	fi
@@ -313,6 +313,7 @@ play_tracks() {
 	local -n _play_tracks__tracks_array="${1}"
 	local -n _play_tracks__tags_array="${2}"
 	local state_file="${3}"
+	local playlist_file="${4}"
 
 	local track_count="${#_play_tracks__tracks_array[@]}"
 
@@ -361,7 +362,7 @@ play_tracks() {
 			if [[ "${verbose}" ]]; then
 				echo "Add state: '${file_name}'" >&2
 			fi
-			write_state "${state_file}" "" "${file_name}"
+			write_state "${state_file}" "${playlist_file}" "${file_name}"
 		fi
 	done
 
@@ -388,7 +389,7 @@ play_file() {
 	local term_line
 	print_playing "${tags_array[1,ARTIST]}" "${tags_array[1,ALBUM]}" "${tags_array[1,DATE]}" "${duration}" "'${in_file}'" term_line
 
-	play_tracks tracks_array tags_array ''
+	play_tracks tracks_array tags_array '' ''
 }
 
 play_playlist() {
@@ -548,7 +549,7 @@ play_playlist() {
 	print_tracks tags_array "${track_count}" "${print_artist}" "${term_line}"
 
 	mkdir -p "${state_dir}"
-	play_tracks tracks_array tags_array "${state_file}"
+	play_tracks tracks_array tags_array "${state_file}" "${playlist_file}"
 }
 
 play_top_dir() {
@@ -592,7 +593,7 @@ play_top_dir() {
 
 	print_tracks tags_array "${track_count}" "${print_artist}" "${term_line}"
 
-	play_tracks tracks_array tags_array "${state_file}"
+	play_tracks tracks_array tags_array "${state_file}" ''
 }
 
 #===============================================================================
