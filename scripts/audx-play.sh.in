@@ -104,16 +104,14 @@ on_sigint() {
 
 write_state() {
 	local state_file="${1}"
-	local playlist_file="${2}"
+	local src_path="${2}"
 	local entry="${3}"
 
 	if [[ ! -f "${state_file}" ]]; then
 		{
 			echo '# AUDX state file'
-			if [[ ! -z "${playlist_file}" ]]; then
-				echo "# playlist: ${playlist_file}"
-			fi
-			echo "# state: ${state_file##*/}"
+			echo "# src: '${src_path}'"
+			echo "# state: '${state_file##*/}'"
 			echo
 		} > "${state_file}"
 	fi
@@ -362,7 +360,7 @@ play_tracks() {
 			if [[ "${verbose}" ]]; then
 				echo "Add state: '${file_name}'" >&2
 			fi
-			write_state "${state_file}" "${playlist_file}" "${file_name}"
+			write_state "${state_file}" "${src_path}" "${file_name}"
 		fi
 	done
 
@@ -513,7 +511,7 @@ play_playlist() {
 				if [[ "${verbose}" ]]; then
 					echo "Add state: '${state_entry}'" >&2
 				fi
-				write_state "${state_file}" "${playlist_file}" "${state_entry}"
+				write_state "${state_file}" "${src_path}" "${state_entry}"
 			fi
 
 			continue
@@ -644,6 +642,11 @@ elif [[ -f "${arg_1}" && "${arg_1##*.}" == 'm4a' ]]; then
 	input_type='m4a_file'
 elif [[ -f "${arg_1}" && "${arg_1##*.}" == 'flac' ]]; then
 	input_type='flac_file'
+fi
+
+src_path=''
+if [[ "${arg_1}" ]]; then
+	src_path="$(realpath -ms "${arg_1}")"
 fi
 
 state_dir="${state_dir:-/tmp/audx-state}"
