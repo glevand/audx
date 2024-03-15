@@ -139,17 +139,28 @@ if [[ ! -f  "${input_file}" ]]; then
 	exit 1
 fi
 
+fdkaac="${fdkaac:-fdkaac}"
+check_program 'fdkaac' "${fdkaac}"
+
+flac="${flac:-flac}"
+check_program 'flac' "${flac}"
+
+lame="${lame:-lame}"
+check_program 'lame' "${lame}"
+
 flac_check_file "${input_file}" 'verbose'
 
 input_file="$(realpath "${input_file}")"
 
-test_name="${input_file##*/[0-9][0-9]-}"
+test_name="${input_file##*/}"
+test_name="${test_name##*/[0-9][0-9]-}"
 test_name="${test_name%.flac}"
 
 mkdir -p "${output_dir:?}/${test_name:?}"
-cd "${output_dir}/${test_name}"
 
-rm -fv *.mp3 *.m4a *.wav
+out_dir="$(realpath "${output_dir:?}/${test_name:?}")"
+
+rm -fv "${out_dir}/*.mp3" "${out_dir}/*.m4a" "${out_dir}/*.wav"
 
 flac_opts=''
 lame_opts=''
@@ -162,57 +173,60 @@ fi
 echo >&2
 
 echo '---------------' >&2
-echo "${script_name}: INFO: Copying '${test_name} - 328k.mp3'." >&2
-cp "${input_file}" "${test_name}.flac"
+echo "${script_name}: INFO: Copying '${input_file}'." >&2
+cp -a "${input_file}" "${out_dir}/${test_name}.flac"
 echo >&2
 
 echo '---------------' >&2
 echo "${script_name}: INFO: Generating '${test_name}.wav'." >&2
-flac --decode --force --stdout ${flac_opts} "${test_name}.flac" > "${test_name}.wav"
+"${flac}" --decode --force --stdout ${flac_opts} "${input_file}" > "${out_dir}/${test_name}.wav"
 echo >&2
 
 echo '---------------' >&2
 echo "${script_name}: INFO: Generating '${test_name} - 328k.mp3'." >&2
-lame ${lame_opts} -b 328 "${test_name}.wav" "${test_name} - 328k.mp3"
+"${lame}" ${lame_opts} -b 328 "${out_dir}/${test_name}.wav" "${out_dir}/${test_name} - 328k.mp3"
 echo >&2
 
 echo '---------------' >&2
 echo "${script_name}: INFO: Generating '${test_name} - 192k.mp3'." >&2
-lame ${lame_opts} -b 192 "${test_name}.wav" "${test_name} - 192k.mp3"
+"${lame}" ${lame_opts} -b 192 "${out_dir}/${test_name}.wav" "${out_dir}/${test_name} - 192k.mp3"
 echo >&2
 
 echo '---------------' >&2
 echo "${script_name}: INFO: Generating '${test_name} - 96k.mp3'." >&2
-lame ${lame_opts} -b 96 "${test_name}.wav" "${test_name} - 96k.mp3"
+"${lame}" ${lame_opts} -b 96 "${out_dir}/${test_name}.wav" "${out_dir}/${test_name} - 96k.mp3"
 echo >&2
 
-echo '---------------' >&2
-m4a_dir="${output_dir}/${test_name}/${output_dir##*/}"
+m4a_dir="${output_dir}/m4a"
+mkdir -p "${m4a_dir}"
 
+echo '---------------' >&2
 echo "${script_name}: INFO: Generating '${test_name} - 328k.m4a'." >&2
-m4a-converter.sh ${verbose:+--verbose} -b 328 -o . "${test_name}".flac
-mv -v "${m4a_dir}/${test_name}/${test_name}.m4a" "${test_name} - 328k.m4a"
+"${fdkaac}" --ignorelength --profile=2 --bitrate-mode=0 --bitrate=328 -o "${m4a_dir}/fdkaac-328.m4a" "${out_dir}/${test_name}.wav" 
+cp -av "${m4a_dir}/fdkaac-328.m4a" "${out_dir}/${test_name} - 328k.m4a"
 echo >&2
 
 echo '---------------' >&2
 echo "${script_name}: INFO: Generating '${test_name} - 192k.m4a'." >&2
-m4a-converter.sh ${verbose:+--verbose} -b 192 -o . "${test_name}".flac
-mv -v "${m4a_dir}/${test_name}/${test_name}.m4a" "${test_name} - 192k.m4a"
+"${fdkaac}" --ignorelength --profile=2 --bitrate-mode=0 --bitrate=192 -o "${m4a_dir}/fdkaac-192.m4a" "${out_dir}/${test_name}.wav" 
+cp -av "${m4a_dir}/fdkaac-192.m4a" "${out_dir}/${test_name} - 192k.m4a"
 echo >&2
 
 echo '---------------' >&2
 echo "${script_name}: INFO: Generating '${test_name} - 96k.m4a'." >&2
-m4a-converter.sh ${verbose:+--verbose} -b 96 -o . "${test_name}".flac
-mv -v "${m4a_dir}/${test_name}/${test_name}.m4a" "${test_name} - 96k.m4a"
+"${fdkaac}" --ignorelength --profile=2 --bitrate-mode=0 --bitrate=96 -o "${m4a_dir}/fdkaac-96.m4a" "${out_dir}/${test_name}.wav" 
+cp -av "${m4a_dir}/fdkaac-96.m4a" "${out_dir}/${test_name} - 96k.m4a"
 echo >&2
 
-rm -rf "${m4a_dir}"
+if [[ ! ${debug} ]]; then
+	rm -rf "${m4a_dir}"
+fi
 
 echo '---------------' >&2
-ls -lSh "${output_dir:?}/${test_name:?}"
+ls -lSh "${out_dir}"
 echo >&2
 
-echo "${script_name}: INFO: Test files output to '${output_dir:?}/${test_name:?}'." >&2
+echo "${script_name}: INFO: Test files output to '${out_dir}/${test_name}'." >&2
 
 trap "on_exit 'Success'" EXIT
 exit 0
