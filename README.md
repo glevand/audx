@@ -431,6 +431,21 @@ Info:
   AUDX genre-sort.sh
   Project Home: https://github.com/glevand/audx
 ```
+### create-compare-tests - Create encoding comparison files.
+
+```
+create-compare-tests.sh - Create encoding comparison files.
+Usage: create-compare-tests.sh [flags]
+Option flags:
+  -i --input-file - Input file. Default: '/tmp/compare.flac'.
+  -o --output-dir - Output directory. Default: '/tmp/audx-compare'.
+  -h --help       - Show this help and exit.
+  -v --verbose    - Verbose execution. Default: ''.
+  -g --debug      - Extra verbose execution. Default: ''.
+Info:
+  AUDX create-compare-tests.sh
+  Project Home: https://github.com/glevand/audx
+```
 
 ## Licence & Usage
 
