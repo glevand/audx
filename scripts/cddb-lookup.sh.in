@@ -8,7 +8,7 @@ usage() {
 	{
 		echo "${script_name} - Lookup CDDB records by ID."
 		echo
-		echo "*** WORK IN PROGRESS ***"
+		echo "*** A WORK IN PROGRESS ***"
 		echo
 		echo "Usage: ${script_name} [flags] <input-file>"
 		echo "Option flags:"
@@ -23,7 +23,7 @@ usage() {
 		echo 'Input file:'
 		echo "  '${input_file}'"
 		echo 'Input file format:'
-		echo "  /Yazoo/Upstairs at Erics/10-Winter Kills.flac' C:'' D:'8d0a210b'"
+		echo "  '/tmp/rock/Glenn Tilbrook and the Fluffers/Pandemonium Ensues/05-Still.flac'"
 		echo "Info:"
 		print_project_info
 	} >&2
@@ -82,6 +82,14 @@ process_opts() {
 			if [[ ${input_file} ]]; then
 				shift
 			fi
+# 			c_data="${1:-}"
+# 			if [[ ${c_data} ]]; then
+# 				shift
+# 			fi
+# 			d_data="${1:-}"
+# 			if [[ ${d_data} ]]; then
+# 				shift
+# 			fi
 			extra_args="${*}"
 			break
 			;;
@@ -155,21 +163,81 @@ if [[ ! -d "${input_file}" && ! -f "${input_file}" ]]; then
 	exit 1
 fi
 
-readarray -t input_array < "${input_file}"
+declare -a input_array
 
-if [[ ${dry_run} ]]; then
-	echo "${script_name}: INFO: Processing ${#input_array[@]} ids (DRY RUN)."
-else
-	echo "${script_name}: INFO: Processing ${#input_array[@]} ids."
+mapfile -t input_array < <(flac-print-tags.sh "${input_file}")
+
+echo >&2
+
+if [[ ${verbose} ]]; then
+	if [[ ${dry_run} ]]; then
+		echo "${script_name}: INFO: Processing ${#input_array[@]} tags (DRY RUN)."
+	else
+		echo "${script_name}: INFO: Processing ${#input_array[@]} tags."
+	fi
 fi
 
-# 'collection/rock/Yazoo/Upstairs at Erics/10-Winter Kills.flac' C:'' D:'8d0a210b'
-line_regex="/([^/]*)/([^/]*)/[^/]*\.flac' C:'([[[:xdigit:]]*)' D:'([[[:xdigit:]]*)'"
+#   CDDB:        'bc0a370e'
+cddb_regex="\s*CDDB:\s*'([[:print:]]+)'"
+
+for line in "${input_array[@]}"; do
+	if [[ ! "${line}" =~ ${cddb_regex} ]]; then
+		if [[ ${verbose} ]]; then
+			echo "  No CDDB match '${line}'" >&2
+		fi
+		continue
+	fi
+
+	echo "Found CDDB match '${BASH_REMATCH[1]}'" >&2
+	trap "on_exit 'Success'" EXIT
+	exit 0
+done
+
+# /tmp/truck-music/rock/Glenn Tilbrook and the Fluffers/Pandemonium Ensues/05-Still.flac
+path_regex=".*/([^/]*)/([^/]*)/([^/]*)/([^/]*\.flac).*"
+
+for line in "${input_array[@]}"; do
+	if [[ ! "${line}" =~ ${path_regex} ]]; then
+		if [[ ${verbose} ]]; then
+			echo "No path match '${line}'" >&2
+		fi
+		continue
+	fi
+
+# 	echo "REMATCH 1 '${BASH_REMATCH[1]}'" >&2
+# 	echo "REMATCH 2 '${BASH_REMATCH[2]}'" >&2
+# 	echo "REMATCH 3 '${BASH_REMATCH[3]}'" >&2
+# 	echo "REMATCH 4 '${BASH_REMATCH[4]}'" >&2
+# 	echo "REMATCH 5 '${BASH_REMATCH[5]}'" >&2
+
+	genre="${BASH_REMATCH[1]}"
+	artist="${BASH_REMATCH[2]}"
+	album="${BASH_REMATCH[3]}"
+	track="${BASH_REMATCH[4]}"
+
+	echo >&2
+	echo "${script_name}: INFO: Found path match '${line}'" >&2
+	echo "  Genre  '${genre}'" >&2
+	echo "  Artist '${artist}'" >&2
+	echo "  Album  '${album}'" >&2
+	echo "  Track  '${track}'" >&2
+
+	trap "on_exit 'Success'" EXIT
+	exit 0
+	break
+done
+
+
+# do from here.
+
+
+exit 99
+================================================================================
 
 declare -A tags
 
 for line in "${input_array[@]}"; do
-	# echo "input = '${line}'"
+	echo "input = '${line}'"
 
 	if [[ ! "${line}" =~ ${line_regex} ]]; then
 		echo "ERROR: No match '${line}'" >&2
