@@ -141,8 +141,8 @@ readarray -t lines_array < "${playlist_file}"
 
 line_count="${#lines_array[@]}"
 
-declare -a header_array
-declare -a data_array
+declare -a header_array=()
+declare -a data_array=()
 
 in_header=1
 
@@ -177,6 +177,19 @@ for (( id = 1; id <= ${line_count}; id++ )); do
 	fi
 	data_array=("${data_array[@]}" "${line}")
 done
+
+
+if (( ${#header_array[@]} == 0 )); then
+	set +o xtrace
+	echo "${script_name}: ERROR: No M3U header found in '${playlist_file}'" >&2
+	exit 1
+fi
+
+if (( ${#data_array[@]} == 0 )); then
+	set +o xtrace
+	echo "${script_name}: ERROR: No data found in '${playlist_file}'" >&2
+	exit 1
+fi
 
 header_count="${#header_array[@]}"
 data_count="${#data_array[@]}"
