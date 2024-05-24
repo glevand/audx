@@ -76,17 +76,17 @@ process_opts() {
 generate_age_list() {
 	local list_type=${1}
 
-	local name_exp
+	local find_exp
 	local grep_exp
 
 	case "${list_type}" in
 	'albums')
-		name_exp='01-*.flac'
+		find_exp="-type f -regextype posix-egrep -regex .*01-.*\.(flac|m4a)$"
 		grep_exp='[[:digit:]]{4}(\.[[:digit:]]{2}){2} .*/01-'
 		;;
 	'tracks')
-		name_exp='*.flac'
-		grep_exp='[[:digit:]]{4}(\.[[:digit:]]{2}){2} .*.flac$'
+		find_exp="-type f -regextype posix-egrep -regex .*\.(flac|m4a)$"
+		grep_exp='[[:digit:]]{4}(\.[[:digit:]]{2}){2} .*.(flac|m4a)$'
 		;;
 	*)
 		echo "${script_name}: ERROR: Internal - Bad list_type: '${list_type}'" >&2
@@ -108,14 +108,14 @@ generate_age_list() {
 			continue
 		fi
 
-		if [[ -z "$(find "${src_dir}" -type f -name "${name_exp}" -print -quit 2>/dev/null)" ]]; then
+		if [[ -z "$(find "${src_dir}" ${find_exp} )" ]]; then
 			echo "${script_name}: INFO: No files found: '${src_dir}'" >&2
 			continue
 		fi
 
 		declare -a files_array
 		readarray -t files_array < <( (cd "${src_dir}" \
-			&& find . -type f -name "${name_exp}" -exec ls -l --time-style='+%Y.%m.%d' {} \;) \
+			&& find .  ${find_exp} -exec ls -l --time-style='+%Y.%m.%d' {} \;) \
 			| grep -E --only-matching "${grep_exp}" \
 			| sort \
 			|| { echo "${script_name}: ERROR: files_array find failed, function=${FUNCNAME[0]:-main}, line=${LINENO}, result=${?}" >&2; \
@@ -130,6 +130,7 @@ generate_age_list() {
 		verbose_echo "${script_name}: INFO: Processing ${#files_array[@]} files." >&2
 		verbose_echo "src = '${src_dir}'"
 		verbose_echo "out = '${output_file}'"
+		verbose_echo ''
 
 		local file
 		local txt
