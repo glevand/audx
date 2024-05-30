@@ -87,17 +87,12 @@ sec_to_min() {
 
 sec_to_min_sec() {
 	local sec="${1}"
+	local min='0'
 
-	local dec="$(divided_by "${sec}" '60')"
-	local min="${dec%.*}"
-
-	sec="${dec#*.}"
-	sec="${sec#0}"
-	sec="$(( sec * 60 / 100 ))"
-
-	if (( sec < 10 )); then
-		sec="0${sec}"
-	fi
+	while  [ ${sec} -ge 60 ]; do
+		min="$(( min + 1 ))"
+		sec="$(( sec - 60 ))"
+	done
 
 	echo "${min}:${sec}"
 }
