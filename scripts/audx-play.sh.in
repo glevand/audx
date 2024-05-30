@@ -122,38 +122,60 @@ get_total_duration() {
 	local track_count="${1}"
 	local -n _total_duration__tags_array="${2}"
 
+	local hours='0'
 	local minutes='0'
 	local seconds='0'
-	local regex='([[:digit:]]*):([[:digit:]]*)'
+	local regex_hour='([[:digit:]]*):([[:digit:]]*):([[:digit:]]*)'
+	local regex_min='([[:digit:]]*):([[:digit:]]*)'
 
 	local id
 	local tag
-	local match
+	local h_match
+	local m_match
+	local s_match
 
 	for (( id = 1; id <= ${track_count}; id++ )); do
 		tag="${_total_duration__tags_array[${id},duration]}"
 
-		if [[ ! "${tag}" =~ ${regex} ]]; then
-			echo "${FUNCNAME[0]}: ERROR: No match '${tag}'" >&2
-			exit 1
+		if [[ "${tag}" =~ ${regex_hour} ]]; then
+			h_match="${BASH_REMATCH[1]##+(0)}"
+			hours="$(( hours + h_match ))"
+
+			m_match="${BASH_REMATCH[2]##+(0)}"
+			minutes="$(( minutes + m_match ))"
+
+			s_match="${BASH_REMATCH[3]##+(0)}"
+			seconds="$(( seconds + s_match ))"
+
+			if [[ ${debug} ]]; then
+				echo "match-h = '${h_match}'" >&2
+				echo "match-m = '${m_match}'" >&2
+				echo "match-s = '${s_match}'" >&2
+			fi
+		else
+			if [[ ! "${tag}" =~ ${regex_min} ]]; then
+				echo "${FUNCNAME[0]}: ERROR: No match '${tag}'" >&2
+				exit 1
+			fi
+
+			m_match="${BASH_REMATCH[1]##+(0)}"
+			minutes="$(( minutes + m_match ))"
+
+			s_match="${BASH_REMATCH[2]##+(0)}"
+			seconds="$(( seconds + s_match ))"
+
+			if [[ ${debug} ]]; then
+				echo "match-m = '${m_match}'" >&2
+				echo "match-s = '${s_match}'" >&2
+			fi
 		fi
 
-		match="${BASH_REMATCH[1]##+(0)}"
-#		echo "match-s = '${match}'" >&2
-
-		minutes="$(( minutes + match ))"
-
-		match="${BASH_REMATCH[2]##+(0)}"
-#		echo "match-m = '${match}'" >&2
-
-		seconds="$(( seconds + match ))"
-
-#		echo "${minutes}:${seconds}" >&2
+		echo "${hours}:${minutes}:${seconds}" >&2
 	done
 
 	local min_sec="$(sec_to_min_sec "${seconds}")"
 
-	if [[ ! "${min_sec}" =~ ${regex} ]]; then
+	if [[ ! "${min_sec}" =~ ${regex_min} ]]; then
 		echo "${FUNCNAME[0]}: ERROR: No match '${min_sec}'" >&2
 		exit 1
 	fi
@@ -545,7 +567,6 @@ play_playlist() {
 	fi
 
 	print_tracks tags_array "${track_count}" "${print_artist}" "${term_line}"
-
 	mkdir -p "${state_dir}"
 	play_tracks tracks_array tags_array "${state_file}" "${playlist_file}"
 }
