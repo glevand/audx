@@ -7,6 +7,7 @@ Digital audio utilities.
 * [FLAC File Utilities](#flac-file-utilities)
 * [M4A File Utilities](#m4a-file-utilities)
 * [Music Collection Utilities](#music-collection-utilities)
+* [Running The Tests](#running-the-tests)
 * [License & Usage](#licence--usage)
 
 ## Cassette Rip Utilities
@@ -446,6 +447,13 @@ Info:
   AUDX create-compare-tests.sh
   Project Home: https://github.com/glevand/audx
 ```
+
+## Running The Tests
+
+audx_root=??? <br />
+release_test='git -C /tmp/audx-tester reset --hard HEAD'
+
+clear; rm -rf /tmp/audx-tester; rsync -a --delete ${audx_root}/audx/ /tmp/audx-tester/ && ${release_test} && /tmp/audx-tester/tests/build-test.sh /tmp/audx-tester && /tmp/audx-tester/tests/lib-test.sh /tmp/audx-tester && /tmp/audx-tester/tests/help-test.sh /tmp/audx-tester && /tmp/audx-tester/tests/rip-test.sh /tmp/audx-tester
 
 ## Licence & Usage
 
