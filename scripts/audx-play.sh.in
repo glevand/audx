@@ -170,7 +170,9 @@ get_total_duration() {
 			fi
 		fi
 
-		echo "${hours}:${minutes}:${seconds}" >&2
+		if [[ ${verbose} ]]; then
+			echo "${hours}:${minutes}:${seconds}" >&2
+		fi
 	done
 
 	local min_sec="$(sec_to_min_sec "${seconds}")"
