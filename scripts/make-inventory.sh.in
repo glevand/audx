@@ -11,6 +11,7 @@ usage() {
 		echo "  -o --output-dir - Output directory. Default: '${output_dir}'."
 #		echo "  -m --mtime      - Print file modification time. Default: '${mtime}'."
 		echo "  -a --age-sort   - Sort list by age. Default: '${age_sort}'."
+		echo "  -r --genre      - Sort list by genre. Default: '${genre_sort}'."
 		echo "  -t --tracks     - Output album tracks. Default: '${tracks}'."
 #		echo "  -T --use-tags   - Use metadata tags to generate lists. Default: '${use_tags}'."
 		echo "  -n --canonical  - Output full canonical paths to lists. Default: '${canonical}'."
@@ -25,8 +26,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="o:matTnc:hvg"
-	local long_opts="output-dir:,mtime,age-sort,tracks,use-tags,canonical,config:,help,verbose,debug"
+	local short_opts="o:martTnc:hvg"
+	local long_opts="output-dir:,mtime,age-sort,genre,tracks,use-tags,canonical,config:,help,verbose,debug"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -46,6 +47,10 @@ process_opts() {
 			;;
 		-a | --age-sort)
 			age_sort=1
+			shift
+			;;
+		-r | --genre)
+			genre_sort=1
 			shift
 			;;
 		-t | --tracks)
@@ -131,11 +136,19 @@ generate_inventory_list() {
 			local album
 			local artist_path
 			local artist
+			local genre_path
+			local genre
 
 			album_path="${album_array[i]%/album.m3u}"
 			album="${album_path##*/}"
 			artist_path="${album_path%/*}"
 			artist="${artist_path##*/}"
+			genre_path="${artist_path%/*}"
+			genre="${genre_path##*/}"
+
+			if [[ ${genre_sort} && ! ${genre} ]]; then
+				echo "${script_name}: WARNING: No genre: '${album_array[i]}'" >&2
+			fi
 
 			if [[ ! ${artist} ]]; then
 				echo "${script_name}: WARNING: No artist: '${album_array[i]}'" >&2
@@ -165,7 +178,11 @@ generate_inventory_list() {
 				ftime="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
 			fi
 
-			artist_array+=("${ftime}@@@${artist}/${album}@@@${album_path}")
+			if [[ ${genre_sort} ]]; then
+				artist_array+=("${ftime}@@@${genre}@@@${artist}/${album}@@@${album_path}")
+			else
+				artist_array+=("${ftime}@@@@@@${artist}/${album}@@@${album_path}")
+			fi
 		done
 
 		IFS=$'\n'
@@ -178,7 +195,7 @@ generate_inventory_list() {
 			echo ''
 		} > "${output_file}"
 
-		local data_regex='^(.*)@@@(.*)@@@(.*)$'
+		local data_regex='^(.*)@@@(.*)@@@(.*)@@@(.*)$'
 
 		for (( i = 0; i < ${#sorted_array[@]}; i++ )); do
 			if [[ ! "${sorted_array[i]}" =~ ${data_regex} ]]; then
@@ -189,8 +206,9 @@ generate_inventory_list() {
 			local artist_album
 
 			ftime="${BASH_REMATCH[1]}"
-			artist_album="${BASH_REMATCH[2]}"
-			album_path="${BASH_REMATCH[3]}"
+			genre="${BASH_REMATCH[2]}"
+			artist_album="${BASH_REMATCH[3]}"
+			album_path="${BASH_REMATCH[4]}"
 
 # 			{
 # 				echo "[$(( i + 1 ))] in    = @${sorted_array[i]}@"
@@ -209,9 +227,17 @@ generate_inventory_list() {
 			fi
 
 			if [[ ${age_sort} ]]; then
-				echo "[$(( i + 1 ))] ${ftime} '${display}'" >> "${output_file}"
+				if [[ ${genre_sort} ]]; then
+					echo "[$(( i + 1 ))] ${ftime} [${genre}] '${display}'" >> "${output_file}"
+				else
+					echo "[$(( i + 1 ))] ${ftime} '${display}'" >> "${output_file}"
+				fi
 			else
-				echo "[$(( i + 1 ))] '${display}'" >> "${output_file}"
+				if [[ ${genre_sort} ]]; then
+					echo "[$(( i + 1 ))] [${genre}] '${display}'" >> "${output_file}"
+				else
+					echo "[$(( i + 1 ))] '${display}'" >> "${output_file}"
+				fi
 			fi
 
 			if [[ "${list_type}" == 'tracks'* ]]; then
@@ -270,6 +296,7 @@ mtime=''
 tracks=''
 use_tags=''
 age_sort=''
+genre_sort=''
 config_file_default="${HOME}/.audx.conf"
 config_file="${config_file_default}"
 usage=''
