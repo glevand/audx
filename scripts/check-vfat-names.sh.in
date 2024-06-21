@@ -93,7 +93,6 @@ touch_file() {
 
 	if [[ ${verbose} ]]; then
 		echo "out_file: '${out_file}'" >&2
-		#echo "${FUNCNAME[0]}: '${p_script}'" >&2
 	fi
 
 	if ! mkdir -p "${out_file%/*}"; then
