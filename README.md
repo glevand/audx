@@ -97,6 +97,24 @@ Info:
   Project Home: https://github.com/glevand/audx
 ```
 
+#### Typical audx-play info header:
+
+```
+Playing: China Crisis, Working with Fire and Steel - 1983 (40:23)
+-----------------------------------------------------------------
+1/10: Working with Fire and Steel (3:41)
+2/10: When the Piper Calls (4:04)
+3/10: Hanna Hanna (3:29)
+4/10: Animals in Jungles (3:40)
+5/10: Here Comes a Raincloud (4:16)
+6/10: Wishful Thinking (4:42)
+7/10: Tragedy and Mystery (4:03)
+8/10: Papua (3:36)
+9/10: The Gates of Door to Door (4:16)
+10/10: The Soul Awakening (4:36)
+-----------------------------------------------------------------
+```
+
 ### audx-print-tags - Recursively print metadata tags.
 
 ```
@@ -279,7 +297,7 @@ Info:
   Project Home: https://github.com/glevand/audx
 ```
 
-Typical CPU usage when running the m4a-converter script.
+#### Typical CPU usage when running the m4a-converter script.
 
 ![m4a-converter CPU Usage](images/m4a-converter-cpu-usage.png)
 
@@ -289,14 +307,15 @@ Utilities for managing a collection of audio files.
 
 ### check-vfat-names - Check vfat file names.
 
-Recursively check for valid vfat file names.
+Recursively check for valid vfat file names by writing zero length files to a vfat device.
 
 ```
-check-vfat-names.sh - Check vfat file names.
-Usage: check-vfat-names.sh [flags] top-dir
+check-vfat-names.sh.in - Check vfat file names.
+Usage: check-vfat-names.sh.in [flags] top-dir
 Option flags:
   -d --vfat-dir    - vfat test directory. Default: ''.
   -c --clean-names - Clean file names using standard rules. Default: ''.
+  -k --keep-going  - Do not exit on file error. Default: ''.
   -h --help        - Show this help and exit.
   -v --verbose     - Verbose execution.
   -g --debug       - Extra verbose execution.
@@ -324,6 +343,24 @@ Info:
   Project Home: https://github.com/glevand/audx
 ```
 
+#### Typical make-inventory list:
+
+```
+# make-inventory.sh (AUDX)
+# /music/collection/country: 1001 albums.
+
+[1] 'Aaron Lewis/Frayed At Both Ends'
+[2] 'Aaron Tippin/Greatest Hits - And Then Some'
+[3] 'Aimee Mann/Mental Illness'
+[4] 'Alabama/16 Biggest Hits'
+[5] 'Alabama/Alabama and Friends At The Ryman - Disc1'
+[6] 'Alabama/Alabama and Friends At The Ryman - Disc2'
+[7] 'Alabama/Alabama and Friends'
+[8] 'Alabama/Alabama Greatest Hits'
+[9] 'Alabama/Angels Among Us - Hymns and Gospel Favorites'
+[10] 'Alabama/Dancin on the Boulevard'
+```
+
 ### make-playlists - Recursively search for audio files and create m3u playlists.
 
 ```
@@ -341,6 +378,29 @@ Inputs:
 Info:
   AUDX make-playlists.sh
   Project Home: https://github.com/glevand/audx
+```
+
+#### Typical make-playlists m3u playlist:
+
+```
+#EXTM3U
+#PLAYLIST: AUDX playlist
+#EXTART: Boz Scaggs
+#EXTALB: Hits
+#EXTDATE: 1980
+#EXTGENRE: ROCK
+#CDDB: 710a150a
+
+01-Lowdown.flac
+02-You Make It So Hard.flac
+03-Miss Sun.flac
+04-Lido Shuffle.flac
+05-Were All Alone.flac
+06-Breakdown Dead Ahead.flac
+07-Look What Youve Done To Me.flac
+08-Jojo.flac
+09-Dinah Flo.flac
+10-You Can Have Me Anytime.flac
 ```
 
 ### make-age-list - Make age lists of an album collection.
@@ -451,9 +511,12 @@ Info:
 ## Running The Tests
 
 audx_root=??? <br />
-release_test='git -C /tmp/audx-tester reset --hard HEAD'
-
-clear; rm -rf /tmp/audx-tester; rsync -a --delete ${audx_root}/audx/ /tmp/audx-tester/ && ${release_test} && /tmp/audx-tester/tests/build-test.sh /tmp/audx-tester && /tmp/audx-tester/tests/lib-test.sh /tmp/audx-tester && /tmp/audx-tester/tests/help-test.sh /tmp/audx-tester && /tmp/audx-tester/tests/rip-test.sh /tmp/audx-tester
+rsync -a --delete ${audx_root}/audx/ /tmp/audx-tester/ <br />
+git -C /tmp/audx-tester reset --hard HEAD <br />
+/tmp/audx-tester/tests/build-test.sh /tmp/audx-tester <br />
+/tmp/audx-tester/tests/lib-test.sh /tmp/audx-tester <br />
+/tmp/audx-tester/tests/help-test.sh /tmp/audx-tester <br />
+/tmp/audx-tester/tests/rip-test.sh /tmp/audx-tester
 
 ## Licence & Usage
 
