@@ -7,33 +7,28 @@ Digital audio utilities.
 * [FLAC File Utilities](#flac-file-utilities)
 * [M4A File Utilities](#m4a-file-utilities)
 * [Music Collection Utilities](#music-collection-utilities)
-* [Running The Tests](#running-the-tests)
+* [Running The Project's Tests](#running-the-projects-tests)
 * [License & Usage](#licence--usage)
 
 ## Cassette Rip Utilities
 
 Record, split, and re-encode analog audio from cassette or vinyl.
 
-### rip-c - Rip audio cassettes.
+### rip-c - Rip audio cassettes or vinyl.
 
 ```
-rip-c.sh - Rip audio cassettes.
+rip-c.sh - Rip audio cassettes or vinyl.
 Usage: rip-c.sh [flags]
 Option flags:
   --base-name       - Output file base name. Default: '/tmp/audx-rip'.
   --start-duration  - Silence start duration. Default: '0.2'.
   --start-threshold - Silence start threshold. Default: '0.6%'.
-  --end-duration    - Silence end duration. Default: '2.0'.
+  --end-duration    - Silence end duration. Default: '0.2'.
   --end-threshold   - Silence end threshold. Default: '0.6%'.
-  -f --force        - Force overwrite if exisitng output file.
-  -c --config-file  - Configuration file. Default: ''.
-  -h --help        - Show this help and exit.
-  -v --verbose     - Verbose execution.
-  -g --debug       - Extra verbose execution.
-Option steps:
-  -1 --rip-sox      - Rip to sox file.
-  -2 --split-sox    - Split sox file.
-  -3 --encode-flac  - Encode to flac.
+  -f --force        - Force overwrite if output file exists. Default: ''.
+  -h --help         - Show this help and exit.
+  -v --verbose      - Verbose execution. Default: '1'.
+  -g --debug        - Extra verbose execution. Default: ''.
 Info:
   AUDX rip-c.sh
   Project Home: https://github.com/glevand/audx
@@ -53,10 +48,10 @@ Info:
   Project Home: https://github.com/glevand/audx
 ```
 
-### rip-c-flac-tags - Add FLAC metadata tags to rip-c files.
+### rip-c-flac-tags - Add FLAC metadata tags to rip-c FLAC files.
 
 ```
-rip-c-flac-tags.sh - Add FLAC metadata tags to rip-c files.
+rip-c-flac-tags.sh - Add FLAC metadata tags to rip-c FLAC files.
 Usage: rip-c-flac-tags.sh [flags] top-dir
 Option flags:
   -h --help        - Show this help and exit.
@@ -277,7 +272,7 @@ Info:
 
 ```
 m4a-converter.sh - Convert FLAC files to AAC encoded M4A files suitable for download to Walkman type devices.
-Usage: m4a-converter.sh [flags] <top-dir | m3u playlist | flac file>
+Usage: m4a-converter.sh [flags] <top-dir | M3U playlist | flac file>
 Option flags:
   -b --bitrate     - Encoding bitrate. Default: '328k'.
   -o --output-dir  - Output directory. Default: '/tmp/audx-m4a'.
@@ -310,8 +305,8 @@ Utilities for managing a collection of audio files.
 Recursively check for valid vfat file names by writing zero length files to a vfat device.
 
 ```
-check-vfat-names.sh.in - Check vfat file names.
-Usage: check-vfat-names.sh.in [flags] top-dir
+check-vfat-names.sh - Check vfat file names.
+Usage: check-vfat-names.sh [flags] top-dir
 Option flags:
   -d --vfat-dir    - vfat test directory. Default: ''.
   -c --clean-names - Clean file names using standard rules. Default: ''.
@@ -361,10 +356,10 @@ Info:
 [10] 'Alabama/Dancin on the Boulevard'
 ```
 
-### make-playlists - Recursively search for audio files and create m3u playlists.
+### make-playlists - Recursively search for audio files and create M3U playlists.
 
 ```
-make-playlists.sh - Recursively create m3u album playlists.
+make-playlists.sh - Recursively create M3U album playlists.
 Usage: make-playlists.sh [flags] top-dir
 Option flags:
   -n --canonical   - Output full canonical paths to playlist.
@@ -380,7 +375,7 @@ Info:
   Project Home: https://github.com/glevand/audx
 ```
 
-#### Typical make-playlists m3u playlist:
+#### Typical make-playlists M3U playlist:
 
 ```
 #EXTM3U
@@ -419,10 +414,10 @@ Info:
   Project Home: https://github.com/glevand/audx
 ```
 
-### make-shufflelist.sh - Create an m3u playlist of random albums.
+### make-shufflelist.sh - Create an M3U playlist of random albums.
 
 ```
-make-shufflelist.sh - Create an m3u playlist of random albums.
+make-shufflelist.sh - Create an M3U playlist of random albums.
 Usage: make-shufflelist.sh [flags] top-dir
 Option flags:
   -c --count       - Number of albums in playlist. Default: '6'.
@@ -498,7 +493,7 @@ Info:
 create-compare-tests.sh - Create encoding comparison files.
 Usage: create-compare-tests.sh [flags]
 Option flags:
-  -i --input-file - Input file. Default: '/tmp/compare.flac'.
+  -i --input-file - flac input file. Default: '/tmp/compare.flac'.
   -o --output-dir - Output directory. Default: '/tmp/audx-compare'.
   -h --help       - Show this help and exit.
   -v --verbose    - Verbose execution. Default: ''.
@@ -508,7 +503,20 @@ Info:
   Project Home: https://github.com/glevand/audx
 ```
 
-## Running The Tests
+#### Typical compare-test files:
+
+```
+total 86M
+  36M '04-Werewolves of London.wav'
+  20M '04-Werewolves of London.flac'
+ 8.2M '04-Werewolves of London - 328k.m4a'
+ 8.0M '04-Werewolves of London - 328k.mp3'
+ 4.9M '04-Werewolves of London - 192k.m4a'
+ 4.8M '04-Werewolves of London - 192k.mp3'
+ 2.5M '04-Werewolves of London - 96k.m4a'
+ 2.4M '04-Werewolves of London - 96k.mp3'
+```
+## Running The Project's Tests
 
 audx_root=??? <br />
 rsync -a --delete ${audx_root}/audx/ /tmp/audx-tester/ <br />
