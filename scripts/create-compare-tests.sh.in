@@ -9,7 +9,7 @@ usage() {
 		echo "${script_name} - Create encoding comparison files."
 		echo "Usage: ${script_name} [flags]"
 		echo "Option flags:"
-		echo "  -i --input-file - Input file. Default: '${input_file}'."
+		echo "  -i --input-file - flac input file. Default: '${input_file}'."
 		echo "  -o --output-dir - Output directory. Default: '${output_dir}'."
 #		echo "  -A --opt-A      - opt_A. Default: '${opt_A}'."
 #		echo "  -B --opt-B      - opt-B. Default: '${opt_B}'."
@@ -129,13 +129,16 @@ if [[ ${extra_args} ]]; then
 	exit 1
 fi
 
-audx_scripts='/home/geoff/projects/audio/git/audx/scripts'
-
-m4a_converter="${m4a_converter:-${audx_scripts}/m4a-converter.sh.in}"
+m4a_converter="${m4a_converter:-${SCRIPT_TOP}/m4a-converter.sh.in}"
 #check_program "m4a-converter.sh" "${m4a_converter}"
 
 if [[ ! -f  "${input_file}" ]]; then
 	echo "${script_name}: ERROR: Bad Input file '${input_file}'"
+	exit 1
+fi
+
+if [[ "${input_file}" != *.flac ]]; then
+	echo "${script_name}: ERROR: Input file not flac '${input_file}'"
 	exit 1
 fi
 
