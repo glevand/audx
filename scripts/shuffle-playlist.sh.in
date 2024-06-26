@@ -122,8 +122,6 @@ if [[ ! ${playlist_file} ]]; then
 	exit 1
 fi
 
-check_file 'playlist' "${playlist_file}"
-
 if [[ ! -f ${playlist_file} ]]; then
 	set +o xtrace
 	echo "${script_name}: ERROR: Bad input file '${playlist_file}'" >&2
@@ -131,7 +129,7 @@ if [[ ! -f ${playlist_file} ]]; then
 	exit 1
 fi
 
-playlist="$(realpath -e "${playlist_file}")"
+playlist_file="$(realpath -e "${playlist_file}")"
 
 if [[ ${verbose} ]]; then
 	echo "${script_name}: INFO: playlist = '${playlist_file}'"
