@@ -6,7 +6,7 @@ usage() {
 	set +o xtrace
 
 	{
-		echo "${script_name} - Write FLAC metadata tags."
+		echo "${script_name} - Write M4A metadata tags."
 		echo "Usage: ${script_name} [flags] <top-dir|file>"
 		echo "Option flags:"
 		echo "  -t --tag         - Full tag 'NAME=VALUE'. An empty VALUE will delete tag.  Default='${tag_full}'."
@@ -20,13 +20,10 @@ usage() {
 		echo "  TITLE"
 		echo "  GENRE"
 		echo "  DATE"
-		echo "  TRACKNUMBER"
-		echo "  TRACKTOTAL"
-		echo "  CDDB"
+		echo "  TRACKNUMBER x of y"
 		echo "Examples:"
-		echo "  ${script_name}  --tag='ALBUM=No Jacket Required' \"\${collection}/Phil Collins/No Jacket Required\""
-		echo "  ${script_name}  --tag='ARTIST=Ultravox' \"\${collection}/Ultravox\""
-		echo "  ${script_name}  --tag='COMMENT=' \"\${collection}/Bruce Cockburn/Stealing Fire\""
+		echo "  ${script_name}  --tag='ALBUM=Street Survivors' \"\${truck-music}/Lynyrd Skynyrd/Street Survivors\""
+		echo "  ${script_name}  --tag='ARTIST=Al Jarreau' \"\${truck-music}/Al Jarreau\""
 		echo "Info:"
 		print_project_info
 	} >&2
@@ -144,8 +141,8 @@ if [[ ! -d "${top_dir}" && ! -f "${top_dir}" ]]; then
 	exit 1
 fi
 
-metaflac="${metaflac:-metaflac}"
-check_program "metaflac" "${metaflac}"
+exiftool="${exiftool:-exiftool}"
+check_program "exiftool" "${exiftool}"
 
 check_opt '--tag' "${tag_full}"
 
@@ -167,10 +164,10 @@ if [[ -d "${top_dir}" ]]; then
 	for path in "${path_array[@]}"; do
 		path="${path:2}"
 
-		if ! flac_check_file "${top_dir}/${path}" 'quiet'; then
+		if ! m4a_check_file "${top_dir}/${path}" 'quiet'; then
 			continue
 		fi
-		flac_retag "${top_dir}/${path}" "${tag_pair[name]}" "${tag_pair[value]}" 'add'
+		m4a_retag "${top_dir}/${path}" "${tag_pair[name]}" "${tag_pair[value]}" 'add'
 	done
 
 	if [[ ${dry_run} ]]; then
@@ -179,8 +176,8 @@ if [[ -d "${top_dir}" ]]; then
 		echo "${script_name}: INFO: Processed ${#path_array[@]} files." >&2
 	fi
 else
-	flac_check_file "${top_dir}" 'verbose'
-	flac_retag "${top_dir}" "${tag_pair[name]}" "${tag_pair[value]}" 'add'
+	m4a_check_file "${top_dir}" 'verbose'
+	m4a_retag "${top_dir}" "${tag_pair[name]}" "${tag_pair[value]}" 'add'
 
 	if [[ ${dry_run} ]]; then
 		echo "${script_name}: INFO: Processed 1 file (dry-run)." >&2

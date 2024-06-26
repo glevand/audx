@@ -179,10 +179,10 @@ for track in "${tracks_array[@]}"; do
 
 	flac_check_file "${track}" 'verbose'
 
-	metaflac_retag "${track}" 'CDDB' "${discid}" 'add'
+	flac_retag "${track}" 'CDDB' "${discid}" 'add'
 
 	if [[ ! ${keep_id} ]]; then
-		metaflac_retag "${track}" 'DISCID' '' 'remove'
+		flac_retag "${track}" 'DISCID' '' 'remove'
 	fi
 done
 

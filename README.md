@@ -268,6 +268,33 @@ Info:
   Project Home: https://github.com/glevand/audx
 ```
 
+### m4a-write-tag - Write M4A metadata tags.
+
+```
+m4a-write-tag.sh.in - Write M4A metadata tags.
+Usage: m4a-write-tag.sh.in [flags] <top-dir|file>
+Option flags:
+  -t --tag         - Full tag 'NAME=VALUE'. An empty VALUE will delete tag.  Default='COMMENT=gftggv'.
+  -h --help        - Show this help and exit.
+  -v --verbose     - Verbose execution.
+  -g --debug       - Extra verbose execution.
+  -d --dry-run     - Dry run, don't modify files.
+Common tags:
+  ARTIST
+  ALBUM
+  TITLE
+  GENRE
+  DATE
+  TRACKNUMBER x of y
+Examples:
+  m4a-write-tag.sh.in  --tag='ALBUM=Street Survivors' "${truck-music}/Lynyrd Skynyrd/Street Survivors"
+  m4a-write-tag.sh.in  --tag='ARTIST=Al Jarreau' "${truck-music}/Al Jarreau"
+  m4a-write-tag.sh.in  --tag='COMMENT="${truck-music}/Dixie Chicks/Landslide"
+Info:
+  AUDX m4a-write-tag.sh
+  Project Home: https://github.com/glevand/audx
+```
+
 ### m4a-converter - Convert FLAC files to AAC encoded M4A files.
 
 ```
