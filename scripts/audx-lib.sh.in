@@ -419,6 +419,30 @@ clean_vfat_name() {
 	echo "${str_out}"
 }
 
+split_tag() {
+	local tag=${1}
+	local -n _split_tag__pair="${2}"
+
+	local regex_tag='^([^=]+)=([^=]*)$'
+
+	if [[ ! "${tag}" =~ ${regex_tag} ]]; then
+		echo "${FUNCNAME[0]}: ERROR: No match '${tag}'" >&2
+		return 1
+	fi
+
+	_split_tag__pair[name]="${BASH_REMATCH[1]}"
+	_split_tag__pair[value]="${BASH_REMATCH[2]}"
+
+	if [[ ${debug} ]]; then
+	{
+		echo "${FUNCNAME[0]}: name:  '${_split_tag__pair[name]}'"
+		echo "${FUNCNAME[0]}: value: '${_split_tag__pair[value]}'"
+	} >&2
+	fi
+
+	return 0
+}
+
 m4a_check_file() {
 	local file=${1}
 	local quiet=${2}
@@ -483,6 +507,10 @@ m4a_get_tag() {
 	'DISCID')
 		t_type='-comment'
 		regex_tag='DISCID=([^=]+)'
+		;;
+	'COMMENT')
+		t_type='-comment'
+		regex_tag='COMMENT=([^=]+)'
 		;;
 	*)
 		echo "${FUNCNAME[0]}: ERROR: Unknown t_name '${t_name}'" >&2
@@ -614,6 +642,50 @@ m4a_fill_tag_set() {
 	fi
 }
 
+m4a_retag() {
+	local file=${1}
+	local tag_name=${2}
+	local tag_value=${3}
+	local op=${4}
+
+	if ! m4a_check_file "${file}" 'verbose'; then
+		return
+	fi
+
+	local old_tag
+
+	case "${op}" in
+	'add' | 'remove')
+		old_tag="$(m4a_get_tag "${tag_name}" "${file}" 'optional')"
+		;;
+	'update')
+		old_tag="$(m4a_get_tag "${tag_name}" "${file}" 'required')"
+		;;
+	*)
+		echo "${FUNCNAME[0]}: ERROR: Bad op: '${op}'" >&2
+		exit 1
+		;;
+	esac
+
+	local dry_run_txt=''
+	if [[ ${dry_run:-} ]]; then
+		dry_run_txt=' (DRY RUN)'
+	fi
+
+	{
+		echo "${FUNCNAME[0]}: file: '${file}'"
+		echo "${FUNCNAME[0]}:   ${tag_name}: '${old_tag}' => '${tag_value}'${dry_run_txt}"
+	} >&2
+
+	if [[ ! ${dry_run:-} ]]; then
+		if [[ ${tag_value} ]]; then
+			${exiftool} "-${tag_name}='${tag_value}'" "${file}"
+		else
+			${exiftool} "-${tag_name}=" "${file}"
+		fi
+	fi
+}
+
 # m4a_fill_tag_set_1() {
 # 	local file="${1}"
 # 	local -n _m4a_fill_tag_set__tags="${2}"
@@ -678,30 +750,6 @@ flac_check_file() {
 		fi
 		return 1
 	fi
-	return 0
-}
-
-flac_split_tag() {
-	local tag=${1}
-	local -n _flac_split_tag__pair="${2}"
-
-	local regex_tag='^([^=]+)=([^=]*)$'
-
-	if [[ ! "${tag}" =~ ${regex_tag} ]]; then
-		echo "${FUNCNAME[0]}: ERROR: No match '${tag}'" >&2
-		return 1
-	fi
-
-	_flac_split_tag__pair[name]="${BASH_REMATCH[1]}"
-	_flac_split_tag__pair[value]="${BASH_REMATCH[2]}"
-
-	if [[ ${debug} ]]; then
-	{
-		echo "${FUNCNAME[0]}: name:  '${_flac_split_tag__pair[name]}'"
-		echo "${FUNCNAME[0]}: value: '${_flac_split_tag__pair[value]}'"
-	} >&2
-	fi
-
 	return 0
 }
 
@@ -848,7 +896,7 @@ flac_print_tags() {
 	echo ''
 }
 
-metaflac_retag() {
+flac_retag() {
 	local file=${1}
 	local tag_name=${2}
 	local tag_value=${3}
