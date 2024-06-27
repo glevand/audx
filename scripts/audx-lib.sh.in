@@ -79,12 +79,6 @@ divided_by() {
 	echo "${whole}.${frac_10}${frac_100}"
 }
 
-sec_to_min() {
-	local sec="${1}"
-
-	divided_by "${sec}" '60'
-}
-
 sec_to_min_sec() {
 	local sec="${1}"
 	local min='0'
@@ -97,21 +91,69 @@ sec_to_min_sec() {
 	echo "${min}:${sec}"
 }
 
-test_sec_to_min_sec() {
-	local sec;
-	local min_sec;
+sec_to_min() {
+	local sec="${1}"
 
-	# 208 sec = 3:28
-	for (( sec = 0; sec <= 208; sec++ )); do
-		min_sec="$(sec_to_min_sec "${sec}")"
-		echo "${sec} => ${min_sec}"
+	divided_by "${sec}" '60'
+}
+
+sec_to_hour_min_sec() {
+	local end="${1}"
+	local count
+	local sec='0'
+	local min='0'
+	local hour='0'
+
+	for (( count = 1; count <= end; count++ )); do
+		sec="$(( sec + 1 ))"
+		if [ $((count % 60)) -eq 0 ]; then
+			min="$(( min + 1 ))"
+			sec="$(( 0 ))"
+		fi
+		if [ $((count % 3600)) -eq 0 ]; then
+			hour=$(( hour + 1 ))
+			min="$(( 0 ))"
+			sec="$(( 0 ))"
+		fi
 	done
+
+	echo "${hour}:${min}:${sec}"
 }
 
 sec_to_hour() {
 	local sec="${1}"
 
 	divided_by "${sec}" '3600'
+}
+
+test_sec_to_min() {
+	local sec;
+	local min_sec;
+	local min;
+
+	# 208 sec = 3:28 min:sec = 3.46 min
+
+	echo '--------------------' >&2
+	for (( sec = 0; sec <= 208; sec++ )); do
+		min_sec="$(sec_to_min_sec "${sec}")"
+		min="$(sec_to_min "${sec}")"
+		echo "${sec} => ${min_sec} => ${min}" >&2
+	done
+	echo '--------------------' >&2
+}
+
+test_sec_to_hour() {
+	local sec;
+
+	# 11656 sec = 3:14:16 hr:min:sec = 3.23 hr
+
+	echo '--------------------' >&2
+	for (( sec = 0; sec <= 11656; sec=$(( sec + 62 )) )); do
+		hour_min_sec="$(sec_to_hour_min_sec "${sec}")"
+		hour="$(sec_to_hour "${sec}")"
+		echo "${sec} => ${hour_min_sec} => ${hour}" >&2
+	done
+	echo '--------------------' >&2
 }
 
 verbose_echo() {
