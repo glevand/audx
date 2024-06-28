@@ -6,7 +6,7 @@ usage() {
 	set +o xtrace
 
 	{
-		echo "${script_name} - Rip audio cassettes."
+		echo "${script_name} - Rip audio cassettes or vinyl."
 		echo "Usage: ${script_name} [flags]"
 		echo "Option flags:"
 		echo "  --base-name       - Output file base name. Default: '${base_name}'."
@@ -14,16 +14,16 @@ usage() {
 		echo "  --start-threshold - Silence start threshold. Default: '${start_threshold}'."
 		echo "  --end-duration    - Silence end duration. Default: '${end_duration}'."
 		echo "  --end-threshold   - Silence end threshold. Default: '${end_threshold}'."
-	#	echo "  --split-time      - Split time . Default: '${split_time}'."
-		echo "  -f --force        - Force overwrite if exisitng output file."
-		echo "  -c --config       - Configuration file. Default: '${config_file}'."
+# 		echo "  --split-time      - Split time . Default: '${split_time}'."
+		echo "  -f --force        - Force overwrite if output file exists. Default: '${force}'."
+# 		echo "  -c --config       - Configuration file. Default: '${config_file}'."
 		echo "  -h --help         - Show this help and exit."
-		echo "  -v --verbose      - Verbose execution."
-		echo "  -g --debug        - Extra verbose execution."
-		echo "Option steps:"
-		echo "  -1 --rip-sox      - Rip to sox file."
-		echo "  -2 --split-sox    - Split sox file."
-		echo "  -3 --encode-flac  - Encode to flac."
+		echo "  -v --verbose      - Verbose execution. Default: '${verbose}'."
+		echo "  -g --debug        - Extra verbose execution. Default: '${debug}'."
+# 		echo "Option steps:"
+# 		echo "  -1 --rip-sox      - Rip to sox file."
+# 		echo "  -2 --split-sox    - Split sox file."
+# 		echo "  -3 --encode-flac  - Encode to flac."
 		echo "Info:"
 		print_project_info
 	} >&2
@@ -128,18 +128,19 @@ SCRIPT_TOP="$(realpath "${SCRIPT_TOP:-${real_source%/*}}")"
 
 trap "on_exit 'Failed'" EXIT
 trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+
 set -eE
 set -o pipefail
 set -o nounset
 
 source "${SCRIPT_TOP}/audx-lib.sh"
 
-start_duration=''
-start_threshold=''
-end_duration=''
-end_threshold=''
-base_name=''
-split_time=''
+base_name="/tmp/rip--$(date +%Y.%m.%d-%H.%M.%S)}"
+start_duration='0.2'
+start_threshold='0.6%'
+end_duration='0.2'
+end_threshold='0.6%'
+split_time='2.0'
 force=''
 config_file=''
 usage=''
@@ -151,16 +152,6 @@ process_opts "${@}"
 if [[ -f "${HOME}/.audx.conf" ]]; then
 	source "${HOME}/.audx.conf"
 fi
-
-base_name="${base_name:-$(pwd)/rip--$(date +%Y.%m.%d-%H.%M.%S)}"
-
-start_duration="${start_duration:-0.2}"
-start_threshold="${start_threshold:-0.6%}"
-
-end_duration="${end_duration:-2.0}"
-end_threshold="${end_threshold:-0.6%}"
-
-split_time="${split_time:-2.0}"
 
 if [[ ${usage} ]]; then
 	usage
