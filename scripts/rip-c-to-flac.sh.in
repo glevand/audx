@@ -99,7 +99,7 @@ if [[ ${usage} ]]; then
 	exit 0
 fi
 
-echo "${script_name} - ${start_time}"
+echo "${script_name} - ${start_time}" >&2
 
 if [[ ${extra_args} ]]; then
 	set +o xtrace

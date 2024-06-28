@@ -6,7 +6,7 @@ usage() {
 	set +o xtrace
 
 	{
-		echo "${script_name} - Add FLAC metadata tags to rip-c files."
+		echo "${script_name} - Add FLAC metadata tags to rip-c FLAC files."
 		echo "Usage: ${script_name} [flags] top-dir"
 		echo "Option flags:"
 		echo "  -h --help        - Show this help and exit."
