@@ -88,6 +88,14 @@ sec_to_min_sec() {
 		sec="$(( sec - 60 ))"
 	done
 
+	if (( sec < 10 )); then
+		sec="0${sec}"
+	fi
+
+	if (( min < 10 )); then
+		min="0${min}"
+	fi
+
 	echo "${min}:${sec}"
 }
 
@@ -116,6 +124,14 @@ sec_to_hour_min_sec() {
 			sec="$(( 0 ))"
 		fi
 	done
+
+	if (( sec < 10 )); then
+		sec="0${sec}"
+	fi
+
+	if (( min < 10 )); then
+		min="0${min}"
+	fi
 
 	echo "${hour}:${min}:${sec}"
 }
