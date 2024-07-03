@@ -148,6 +148,14 @@ test_sec_to_hour() {
 	# 11656 sec = 3:14:16 hr:min:sec = 3.23 hr
 
 	echo '--------------------' >&2
+	for (( sec = 0; sec <= 21; sec++ )); do
+		hour_min_sec="$(sec_to_hour_min_sec "${sec}")"
+		hour="$(sec_to_hour "${sec}")"
+		echo "${sec} => ${hour_min_sec} => ${hour}" >&2
+	done
+	echo '--------------------' >&2
+
+	echo '--------------------' >&2
 	for (( sec = 0; sec <= 11656; sec=$(( sec + 62 )) )); do
 		hour_min_sec="$(sec_to_hour_min_sec "${sec}")"
 		hour="$(sec_to_hour "${sec}")"
