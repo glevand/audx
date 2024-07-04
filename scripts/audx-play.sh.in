@@ -185,10 +185,11 @@ get_total_duration() {
 	minutes="$(( minutes + BASH_REMATCH[1] ))"
 	seconds="${BASH_REMATCH[2]}"
 
-# 	echo "------" >&2
-# 	echo "${minutes}:${seconds}" >&2
+	if [[ ${verbose} ]]; then
+		echo "${hours}:${minutes}:${seconds}" >&2
+	fi
 
-	echo "${minutes}:${seconds}"
+	echo "${hours}:${minutes}:${seconds}"
 }
 
 get_tags_array() {
