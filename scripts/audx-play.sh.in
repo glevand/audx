@@ -175,15 +175,23 @@ get_total_duration() {
 		fi
 	done
 
-	local min_sec="$(sec_to_min_sec "${seconds}")"
+	while  [ ${seconds} -ge 60 ]; do
+		minutes="$(( minutes + 1 ))"
+		seconds="$(( seconds - 60 ))"
+	done
 
-	if [[ ! "${min_sec}" =~ ${regex_min} ]]; then
-		echo "${FUNCNAME[0]}: ERROR: No match '${min_sec}'" >&2
-		exit 1
+	while  [ ${minutes} -ge 60 ]; do
+		hours="$(( hours + 1 ))"
+		minutes="$(( minutes - 60 ))"
+	done
+
+	if (( seconds < 10 )); then
+		seconds="0${seconds}"
 	fi
 
-	minutes="$(( minutes + BASH_REMATCH[1] ))"
-	seconds="${BASH_REMATCH[2]}"
+	if (( minutes < 10 )); then
+		minutes="0${minutes}"
+	fi
 
 	if [[ ${verbose} ]]; then
 		echo "${hours}:${minutes}:${seconds}" >&2

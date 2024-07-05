@@ -88,14 +88,6 @@ sec_to_min_sec() {
 		sec="$(( sec - 60 ))"
 	done
 
-	if (( sec < 10 )); then
-		sec="0${sec}"
-	fi
-
-	if (( min < 10 )); then
-		min="0${min}"
-	fi
-
 	echo "${min}:${sec}"
 }
 
@@ -108,16 +100,18 @@ sec_to_min() {
 sec_to_hour_min_sec() {
 	local end="${1}"
 	local count
-	local sec='0'
-	local min='0'
 	local hour='0'
+	local min='0'
+	local sec='0'
 
 	for (( count = 1; count <= end; count++ )); do
 		sec="$(( sec + 1 ))"
+
 		if [ $((count % 60)) -eq 0 ]; then
 			min="$(( min + 1 ))"
 			sec="$(( 0 ))"
 		fi
+
 		if [ $((count % 3600)) -eq 0 ]; then
 			hour=$(( hour + 1 ))
 			min="$(( 0 ))"
@@ -125,12 +119,8 @@ sec_to_hour_min_sec() {
 		fi
 	done
 
-	if (( sec < 10 )); then
-		sec="0${sec}"
-	fi
-
-	if (( min < 10 )); then
-		min="0${min}"
+	if [[ ${verbose} ]]; then
+		echo "${FUNCNAME[0]}: ${hour}:${min}:${sec}" >&2
 	fi
 
 	echo "${hour}:${min}:${sec}"
@@ -1145,7 +1135,7 @@ write_m3u_playlist() {
 
 	if (( ${file_count} == 0 )); then
 		if [[ ${verbose} ]]; then
-			echo "${script_name}: No ${file_types} files found in '${dir}'" >&2
+			echo "${FUNCNAME[0]}: No ${file_types} files found in '${dir}'" >&2
 		fi
 		return
 	fi
