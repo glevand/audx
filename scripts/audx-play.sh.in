@@ -376,13 +376,9 @@ play_tracks() {
 		echo "${id}/${track_count}: ${_play_tracks__tags_array[${id},ARTIST]}, ${_play_tracks__tags_array[${id},TITLE]} (${_play_tracks__tags_array[${id},duration]})"
 
 		if [[ "${_play_tracks__tags_array[${id},ext]}" = 'm4a' ]]; then
-			if [[ ! ${silent_test:-} ]]; then
-				${ffplay} -loglevel quiet -nodisp -autoexit "${file}" > /dev/null || :
-			fi
+			${ffplay} -loglevel quiet -nodisp -autoexit "${file}" > /dev/null || :
 		elif [[  "${_play_tracks__tags_array[${id},ext]}" = 'flac' ]]; then
-			if [[ ! ${silent_test:-} ]]; then
-				${sox} --no-show-progress "${file:?}" -d
-			fi
+			${sox} --no-show-progress "${file:?}" -d
 		else
 			echo "${id}/${track_count}: Unknown file type '${file}'." >&2
 		fi
