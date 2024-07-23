@@ -60,6 +60,20 @@ on_err() {
 	exit "${err_no}"
 }
 
+add_leading_zero() {
+	local -n _add_leading_zero_number="${1}"
+
+	_add_leading_zero_number="${_add_leading_zero_number#0}"
+
+	if (( ${_add_leading_zero_number} < 10 )); then
+		_add_leading_zero_number="0${_add_leading_zero_number}"
+	fi
+
+	if [[ ${debug} ]]; then
+		echo "_add_leading_zero_number= '${_add_leading_zero_number}'" >&2
+	fi
+}
+
 divided_by() {
 	local dividend=${1}
 	local divisor=${2}
@@ -77,6 +91,15 @@ divided_by() {
 	fi
 
 	echo "${whole}.${frac_10}${frac_100}"
+}
+
+test_divided_by() {
+	divided_by 36 6		# 6.00
+	divided_by 3600 6	# 600.00
+	divided_by 1234 5	# 246.80
+	divided_by 8911 3	# 2970.33
+	divided_by 8911 4	# 2227.75
+	divided_by 483674 3	# 161224.66
 }
 
 sec_to_min_sec() {
@@ -226,7 +249,7 @@ check_dir_exists() {
 	fi
 }
 
-check_does_not_exist() {
+check_dir_does_not_exist() {
 	local msg="${1}"
 	local dir="${2}"
 
@@ -413,6 +436,13 @@ slash_count() {
 	echo "${#count}"
 }
 
+test_slash_count() {
+	slash_count 'a'
+	slash_count '111/'
+	slash_count '1/2/3/4/'
+	slash_count '////////'
+}
+
 path_to_artist_album() {
 	local path=${1}
 	local -n _path_to_artist_album__pair="${2}"
@@ -497,6 +527,25 @@ split_tag() {
 	fi
 
 	return 0
+}
+
+print_tag_set() {
+	local msg="${1}"
+	local file="${2}"
+	local -n _print_tag_set__tags="${3}"
+
+	echo "${msg} file: '${file}'"
+	echo "${msg}   ARTIST:      '${_print_tag_set__tags[ARTIST]}'"
+	echo "${msg}   ALBUM:       '${_print_tag_set__tags[ALBUM]}'"
+	echo "${msg}   DATE:        '${_print_tag_set__tags[DATE]}'"
+	echo "${msg}   TITLE:       '${_print_tag_set__tags[TITLE]}'"
+	echo "${msg}   GENRE:       '${_print_tag_set__tags[GENRE]}'"
+	echo "${msg}   TRACKNUMBER: '${_print_tag_set__tags[TRACKNUMBER]}'"
+	echo "${msg}   TRACKTOTAL:  '${_print_tag_set__tags[TRACKTOTAL]}'"
+	echo "${msg}   CDDB:        '${_print_tag_set__tags[CDDB]}'"
+	if [[ ${_print_tag_set__tags[DISCID]} ]]; then
+		echo "${msg}   DISCID:      '${_print_tag_set__tags[DISCID]}'"
+	fi
 }
 
 m4a_check_file() {
@@ -838,39 +887,6 @@ flac_get_tag() {
 	fi
 
 	echo "${BASH_REMATCH[1]}"
-}
-
-print_tag_set() {
-	local msg="${1}"
-	local file="${2}"
-	local -n _print_tag_set__tags="${3}"
-
-	echo "${msg} file: '${file}'"
-	echo "${msg}   ARTIST:      '${_print_tag_set__tags[ARTIST]}'"
-	echo "${msg}   ALBUM:       '${_print_tag_set__tags[ALBUM]}'"
-	echo "${msg}   DATE:        '${_print_tag_set__tags[DATE]}'"
-	echo "${msg}   TITLE:       '${_print_tag_set__tags[TITLE]}'"
-	echo "${msg}   GENRE:       '${_print_tag_set__tags[GENRE]}'"
-	echo "${msg}   TRACKNUMBER: '${_print_tag_set__tags[TRACKNUMBER]}'"
-	echo "${msg}   TRACKTOTAL:  '${_print_tag_set__tags[TRACKTOTAL]}'"
-	echo "${msg}   CDDB:        '${_print_tag_set__tags[CDDB]}'"
-	if [[ ${_print_tag_set__tags[DISCID]} ]]; then
-		echo "${msg}   DISCID:      '${_print_tag_set__tags[DISCID]}'"
-	fi
-}
-
-add_leading_zero() {
-	local -n _add_leading_zero_number="${1}"
-
-	_add_leading_zero_number="${_add_leading_zero_number#0}"
-
-	if (( ${_add_leading_zero_number} < 10 )); then
-		_add_leading_zero_number="0${_add_leading_zero_number}"
-	fi
-
-	if [[ ${debug} ]]; then
-		echo "_add_leading_zero_number= '${_add_leading_zero_number}'" >&2
-	fi
 }
 
 flac_fill_tag_set() {
@@ -1230,3 +1246,16 @@ fill_random_array() {
 	fi
 }
 
+test_run_all() {
+	echo '=== test_divided_by =============' >&2
+	test_divided_by
+	echo '=== test_sec_to_min =============' >&2
+	test_sec_to_min
+	echo '=== test_sec_to_hour =============' >&2
+	test_sec_to_hour
+	echo '=== test_slash_count =============' >&2
+	test_slash_count
+	echo '=== test_make_m3u_header =============' >&2
+	test_make_m3u_header
+	echo '======================================' >&2
+}
