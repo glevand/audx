@@ -668,12 +668,14 @@ test_str_clean_tag() {
 		'[ACDC]'
 		'[AC\/DC]'
 	)
+	declare -A str_clean_tag_opts=()
 
+	str_clean_tag_opts[and_the]='1'
 	audx_lib_verbose=1
 
 	local i
 	for i in "${input[@]}"; do
-		str_clean_tag "${i}" > /dev/null
+		str_clean_tag "${i}" str_clean_tag_opts > /dev/null
 	done
 }
 

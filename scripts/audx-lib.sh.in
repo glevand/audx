@@ -1432,5 +1432,34 @@ test_run_all() {
 	test_slash_count
 	echo '=== test_make_m3u_header =============' >&2
 	test_make_m3u_header
+
+	echo '=== test_str_eat_space =============' >&2
+	test_str_eat_space
+	echo '=== test_str_is_comment =============' >&2
+	test_str_is_comment
+	echo '=== test_str_trim_space =============' >&2
+	test_str_trim_space
+	echo '=== test_str_clean_colon =============' >&2
+	test_str_clean_colon
+	echo '=== test_str_clean_parentheses =============' >&2
+	test_str_clean_parentheses
+	echo '=== test_str_clean_quotes =============' >&2
+	test_str_clean_quotes
+	echo '=== test_str_clean_common =============' >&2
+	test_str_clean_common
+	echo '=== test_str_clean_filename =============' >&2
+	test_str_clean_filename
+	echo '=== test_str_clean_and_the =============' >&2
+	test_str_clean_and_the
+	echo '=== test_str_clean_phrase =============' >&2
+	test_str_clean_phrase
+	echo '=== test_str_clean_disc =============' >&2
+	test_str_clean_disc
+	echo '=== test_str_clean_genre =============' >&2
+	test_str_clean_genre
+	echo '=== test_str_clean_tag =============' >&2
+	test_str_clean_tag
+	echo '=== test_str_clean_all =============' >&2
+	test_str_clean_all
 	echo '======================================' >&2
 }
